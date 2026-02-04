@@ -1,0 +1,10 @@
+flask
+discord.py
+python-dotenv
+google-genai
+google-api-python-client
+newsapi-python
+gTTS
+qrcode
+Pillow
+requests
