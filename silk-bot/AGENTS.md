@@ -36,7 +36,22 @@ S.I.L.K. is a modular Discord bot written in Python using `discord.py`. It is ho
 * **Role:** Tricks Render into treating the bot as a web service.
 * **Behavior:** Runs a lightweight Flask app returning "Silk is Online!". It runs on a separate daemon thread initiated by `main.py`.
 
-### 3. Shifo Module (Phase 2)
+### 3. Brain Module (Phase 1)
+* **File:** `cogs/brain.py`
+* **Role:** Handles AI intelligence, text generation, and creative writing.
+* **Dependencies:** `google-genai` (New SDK).
+* **Model:** `gemma-3-27b-it` (Selected for high daily quota).
+* **Commands:**
+    * `/idea`: Generates unique coding projects or content ideas.
+    * `/roast [user]`: Generates a creative, lighthearted roast.
+    * `/whois [character]`: Creates a "Character Card" (Powers, Origin).
+    * `/summary [text]`: Summarizes long text into 3 bullet points.
+    * `/define [word]`: Provides formal definitions.
+    * `/slang [word]`: Provides "street" definitions (Urban Dictionary style).
+    * `/translate [lang] [text]`: Translates text to a target language.
+    * `/ship [user1] [user2]`: Generates a compatibility score and love story.
+
+### 4. Shifo Module (Phase 2)
 * **File:** `cogs/shifo.py`
 * **Role:** Handles YouTube Data API integration for channel stats and promotion.
 * **Dependencies:** `google-api-python-client`.
@@ -45,7 +60,7 @@ S.I.L.K. is a modular Discord bot written in Python using `discord.py`. It is ho
     * `/latest`: Fetches and links the most recent ShifoLabs video upload.
     * `/shoutout [handle]`: Generates a "Promo Card" embed for any YouTube channel.
 
-### 4. Creative Module (Phase 3)
+### 5. Creative Module (Phase 3)
 * **File:** `cogs/creative.py`
 * **Role:** Handles external API calls for media generation and information fetching.
 * **Dependencies:** `requests` (Hugging Face), `gTTS` (Google Text-to-Speech), `newsapi-python`, `io`.
@@ -54,7 +69,7 @@ S.I.L.K. is a modular Discord bot written in Python using `discord.py`. It is ho
     * `/imagine [prompt]`: Generates AI images using Stable Diffusion XL (via Hugging Face Router).
     * `/voice [text]`: Converts text to an MP3 file and uploads it.
 
-### 5. Utilities Module (Phase 4)
+### 6. Utilities Module (Phase 4)
 * **File:** `cogs/utils.py`
 * **Role:** Provides essential tools, server stats, and logic-based utilities.
 * **Dependencies:** `qrcode`, `Pillow`, `io`.
@@ -63,7 +78,7 @@ S.I.L.K. is a modular Discord bot written in Python using `discord.py`. It is ho
     * **RNG:** `/roll` (Dice), `/flip` (Coin), `/choose` (Pick random).
     * **Tools:** `/calc` (Safe math), `/poll` (Reacts with 🇦/🇧), `/qr` (Generates QR codes), `/dm` (Admin only).
 
-### 6. Fun Module (Phase 5)
+### 7. Fun Module (Phase 5)
 * **File:** `cogs/fun.py`
 * **Role:** Handles text manipulation and entertainment commands.
 * **Commands:** `/mock`, `/reverse`, `/clap`, `/say`.
@@ -71,6 +86,15 @@ S.I.L.K. is a modular Discord bot written in Python using `discord.py`. It is ho
 
 ## 🔮 Future Roadmap (Context for Expansion)
 When generating new code, strictly adhere to these planned modules:
-* **`cogs/brain.py` (Phase 1):** Will handle Google Gemini 3 integration (AI Chat).
-* **`cogs/moderation.py` (Phase 6):** Will handle Admin tools.
-* 
+
+* **`cogs/moderation.py` (Phase 6 - The Judge):**
+    * **Role:** Standard server management and discipline tools.
+    * **Commands:** `/kick`, `/ban`, `/purge` (clear messages), `/slowmode`.
+    * **Logic:** Must enforce hierarchy checks (cannot ban users with higher roles).
+
+* **`cogs/architect.py` (Phase 7 - The Architect):**
+    * **Role:** "Natural Language to Infrastructure" engine using AI.
+    * **Command:** `/architect [instruction]`
+    * **Function:** User describes a setup (e.g., "Create 5 gaming channels"), AI plans it, Bot executes it.
+    * **Safety Protocol:** Must implement a strict **1.0 second delay** between every creation action to prevent API spam/bans.
+    * 
