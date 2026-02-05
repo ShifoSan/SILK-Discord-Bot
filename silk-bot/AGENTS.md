@@ -1,7 +1,7 @@
-* S.I.L.K. Bot - Codebase Context & Architecture
-Project Overview
+# S.I.L.K. Bot - Codebase Context & Architecture
+## Project Overview
  * S.I.L.K. is a modular Discord bot written in Python using discord.py. It is hosted on Render as a Web Service. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
-🏗️ Architectural Standards
+## 🏗️ Architectural Standards
  * Framework: discord.py (latest version) using app_commands (Slash Commands).
  * Hosting: Render Web Service.
    * Constraint: Requires a "Keep-Alive" mechanism to prevent sleeping.
@@ -13,14 +13,14 @@ Project Overview
  * File Structure:
    * main.py: Entry point. Loads env vars, starts Flask thread, iterates cogs/ to load extensions, and syncs commands.
    * cogs/: Directory for all bot modules. New features MUST be added here as separate files.
-⚠️ Critical Protocols (The "Render Rules")
+## ⚠️ Critical Protocols (The "Render Rules")
  * The Defer Protocol:
    * Render's free tier can be slow to wake up. Discord times out interactions after 3 seconds.
    * Rule: Any command performing logic (API calls, image generation, math, database fetches) MUST start with await interaction.response.defer(thinking=True).
    * Follow-up: Once deferred, use await interaction.followup.send(...) instead of response.send_message.
  * Input Sanitization:
    * Math/Eval commands must strictly strip dangerous characters to prevent code injection.
-🤖 Agents & Tools (Components)
+## 🤖 Agents & Tools (Components)
 1. The Core (System Orchestrator)
  * File: main.py
  * Role: Initializes the bot, manages the setup_hook for extension loading, and handles the Discord connection.
@@ -82,7 +82,7 @@ Project Overview
  * Commands:
    * /architect [instruction]: Creation Mode. Safely builds channels, roles, and categories. Forbidden from deleting.
    * /demolish [instruction]: Destruction Mode. Deletes specific channels/roles. Forbidden from creating.
-* 🔮 Future Roadmap (Context for Expansion)
+## 🔮 Future Roadmap (Context for Expansion)
 When generating new code, strictly adhere to these planned modules:
  * cogs/moderation.py (Phase 6 - The Judge):
    * Role: Standard server management and discipline tools.
