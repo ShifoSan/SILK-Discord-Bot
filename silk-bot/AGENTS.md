@@ -1,6 +1,6 @@
 # S.I.L.K. Bot - Codebase Context & Architecture
 ## Project Overview
- * S.I.L.K. is a modular Discord bot written in Python using discord.py. It is hosted on Render as a Web Service. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
+S.I.L.K. is a modular Discord bot written in Python using discord.py. It is hosted on Render as a Web Service. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
 ## 🏗️ Architectural Standards
  * Framework: discord.py (latest version) using app_commands (Slash Commands).
  * Hosting: Render Web Service.
@@ -35,57 +35,51 @@
  * Dependencies: google-genai (New SDK).
  * Model: gemma-3-27b-it (Selected for high daily quota).
  * Commands:
-   * /idea: Generates unique coding projects or content ideas.
-   * /roast [user]: Generates a creative, lighthearted roast.
-   * /whois [character]: Creates a "Character Card" (Powers, Origin).
-   * /summary [text]: Summarizes long text into 3 bullet points.
-   * /define [word]: Provides formal definitions.
-   * /slang [word]: Provides "street" definitions (Urban Dictionary style).
-   * /translate [lang] [text]: Translates text to a target language.
-   * /ship [user1] [user2]: Generates a compatibility score and love story.
+   * /idea, /roast, /whois, /summary, /define, /slang, /translate, /ship.
 4. Shifo Module (Phase 2)
  * File: cogs/shifo.py
  * Role: Handles YouTube Data API integration for channel stats and promotion.
  * Dependencies: google-api-python-client.
- * Commands:
-   * /stats: Displays live subscriber count, total views, and video count for ShifoLabs.
-   * /latest: Fetches and links the most recent ShifoLabs video upload.
-   * /shoutout [handle]: Generates a "Promo Card" embed for any YouTube channel.
+ * Commands: /stats, /latest, /shoutout.
 5. Creative Module (Phase 3)
  * File: cogs/creative.py
  * Role: Handles external API calls for media generation and information fetching.
  * Dependencies: requests (Hugging Face), gTTS (Google Text-to-Speech), newsapi-python, io.
- * Commands:
-   * /tech_news: Fetches top 3 AI/Tech headlines via NewsAPI.
-   * /imagine [prompt]: Generates AI images using Stable Diffusion XL (via Hugging Face Router).
-   * /voice [text]: Converts text to an MP3 file and uploads it.
+ * Commands: /tech_news, /imagine, /voice.
 6. Utilities Module (Phase 4)
  * File: cogs/utils.py
  * Role: Provides essential tools, server stats, and logic-based utilities.
  * Dependencies: qrcode, Pillow, io.
- * Commands:
-   * Info: /ping (Latency), /uptime, /serverinfo, /userinfo, /avatar.
-   * RNG: /roll (Dice), /flip (Coin), /choose (Pick random).
-   * Tools: /calc (Safe math), /poll (Reacts with 🇦/🇧), /qr (Generates QR codes), /dm (Admin only).
+ * Commands: /ping, /uptime, /serverinfo, /userinfo, /avatar, /roll, /flip, /choose, /calc, /poll, /qr, /dm.
 7. Fun Module (Phase 5)
  * File: cogs/fun.py
  * Role: Handles text manipulation and entertainment commands.
  * Commands: /mock, /reverse, /clap, /say.
- * Convention: Pure Python string manipulation. No external APIs required.
 8. Architect Module (Phase 7)
  * File: cogs/architect.py
  * Role: "Natural Language to Infrastructure" engine using AI.
  * Dependencies: google-genai (New SDK).
  * Model: gemma-3-27b-it (No native JSON mode support - uses text parsing).
- * Safety Protocol: * Strict 1.0 second delay between every creation/deletion action to prevent API bans.
+ * Safety Protocol:
+   * Strict 1.0 second delay between every creation/deletion action.
    * Restricted to Administrators only.
  * Commands:
-   * /architect [instruction]: Creation Mode. Safely builds channels, roles, and categories. Forbidden from deleting.
-   * /demolish [instruction]: Destruction Mode. Deletes specific channels/roles. Forbidden from creating.
+   * /architect: Creation Mode (No Deletes).
+   * /demolish: Destruction Mode (No Creates).
 ## 🔮 Future Roadmap (Context for Expansion)
 When generating new code, strictly adhere to these planned modules:
  * cogs/moderation.py (Phase 6 - The Judge):
    * Role: Standard server management and discipline tools.
    * Commands: /kick, /ban, /purge (clear messages), /slowmode.
    * Logic: Must enforce hierarchy checks (cannot ban users with higher roles).
-   * 
+ * cogs/chat.py (Phase 8 - The Conversationalist):
+   * Role: Advanced, context-aware automatic chat handler.
+   * Dependencies: google-genai (New SDK), collections.deque (for rate limiting).
+   * Model: gemma-3-27b-it.
+   * Key Features:
+     * Smart Scrollback: Fetches last 20 messages and formats them as [User - DisplayName]: Message to ensure the AI knows who it is replying to.
+     * Toggle Command: /chat_toggle [state] to enable/disable auto-reply for the current channel.
+     * Global Reply: Responds to ALL messages in active channels (except bots).
+     * Rate Limiting (CRITICAL): Must implement a bucket system to ensure the bot never exceeds 30 replies per minute (Gemma RPM limit). If the limit is hit, it should silently ignore or queue messages.
+     * Context Safety: Logic to truncate extremely long user messages to prevent context window overflow.
+     * 
