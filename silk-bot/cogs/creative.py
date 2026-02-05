@@ -23,7 +23,7 @@ class Creative(commands.Cog):
             print("Warning: NEWS_API_KEY not found in environment variables.")
 
         # Hugging Face Constants
-        self.HF_API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+        self.HF_API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
 
     # --- Tech News Command ---
     @app_commands.command(name="tech_news", description="Get the top 3 technology headlines")
