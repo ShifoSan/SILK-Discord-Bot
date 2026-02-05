@@ -16,6 +16,14 @@ S.I.L.K. is a modular Discord bot written in Python using `discord.py`. It is ho
     * `main.py`: Entry point. Loads env vars, starts Flask thread, iterates `cogs/` to load extensions, and syncs commands.
     * `cogs/`: Directory for all bot modules. New features MUST be added here as separate files.
 
+## ⚠️ Critical Protocols (The "Render Rules")
+* **The Defer Protocol:**
+    * Render's free tier can be slow to wake up. Discord times out interactions after 3 seconds.
+    * **Rule:** Any command performing logic (API calls, image generation, math) MUST start with `await interaction.response.defer(thinking=True)`.
+    * **Follow-up:** Once deferred, use `await interaction.followup.send(...)` instead of `response.send_message`.
+* **Input Sanitization:**
+    * Math/Eval commands must strictly strip dangerous characters to prevent code injection.
+
 ## 🤖 Agents & Tools (Components)
 
 ### 1. The Core (System Orchestrator)
@@ -28,17 +36,25 @@ S.I.L.K. is a modular Discord bot written in Python using `discord.py`. It is ho
 * **Role:** Tricks Render into treating the bot as a web service.
 * **Behavior:** Runs a lightweight Flask app returning "Silk is Online!". It runs on a separate daemon thread initiated by `main.py`.
 
-### 3. Fun Module (Text Processor)
-* **File:** `cogs/fun.py` (Phase 5)
+### 3. Utilities Module (Phase 4)
+* **File:** `cogs/utils.py`
+* **Role:** Provides essential tools, server stats, and logic-based utilities.
+* **Dependencies:** `qrcode`, `Pillow`, `io`.
+* **Commands:**
+    * **Info:** `/ping` (Latency), `/uptime`, `/serverinfo`, `/userinfo`, `/avatar`.
+    * **RNG:** `/roll` (Dice), `/flip` (Coin), `/choose` (Pick random).
+    * **Tools:** `/calc` (Safe math), `/poll` (Reacts with 🇦/🇧), `/qr` (Generates QR codes), `/dm` (Admin only).
+
+### 4. Fun Module (Phase 5)
+* **File:** `cogs/fun.py`
 * **Role:** Handles text manipulation and entertainment commands.
 * **Commands:** `/mock`, `/reverse`, `/clap`, `/say`.
 * **Convention:** Pure Python string manipulation. No external APIs required.
 
 ## 🔮 Future Roadmap (Context for Expansion)
 When generating new code, strictly adhere to these planned modules:
-* **`cogs/brain.py` (Phase 1):** Will handle Google Gemini 3 integration (AI Chat).
+* **`cogs/creative.py` (Phase 3):** Will handle Media generation (Hugging Face / NewsAPI). **MUST USE DEFER PROTOCOL.**
 * **`cogs/shifo.py` (Phase 2):** Will handle YouTube Data API v3 integration.
-* **`cogs/creative.py` (Phase 3):** Will handle Media generation (Hugging Face / NewsAPI).
-* **`cogs/utils.py` (Phase 4):** Will handle Utilities (Ping, Math, Embeds).
+* **`cogs/brain.py` (Phase 1):** Will handle Google Gemini 3 integration (AI Chat).
 * **`cogs/moderation.py` (Phase 6):** Will handle Admin tools.
 * 
