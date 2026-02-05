@@ -26,12 +26,14 @@ class Brain(commands.Cog):
         if not self.client:
             return "My brain is missing (API Key not found)!"
 
+        # Manual system prompting: Prepend persona to user prompt
+        full_prompt = f"System: {self.persona}\nUser: {prompt}"
+
         try:
             response = self.client.models.generate_content(
                 model=self.model_id,
-                contents=prompt,
+                contents=full_prompt,
                 config=types.GenerateContentConfig(
-                    system_instruction=self.persona,
                     temperature=0.8
                 )
             )
@@ -43,7 +45,8 @@ class Brain(commands.Cog):
             if "blocked" in error_str or "safety" in error_str:
                 return "My safety filters blocked that response. Try asking nicely! 🤖"
             print(f"GenAI Error: {e}")
-            return "I tried to think too hard and short-circuited. Try again later. 🔌"
+            # Debug Mode: Return actual error to Discord
+            return f"⚠️ API Error: {e}"
 
     @app_commands.command(name="idea", description="Generate a random coding or content idea.")
     async def idea(self, interaction: discord.Interaction):
