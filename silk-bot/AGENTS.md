@@ -1,6 +1,6 @@
-S.I.L.K. Bot - Codebase Context & Architecture
+* S.I.L.K. Bot - Codebase Context & Architecture
 Project Overview
-S.I.L.K. is a modular Discord bot written in Python using discord.py. It is hosted on Render as a Web Service. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
+ * S.I.L.K. is a modular Discord bot written in Python using discord.py. It is hosted on Render as a Web Service. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
 🏗️ Architectural Standards
  * Framework: discord.py (latest version) using app_commands (Slash Commands).
  * Hosting: Render Web Service.
@@ -82,7 +82,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * Commands:
    * /architect [instruction]: Creation Mode. Safely builds channels, roles, and categories. Forbidden from deleting.
    * /demolish [instruction]: Destruction Mode. Deletes specific channels/roles. Forbidden from creating.
-🔮 Future Roadmap (Context for Expansion)
+* 🔮 Future Roadmap (Context for Expansion)
 When generating new code, strictly adhere to these planned modules:
  * cogs/moderation.py (Phase 6 - The Judge):
    * Role: Standard server management and discipline tools.
