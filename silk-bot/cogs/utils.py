@@ -130,7 +130,7 @@ class Utils(commands.Cog):
     @app_commands.command(name="qr", description="Generate a QR code for a URL")
     async def qr(self, interaction: discord.Interaction, url: str):
         # Defer the response as QR generation might take a moment (though usually fast)
-        await interaction.defer()
+        await interaction.response.defer(thinking=True)
 
         qr_img = qrcode.make(url)
         buffer = io.BytesIO()
