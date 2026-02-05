@@ -8,3 +8,4 @@ gTTS
 qrcode
 Pillow
 requests
+gunicorn
