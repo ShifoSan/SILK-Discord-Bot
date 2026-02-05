@@ -10,11 +10,11 @@ from newsapi import NewsApiClient
 class Creative(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
+        
         # Load API keys
         self.news_api_key = os.getenv("NEWS_API_KEY")
         self.hf_token = os.getenv("HUGGINGFACE_TOKEN")
-
+        
         # Initialize NewsAPI Client
         if self.news_api_key:
             self.newsapi = NewsApiClient(api_key=self.news_api_key)
@@ -23,7 +23,7 @@ class Creative(commands.Cog):
             print("Warning: NEWS_API_KEY not found in environment variables.")
 
         # Hugging Face Constants
-        self.HF_API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+        self.HF_API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
 
     # --- Tech News Command ---
     @app_commands.command(name="tech_news", description="Get the top 3 technology headlines")
@@ -36,7 +36,7 @@ class Creative(commands.Cog):
 
         try:
             top_headlines = self.newsapi.get_top_headlines(category='technology', language='en', page_size=3)
-
+            
             if top_headlines['status'] != 'ok':
                 await interaction.followup.send("❌ Failed to fetch news.")
                 return
@@ -47,12 +47,12 @@ class Creative(commands.Cog):
                 return
 
             embed = discord.Embed(title="📰 Top Tech News", color=discord.Color.blue())
-
+            
             for article in articles:
                 title = article.get('title', 'No Title')
                 description = article.get('description', 'No description available.')
                 url = article.get('url', '')
-
+                
                 value_text = f"{description}\n[Read more]({url})"
                 embed.add_field(name=title, value=value_text, inline=False)
 
@@ -77,16 +77,16 @@ class Creative(commands.Cog):
 
         try:
             response = requests.post(self.HF_API_URL, headers=headers, json=payload)
-
+            
             if response.status_code == 200:
                 image_bytes = response.content
                 fp = io.BytesIO(image_bytes)
                 file = discord.File(fp, filename="image.png")
                 await interaction.followup.send(f"🎨 **Prompt:** {prompt}", file=file)
-
+            
             elif response.status_code == 503:
                 await interaction.followup.send("⏳ The model is currently loading (Cold Start). Please try again in 30 seconds.")
-
+            
             elif 400 <= response.status_code < 500:
                 try:
                     error_json = response.json()
@@ -94,7 +94,7 @@ class Creative(commands.Cog):
                 except ValueError:
                     error_msg = response.text
                 await interaction.followup.send(f"❌ API Error: {error_msg}")
-
+            
             else:
                 await interaction.followup.send(f"❌ An unexpected error occurred. Status Code: {response.status_code}")
 
@@ -116,10 +116,10 @@ class Creative(commands.Cog):
             fp = io.BytesIO()
             tts.write_to_fp(fp)
             fp.seek(0)
-
+            
             file = discord.File(fp, filename="voice.mp3")
             await interaction.followup.send(f"🗣️ **Said:** {text}", file=file)
-
+            
         except Exception as e:
             await interaction.followup.send(f"❌ An error occurred while generating speech: {e}")
 
