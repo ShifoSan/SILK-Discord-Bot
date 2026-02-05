@@ -40,21 +40,31 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * File: cogs/shifo.py
  * Role: Handles YouTube Data API integration for channel stats and promotion.
  * Dependencies: google-api-python-client.
- * Commands: /stats, /latest, /shoutout.
+ * Commands:
+   * /stats: Displays live subscriber count, total views, and video count for ShifoLabs.
+   * /latest: Fetches and links the most recent ShifoLabs video upload.
+   * /shoutout [handle]: Generates a "Promo Card" embed for any YouTube channel.
 5. Creative Module (Phase 3)
  * File: cogs/creative.py
  * Role: Handles external API calls for media generation and information fetching.
  * Dependencies: requests (Hugging Face), gTTS (Google Text-to-Speech), newsapi-python, io.
- * Commands: /tech_news, /imagine, /voice.
+ * Commands:
+   * /tech_news: Fetches top 3 AI/Tech headlines via NewsAPI.
+   * /imagine [prompt]: Generates AI images using Stable Diffusion XL (via Hugging Face Router).
+   * /voice [text]: Converts text to an MP3 file and uploads it.
 6. Utilities Module (Phase 4)
  * File: cogs/utils.py
  * Role: Provides essential tools, server stats, and logic-based utilities.
  * Dependencies: qrcode, Pillow, io.
- * Commands: /ping, /uptime, /serverinfo, /userinfo, /avatar, /roll, /flip, /choose, /calc, /poll, /qr, /dm.
+ * Commands:
+   * Info: /ping (Latency), /uptime, /serverinfo, /userinfo, /avatar.
+   * RNG: /roll (Dice), /flip (Coin), /choose (Pick random).
+   * Tools: /calc (Safe math), /poll (Reacts with 🇦/🇧), /qr (Generates QR codes), /dm (Admin only).
 7. Fun Module (Phase 5)
  * File: cogs/fun.py
  * Role: Handles text manipulation and entertainment commands.
  * Commands: /mock, /reverse, /clap, /say.
+ * Convention: Pure Python string manipulation. No external APIs required.
 8. Architect Module (Phase 7)
  * File: cogs/architect.py
  * Role: "Natural Language to Infrastructure" engine using AI.
@@ -64,22 +74,23 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Strict 1.0 second delay between every creation/deletion action.
    * Restricted to Administrators only.
  * Commands:
-   * /architect: Creation Mode (No Deletes).
-   * /demolish: Destruction Mode (No Creates).
+   * /architect [instruction]: Creation Mode. Safely builds channels, roles, and categories. Forbidden from deleting.
+   * /demolish [instruction]: Destruction Mode. Deletes specific channels/roles. Forbidden from creating.
+9. Chat Module (Phase 8 - The Conversationalist)
+ * File: cogs/chat.py
+ * Role: Advanced, context-aware automatic chat handler.
+ * Dependencies: google-genai (New SDK), collections.deque (for rate limiting).
+ * Model: gemma-3-27b-it (High quota).
+ * Key Features:
+   * Smart Scrollback: Fetches last 20 messages.
+   * Context Awareness: Formats history as [User - Name]: Msg and [Model - S.I.L.K.]: Msg so the bot remembers its own replies but ignores other bots.
+   * Trigger: Responds to ALL messages in active channels (except bots/commands).
+   * Rate Limiting (CRITICAL): Implements a deque bucket to enforce 30 replies per minute max.
+   * Toggle: /chat_toggle [state] to enable/disable for specific channels.
 ## 🔮 Future Roadmap (Context for Expansion)
 When generating new code, strictly adhere to these planned modules:
  * cogs/moderation.py (Phase 6 - The Judge):
    * Role: Standard server management and discipline tools.
    * Commands: /kick, /ban, /purge (clear messages), /slowmode.
    * Logic: Must enforce hierarchy checks (cannot ban users with higher roles).
- * cogs/chat.py (Phase 8 - The Conversationalist):
-   * Role: Advanced, context-aware automatic chat handler.
-   * Dependencies: google-genai (New SDK), collections.deque (for rate limiting).
-   * Model: gemma-3-27b-it.
-   * Key Features:
-     * Smart Scrollback: Fetches last 20 messages and formats them as [User - DisplayName]: Message to ensure the AI knows who it is replying to.
-     * Toggle Command: /chat_toggle [state] to enable/disable auto-reply for the current channel.
-     * Global Reply: Responds to ALL messages in active channels (except bots).
-     * Rate Limiting (CRITICAL): Must implement a bucket system to ensure the bot never exceeds 30 replies per minute (Gemma RPM limit). If the limit is hit, it should silently ignore or queue messages.
-     * Context Safety: Logic to truncate extremely long user messages to prevent context window overflow.
-     * 
+   * 
