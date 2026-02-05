@@ -78,8 +78,7 @@ class Architect(commands.Cog):
                 model=self.model_id,
                 contents=full_prompt,
                 config=types.GenerateContentConfig(
-                    temperature=0.2,
-                    response_mime_type="application/json"
+                    temperature=0.2
                 )
             )
 
