@@ -91,19 +91,19 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * File: cogs/chat.py
  * Sub-Modules: cogs/personalities/ (standard.py, edgy.py, helpful.py)
  * Role: Advanced, context-aware automatic chat handler with hot-swappable personalities.
- * Dependencies: google-genai (New SDK), collections.deque (for rate limiting).
+ * Dependencies: google-genai (New SDK), collections.deque, asyncio.
  * Model: gemma-3-27b-it (High quota).
  * Commands:
    * /chat_toggle [state]: Enable/Disable auto-chat in the current channel.
    * /persona [name]: Switch between "Standard", "Edgy", or "Helpful" modes (Admin/Manage Messages only).
  * Key Features:
    * Personality Engine: Dynamically loads System Instructions and Safety Settings from `cogs/personalities/`.
+   * Asynchronous Core: Uses `asyncio.to_thread` for API calls to eliminate bot lag and freezing during generation.
+   * Creator Protocol (Security): Hardcoded User ID verification identifies the Creator. Supports "Manual Override" to bypass personality/refusal constraints.
    * Dynamic Safety: Adjusts safety filters based on persona (e.g., "Edgy" allows dark humor/high harassment threshold).
    * Smart Scrollback: Fetches last 20 messages to maintain conversation context.
    * Full Context: No character truncation limit on input messages (leverages 1M token window).
-   * Context Awareness: Formats history so the bot knows who is speaking.
-   * Trigger: Responds to ALL messages in active channels (except bots/commands).
-   * Rate Limiting (CRITICAL): Implements a deque bucket to enforce 30 replies per minute max.
+   * Rate Limiting: 30 RPM (deque bucket) plus a 1.5s artificial delay per message for anti-spam safety.
    * Error Handling: Detects safety blockages and informs the user instead of failing silently.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
