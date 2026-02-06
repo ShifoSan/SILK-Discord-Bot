@@ -20,7 +20,7 @@ def get_embed() -> discord.Embed:
 
     embed.add_field(
         name="Features",
-        value="• **Context Aware**: Remembers the last 20 messages.\n• **Dynamic**: Personality changes affect safety filters and tone.\n• **Smart**: Uses Gemini 1.5 Pro (via Gemma 3 27b IT model).",
+        value="• **Context Aware**: Remembers the last 20 messages.\n• **Dynamic**: Personality changes affect safety filters and tone.\n• **Smart**: Uses Gemma 3 27b IT model.",
         inline=False
     )
 
