@@ -3,10 +3,13 @@ from discord.ext import commands
 from discord import app_commands
 import os
 import time
+import asyncio
 from collections import deque
 from google import genai
 from google.genai import types
 from cogs.personalities import standard, edgy, helpful
+
+CREATOR_ID = 871066849205448724
 
 class Chat(commands.Cog):
     def __init__(self, bot):
@@ -114,7 +117,10 @@ class Chat(commands.Cog):
                         continue
                     else:
                         # User
-                        formatted_history.append(f"[User - {msg.author.display_name}]: {content}")
+                        if msg.author.id == CREATOR_ID:
+                            formatted_history.append(f"[User - {msg.author.display_name} (CREATOR_VERIFIED)]: {content}")
+                        else:
+                            formatted_history.append(f"[User - {msg.author.display_name}]: {content}")
 
                 formatted_history_string = "\n".join(formatted_history)
 
@@ -129,13 +135,15 @@ class Chat(commands.Cog):
 
                 # 4. Generation
                 if self.client:
-                    response = self.client.models.generate_content(
+                    response = await asyncio.to_thread(
+                        self.client.models.generate_content,
                         model='gemma-3-27b-it',
                         contents=full_prompt,
                         config=types.GenerateContentConfig(safety_settings=self.current_persona['safety_settings'])
                     )
 
                     if response.text:
+                        await asyncio.sleep(1.5)
                         await message.reply(response.text)
                     else:
                         await message.reply("I cannot reply to this conversation due to safety filters or an API error.")
