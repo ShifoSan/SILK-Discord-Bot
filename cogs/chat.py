@@ -72,6 +72,55 @@ class Chat(commands.Cog):
 
         await interaction.response.send_message(f"🔄 Persona switched to {choice}.")
 
+    @app_commands.command(name="ask-silk", description="Ask S.I.L.K. a question directly (Server-wide).")
+    @app_commands.describe(question="The question to ask S.I.L.K.")
+    async def ask_silk(self, interaction: discord.Interaction, question: str):
+        # Defer immediately
+        await interaction.response.defer(thinking=True)
+
+        # Rate Limit Check
+        if not self.can_reply():
+            await interaction.followup.send("⏳ Global rate limit reached. Please wait a moment.", ephemeral=True)
+            return
+
+        # Prompt Assembly
+        system_prompt = self.current_persona['system_instruction']
+
+        # Format user string for security protocol
+        user_display = f"{interaction.user.display_name}"
+        if interaction.user.id == CREATOR_ID:
+            user_input = f"[User - {user_display} (CREATOR_VERIFIED)]: {question}"
+        else:
+            user_input = f"[User - {user_display}]: {question}"
+
+        full_prompt = (
+            f"{system_prompt}\n"
+            f"Context:\n"
+            f"{user_input}"
+        )
+
+        # Generation
+        if self.client:
+            try:
+                response = await asyncio.to_thread(
+                    self.client.models.generate_content,
+                    model='gemma-3-27b-it',
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(safety_settings=self.current_persona['safety_settings'])
+                )
+
+                if response.text:
+                    await interaction.followup.send(response.text)
+                else:
+                    await interaction.followup.send("I cannot reply to this question due to safety filters or an API error.")
+                    print("Error: Empty response from Gemini API in ask-silk.")
+            except Exception as e:
+                await interaction.followup.send("An error occurred while processing your request.")
+                print(f"Error in ask-silk: {e}")
+        else:
+            await interaction.followup.send("AI module is currently unavailable.")
+            print("Error: Gemini Client not initialized.")
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         # 1. Triggers & Filters
@@ -80,8 +129,15 @@ class Chat(commands.Cog):
         if message.author.bot:
             return
 
-        # Must be in an active channel
-        if message.channel.id not in self.active_channels:
+        # Trigger Logic
+        is_auto_chat = message.channel.id in self.active_channels
+        is_mentioned = self.bot.user in message.mentions
+        is_reply = (message.reference is not None and
+                    isinstance(message.reference.resolved, discord.Message) and
+                    message.reference.resolved.author == self.bot.user)
+
+        # If NONE of these are true, then ignore the message
+        if not (is_auto_chat or is_mentioned or is_reply):
             return
 
         # Ignore commands (start with /) - although on_message catches raw messages,
