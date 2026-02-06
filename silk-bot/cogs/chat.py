@@ -104,10 +104,7 @@ class Chat(commands.Cog):
                 formatted_history = []
 
                 for msg in history_messages:
-                    # Truncate content > 1000 chars
                     content = msg.content
-                    if len(content) > 1000:
-                        content = content[:1000] + "...(truncated)"
 
                     if msg.author == self.bot.user:
                         # Self (S.I.L.K.)
@@ -141,6 +138,7 @@ class Chat(commands.Cog):
                     if response.text:
                         await message.reply(response.text)
                     else:
+                        await message.reply("I cannot reply to this conversation due to safety filters or an API error.")
                         print("Error: Empty response from Gemini API.")
                 else:
                     print("Error: Gemini Client not initialized.")
