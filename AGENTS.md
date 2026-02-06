@@ -91,18 +91,20 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
 10. Chat Module (Phase 8)
  * File: cogs/chat.py
  * Sub-Modules: cogs/personalities/ (standard.py, edgy.py, helpful.py)
- * Role: Advanced, context-aware automatic chat handler with hot-swappable personalities.
+ * Role: Advanced, context-aware automatic chat handler with hot-swappable personalities and global reach.
  * Dependencies: google-genai (New SDK), collections.deque, asyncio.
  * Model: gemma-3-27b-it (High quota).
  * Commands:
    * /chat_toggle [state]: Enable/Disable auto-chat in the current channel.
    * /persona [name]: Switch between "Standard", "Edgy", or "Helpful" modes (Admin/Manage Messages only).
+   * /ask-silk [question]: Direct, server-wide command to ask S.I.L.K. a question using the current persona.
  * Key Features:
+   * Global Reach Triggers: Responds server-wide (even outside active channels) if the bot is Mentioned (@S.I.L.K.) or Replied to.
+   * Persona Consistency: All triggers (Auto-chat, Mentions, Replies, /ask-silk) strictly use the currently active personality.
    * Personality Engine: Dynamically loads System Instructions and Safety Settings from `cogs/personalities/`.
    * Asynchronous Core: Uses `asyncio.to_thread` for API calls to eliminate bot lag and freezing during generation.
    * Creator Protocol (Security): Hardcoded User ID verification identifies the Creator. Supports "Manual Override" to bypass personality/refusal constraints.
-   * Dynamic Safety: Adjusts safety filters based on persona (e.g., "Edgy" allows dark humor/high harassment threshold).
-   * Smart Scrollback: Fetches last 20 messages to maintain conversation context.
+   * Smart Scrollback: Fetches last 20 messages for Auto-Chat, Mentions, and Replies to maintain context.
    * Full Context: No character truncation limit on input messages (leverages 1M token window).
    * Rate Limiting: 30 RPM (deque bucket) plus a 1.5s artificial delay per message for anti-spam safety.
    * Error Handling: Detects safety blockages and informs the user instead of failing silently.
