@@ -121,5 +121,14 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * /ai-chat-help: Displays help for the AI Chat system and Personalities.
    * /shifo-info: Displays the Creator's profile and social links.
    * /help: Master command that retrieves and sends ALL help embeds listed above.
+12. Presence Module (Phase 10)
+ * File: cogs/presence.py
+ * Role: Handles the bot's status, activity loops, and "Rich Presence" logic.
+ * Dependencies: discord.ext.tasks, itertools.
+ * Key Features:
+   * Rotating Status: Cycles through Assassin-themed activities (Watching, Playing, Listening) every 20 seconds.
+   * Dynamic Watching: Updates the "Watching [X] users" status in real-time based on total guild members.
+   * Startup Safety: Uses wait_until_ready() to prevent race conditions during boot.
+   * Non-Blocking: Runs on an asynchronous loop separate from the main thread.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
