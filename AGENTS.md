@@ -14,6 +14,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * main.py: Entry point. Loads env vars, starts Flask thread, iterates cogs/ to load extensions, and syncs commands.
    * cogs/: Directory for all bot modules. New features MUST be added here as separate files.
    * cogs/personalities/: Directory for personality configuration modules (Standard, Edgy, Helpful).
+   * cogs/help_commands/: Directory for individual help embed modules (Phase 9).
 ## ⚠️ Critical Protocols (The "Render Rules")
  * The Defer Protocol:
    * Render's free tier can be slow to wake up. Discord times out interactions after 3 seconds.
@@ -105,5 +106,20 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Full Context: No character truncation limit on input messages (leverages 1M token window).
    * Rate Limiting: 30 RPM (deque bucket) plus a 1.5s artificial delay per message for anti-spam safety.
    * Error Handling: Detects safety blockages and informs the user instead of failing silently.
+11. Help Module (Phase 9)
+ * File: cogs/help.py
+ * Sub-Modules: cogs/help_commands/ (ai_fun.py, youtube.py, creative.py, utility.py, fun_text.py, moderation.py, architect.py, ai_chat.py, creator.py)
+ * Role: Comprehensive, modular help system providing visual manuals for all bot functions.
+ * Commands:
+   * /quick-ai: Displays help for AI Fun tools (Brain Module).
+   * /yt-explain: Displays help for YouTube tools (Shifo Module).
+   * /vision-help: Displays help for Creative/Vision tools.
+   * /utility-help: Displays help for Utility tools.
+   * /text-help: Displays help for Text Fun tools.
+   * /staff-mod-help: Displays help for Moderation tools.
+   * /server-build-help: Displays help for Architect tools.
+   * /ai-chat-help: Displays help for the AI Chat system and Personalities.
+   * /shifo-info: Displays the Creator's profile and social links.
+   * /help: Master command that retrieves and sends ALL help embeds listed above.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
