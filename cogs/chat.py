@@ -4,6 +4,9 @@ from discord import app_commands
 import os
 import time
 import asyncio
+import io
+import re
+from gtts import gTTS
 from collections import deque
 from google import genai
 from google.genai import types
@@ -15,6 +18,7 @@ class Chat(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_channels = set()
+        self.voice_active_channels = set()
         self.reply_history = deque()
         self.MAX_RPM = 30
         self.current_persona = standard.config
@@ -25,6 +29,47 @@ class Chat(commands.Cog):
         else:
             print("Warning: GEMINI_API_KEY not found. Chat module will not function.")
             self.client = None
+
+    def generate_audio(self, text: str) -> io.BytesIO:
+        """
+        Generates an MP3 audio file from the provided text using gTTS.
+        Cleanups text (removes URLs/Code) and truncates to 500 chars.
+        """
+        # 1. Clean Text
+        # Remove Code Blocks
+        clean_text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
+        # Remove Inline Code
+        clean_text = re.sub(r'`.*?`', '', clean_text)
+        # Remove URLs
+        clean_text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', clean_text)
+
+        # Collapse whitespace
+        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+
+        # 2. Smart Truncation
+        if len(clean_text) > 500:
+            truncated = clean_text[:500]
+            # Try to cut at the last sentence end
+            last_sentence_end = max(truncated.rfind('.'), truncated.rfind('!'), truncated.rfind('?'))
+            if last_sentence_end != -1:
+                clean_text = truncated[:last_sentence_end+1]
+            else:
+                clean_text = truncated
+
+        # If text became empty after cleaning, use a fallback
+        if not clean_text:
+            clean_text = "Here is the response."
+
+        # 3. Generate Audio
+        fp = io.BytesIO()
+        try:
+            tts = gTTS(text=clean_text, lang='en', tld='com')
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            return fp
+        except Exception as e:
+            print(f"Error in generate_audio: {e}")
+            raise e
 
     def can_reply(self) -> bool:
         """
@@ -52,6 +97,18 @@ class Chat(commands.Cog):
             if interaction.channel_id in self.active_channels:
                 self.active_channels.remove(interaction.channel_id)
             await interaction.response.send_message("❌ Auto-Chat Disabled for this channel.", ephemeral=True)
+
+    @app_commands.command(name="voice_mode", description="Enable/Disable AI Voice responses in this channel.")
+    @app_commands.describe(state="True to enable, False to disable")
+    @app_commands.checks.has_permissions(manage_messages=True)
+    async def voice_mode(self, interaction: discord.Interaction, state: bool):
+        if state:
+            self.voice_active_channels.add(interaction.channel_id)
+            await interaction.response.send_message("🎙️ Voice Mode ENABLED. I will now speak my responses.", ephemeral=True)
+        else:
+            if interaction.channel_id in self.voice_active_channels:
+                self.voice_active_channels.remove(interaction.channel_id)
+            await interaction.response.send_message("Cx Voice Mode DISABLED.", ephemeral=True)
 
     @app_commands.command(name="persona", description="Switch S.I.L.K.'s personality.")
     @app_commands.describe(name="The personality to switch to")
@@ -110,7 +167,16 @@ class Chat(commands.Cog):
                 )
 
                 if response.text:
-                    await interaction.followup.send(response.text)
+                    # Voice Mode Check
+                    if interaction.channel_id in self.voice_active_channels:
+                        try:
+                            audio_file = await asyncio.to_thread(self.generate_audio, response.text)
+                            await interaction.followup.send(content=response.text, file=discord.File(audio_file, filename="silk_voice.mp3"))
+                        except Exception as e:
+                            print(f"Error generating audio: {e}")
+                            await interaction.followup.send(response.text)
+                    else:
+                        await interaction.followup.send(response.text)
                 else:
                     await interaction.followup.send("I cannot reply to this question due to safety filters or an API error.")
                     print("Error: Empty response from Gemini API in ask-silk.")
@@ -200,7 +266,16 @@ class Chat(commands.Cog):
 
                     if response.text:
                         await asyncio.sleep(1.5)
-                        await message.reply(response.text)
+                        # Voice Mode Check
+                        if message.channel.id in self.voice_active_channels:
+                            try:
+                                audio_file = await asyncio.to_thread(self.generate_audio, response.text)
+                                await message.reply(content=response.text, file=discord.File(audio_file, filename="silk_voice.mp3"))
+                            except Exception as e:
+                                print(f"Error generating audio: {e}")
+                                await message.reply(response.text)
+                        else:
+                            await message.reply(response.text)
                     else:
                         await message.reply("I cannot reply to this conversation due to safety filters or an API error.")
                         print("Error: Empty response from Gemini API.")
