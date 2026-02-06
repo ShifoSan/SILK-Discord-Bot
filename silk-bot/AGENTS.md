@@ -13,6 +13,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * File Structure:
    * main.py: Entry point. Loads env vars, starts Flask thread, iterates cogs/ to load extensions, and syncs commands.
    * cogs/: Directory for all bot modules. New features MUST be added here as separate files.
+   * cogs/personalities/: Directory for personality configuration modules (Standard, Edgy, Helpful).
 ## ⚠️ Critical Protocols (The "Render Rules")
  * The Defer Protocol:
    * Render's free tier can be slow to wake up. Discord times out interactions after 3 seconds.
@@ -88,14 +89,21 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * /demolish [instruction]: Destruction Mode (No Creates).
 10. Chat Module (Phase 8)
  * File: cogs/chat.py
- * Role: Advanced, context-aware automatic chat handler.
+ * Sub-Modules: cogs/personalities/ (standard.py, edgy.py, helpful.py)
+ * Role: Advanced, context-aware automatic chat handler with hot-swappable personalities.
  * Dependencies: google-genai (New SDK), collections.deque (for rate limiting).
  * Model: gemma-3-27b-it (High quota).
+ * Commands:
+   * /chat_toggle [state]: Enable/Disable auto-chat in the current channel.
+   * /persona [name]: Switch between "Standard", "Edgy", or "Helpful" modes (Admin/Manage Messages only).
  * Key Features:
-   * Smart Scrollback: Fetches last 20 messages.
+   * Personality Engine: Dynamically loads System Instructions and Safety Settings from `cogs/personalities/`.
+   * Dynamic Safety: Adjusts safety filters based on persona (e.g., "Edgy" allows dark humor/high harassment threshold).
+   * Smart Scrollback: Fetches last 20 messages to maintain conversation context.
+   * Full Context: No character truncation limit on input messages (leverages 1M token window).
    * Context Awareness: Formats history so the bot knows who is speaking.
    * Trigger: Responds to ALL messages in active channels (except bots/commands).
    * Rate Limiting (CRITICAL): Implements a deque bucket to enforce 30 replies per minute max.
-   * Toggle: /chat_toggle [state] to enable/disable.
+   * Error Handling: Detects safety blockages and informs the user instead of failing silently.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
