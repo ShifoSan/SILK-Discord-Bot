@@ -5,6 +5,8 @@ import os
 import time
 from collections import deque
 from google import genai
+from google.genai import types
+from cogs.personalities import standard, edgy, helpful
 
 class Chat(commands.Cog):
     def __init__(self, bot):
@@ -12,6 +14,7 @@ class Chat(commands.Cog):
         self.active_channels = set()
         self.reply_history = deque()
         self.MAX_RPM = 30
+        self.current_persona = standard.config
 
         api_key = os.getenv("GEMINI_API_KEY")
         if api_key:
@@ -46,6 +49,25 @@ class Chat(commands.Cog):
             if interaction.channel_id in self.active_channels:
                 self.active_channels.remove(interaction.channel_id)
             await interaction.response.send_message("❌ Auto-Chat Disabled for this channel.", ephemeral=True)
+
+    @app_commands.command(name="persona", description="Switch S.I.L.K.'s personality.")
+    @app_commands.describe(name="The personality to switch to")
+    @app_commands.choices(name=[
+        app_commands.Choice(name="Standard", value="Standard"),
+        app_commands.Choice(name="Edgy", value="Edgy"),
+        app_commands.Choice(name="Helpful", value="Helpful")
+    ])
+    @app_commands.checks.has_permissions(manage_messages=True)
+    async def persona(self, interaction: discord.Interaction, name: app_commands.Choice[str]):
+        choice = name.value
+        if choice == "Standard":
+            self.current_persona = standard.config
+        elif choice == "Edgy":
+            self.current_persona = edgy.config
+        elif choice == "Helpful":
+            self.current_persona = helpful.config
+
+        await interaction.response.send_message(f"🔄 Persona switched to {choice}.")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -100,10 +122,7 @@ class Chat(commands.Cog):
                 formatted_history_string = "\n".join(formatted_history)
 
                 # Prompt Assembly
-                system_prompt = (
-                    "System: You are S.I.L.K., a female AI assistant with a cool, slightly edgy personality. You identify as female. You use she/her pronouns. You are NOT a generic AI. You have your own opinions and style. Your tone is confident, concise, and occasionally sarcastic. You are chatting in a Discord server named Order. "
-                    "Reply to the last message, but consider the context of the conversation."
-                )
+                system_prompt = self.current_persona['system_instruction']
 
                 full_prompt = (
                     f"{system_prompt}\n"
@@ -115,7 +134,8 @@ class Chat(commands.Cog):
                 if self.client:
                     response = self.client.models.generate_content(
                         model='gemma-3-27b-it',
-                        contents=full_prompt
+                        contents=full_prompt,
+                        config=types.GenerateContentConfig(safety_settings=self.current_persona['safety_settings'])
                     )
 
                     if response.text:
