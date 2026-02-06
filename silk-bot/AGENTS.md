@@ -65,32 +65,37 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * Role: Handles text manipulation and entertainment commands.
  * Commands: /mock, /reverse, /clap, /say.
  * Convention: Pure Python string manipulation. No external APIs required.
-8. Architect Module (Phase 7)
+8. Moderation Module (Phase 6)
+ * File: cogs/moderation.py
+ * Role: Standard server management and discipline tools.
+ * Commands:
+   * /kick [user] [reason]: Removes a user from the server.
+   * /ban [user] [reason]: Bans a user permanently.
+   * /unban [user_id]: Unbans a user by ID.
+   * /purge [amount]: Bulk deletes messages in the current channel.
+   * /slowmode [seconds]: Sets the channel slowmode delay.
+ * Logic: Enforces hierarchy checks (cannot punish users with roles higher than the bot).
+9. Architect Module (Phase 7)
  * File: cogs/architect.py
  * Role: "Natural Language to Infrastructure" engine using AI.
  * Dependencies: google-genai (New SDK).
- * Model: gemma-3-27b-it (No native JSON mode support - uses text parsing).
+ * Model: gemma-3-27b-it (Uses text parsing).
  * Safety Protocol:
    * Strict 1.0 second delay between every creation/deletion action.
    * Restricted to Administrators only.
  * Commands:
-   * /architect [instruction]: Creation Mode. Safely builds channels, roles, and categories. Forbidden from deleting.
-   * /demolish [instruction]: Destruction Mode. Deletes specific channels/roles. Forbidden from creating.
-9. Chat Module (Phase 8 - The Conversationalist)
+   * /architect [instruction]: Creation Mode (No Deletes).
+   * /demolish [instruction]: Destruction Mode (No Creates).
+10. Chat Module (Phase 8)
  * File: cogs/chat.py
  * Role: Advanced, context-aware automatic chat handler.
  * Dependencies: google-genai (New SDK), collections.deque (for rate limiting).
  * Model: gemma-3-27b-it (High quota).
  * Key Features:
    * Smart Scrollback: Fetches last 20 messages.
-   * Context Awareness: Formats history as [User - Name]: Msg and [Model - S.I.L.K.]: Msg so the bot remembers its own replies but ignores other bots.
+   * Context Awareness: Formats history so the bot knows who is speaking.
    * Trigger: Responds to ALL messages in active channels (except bots/commands).
    * Rate Limiting (CRITICAL): Implements a deque bucket to enforce 30 replies per minute max.
-   * Toggle: /chat_toggle [state] to enable/disable for specific channels.
+   * Toggle: /chat_toggle [state] to enable/disable.
 ## 🔮 Future Roadmap (Context for Expansion)
-When generating new code, strictly adhere to these planned modules:
- * cogs/moderation.py (Phase 6 - The Judge):
-   * Role: Standard server management and discipline tools.
-   * Commands: /kick, /ban, /purge (clear messages), /slowmode.
-   * Logic: Must enforce hierarchy checks (cannot ban users with higher roles).
-   * 
+Currently Empty. S.I.L.K. is functionally complete.
