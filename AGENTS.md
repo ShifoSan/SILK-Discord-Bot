@@ -117,19 +117,19 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Error Handling: Detects safety blockages and informs the user instead of failing silently.
 11. Help Module (Phase 9)
  * File: cogs/help.py
- * Sub-Modules: cogs/help_commands/ (ai_fun.py, youtube.py, creative.py, utility.py, fun_text.py, moderation.py, architect.py, ai_chat.py, creator.py)
- * Role: Comprehensive, modular help system providing visual manuals for all bot functions.
+ * Sub-Modules: cogs/help_commands/ (ai_fun.py, youtube.py, creative.py, utility.py, fun_text.py, moderation.py, architect.py, ai_chat.py, logging.py, roleplay.py, creator_note.py)
+ * Role: Comprehensive, interactive dashboard system for bot documentation.
  * Commands:
-   * /quick-ai: Displays help for AI Fun tools (Brain Module).
-   * /yt-explain: Displays help for YouTube tools (Shifo Module).
-   * /vision-help: Displays help for Creative/Vision tools.
-   * /utility-help: Displays help for Utility tools.
-   * /text-help: Displays help for Text Fun tools.
-   * /staff-mod-help: Displays help for Moderation tools.
-   * /server-build-help: Displays help for Architect tools.
-   * /ai-chat-help: Displays help for the AI Chat system and Personalities.
-   * /shifo-info: Displays the Creator's profile and social links.
-   * /help: Master command that retrieves and sends ALL help embeds listed above.
+   * /help: Master command that launches the "Help Dashboard" (Interactive Button UI).
+   * /creator-note: Displays the "S.I.L.K. Journey" Dev Log and support links.
+   * /quick-ai, /yt-explain, /vision-help, /utility-help, /text-help, /staff-mod-help, /server-build-help, /ai-chat-help (Updated), /log-help, /roleplay-help.
+ * Key Features:
+   * Interactive Dashboard: The /help command sends a single embed with a 3-row Button View to navigate all 11 categories without chat flooding.
+   * Content Updates:
+     * AI Chat Help: Updated to include Global Reach (Mentions/Replies) and /voice_mode documentation.
+     * Log Help: New manual for Phase 11 (The Watcher), explaining audit logs and color codes.
+     * Roleplay Help: New manual for Phase 12 (Anime GIFs), explaining interactive vs. solo commands.
+     * Creator Note: A dedicated embed for the developer's journey and social links.
 12. Presence Module (Phase 10)
  * File: cogs/presence.py
  * Role: Handles the bot's status, activity loops, and "Rich Presence" logic.
