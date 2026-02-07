@@ -157,5 +157,22 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * Infrastructure: Logs Channel/Role creation, deletion, and permission updates.
    * Security: Log channels are automatically set to private (`view_channel=False` for @everyone).
    * Performance: Event-driven architecture ensures zero CPU usage when idle.
+14. Roleplay Module (Phase 12)
+ * File: cogs/roleplay_commands.py
+ * Role: "Anime Roleplay" engine that sends animated reaction GIFs via Embeds.
+ * Dependencies: aiohttp.
+ * API: waifu.pics (SFW endpoints).
+ * Commands:
+   * Affection: /hug, /kiss, /cuddle, /pat, /poke, /lick, /bite, /handhold, /glomp.
+   * Action: /slap, /kill, /kick, /bonk, /yeet, /highfive, /wave.
+   * Emotion: /smile, /blush, /wink, /dance, /cringe, /cry, /happy, /nom.
+   * Special: /bully, /smug.
+ * Key Features:
+   * Smart Targeting:
+     * Interactive commands (e.g., /hug) REQUIRE a target user.
+     * Solo/Emotion commands (e.g., /smile) have OPTIONAL targets (e.g., "User smiles" vs "User smiles at Target").
+   * Visual Style: Uses "Soft Pink" (0xFFC0CB) embeds with unique, flavor-text descriptions for every command.
+   * Stability: Ephemeral error handling ensures the bot doesn't crash if the API times out.
+   * Stateless: No database required; fetches fresh GIFs on every request.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
