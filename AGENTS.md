@@ -15,6 +15,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * cogs/: Directory for all bot modules. New features MUST be added here as separate files.
    * cogs/personalities/: Directory for personality configuration modules (Standard, Edgy, Helpful).
    * cogs/help_commands/: Directory for individual help embed modules (Phase 9).
+   * cogs/logs/: Directory for logging logic modules (Phase 11).
 ## ⚠️ Critical Protocols (The "Render Rules")
  * The Defer Protocol:
    * Render's free tier can be slow to wake up. Discord times out interactions after 3 seconds.
@@ -138,5 +139,23 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Dynamic Watching: Updates the "Watching [X] users" status in real-time based on total guild members.
    * Startup Safety: Uses wait_until_ready() to prevent race conditions during boot.
    * Non-Blocking: Runs on an asynchronous loop separate from the main thread.
+13. Logging Module (Phase 11)
+ * File: cogs/logger.py
+ * Sub-Modules: cogs/logs/ (channels.py, roles.py, members.py, messages.py, voice.py)
+ * Role: Comprehensive, event-driven server surveillance and audit logging system.
+ * Dependencies: log_config.json (Runtime persistence).
+ * Commands:
+   * /setup_logs: Master Admin command. Auto-creates "『LOGS』" category and 6 specific channels (#📊-channel-logs, etc.).
+     * Idempotent Logic: Checks for existing channels/categories before creation to prevent duplicates after restarts.
+ * Key Features:
+   * Visual Coding: Distinct color-coded Embeds for Creates (Green), Deletes (Red), and Updates (Yellow).
+   * Audit Intelligence: Automatically fetches `guild.audit_logs` to identify *who* performed an action (e.g., who deleted a channel) instead of just reporting the event.
+   * Granular Tracking:
+     * Messages: Logs Edits (Before/After text) and Deletes.
+     * Members: Logs Nickname changes (checks Audit Log for perpetrator).
+     * Voice: Logs Joins, Leaves, and Moves.
+     * Infrastructure: Logs Channel/Role creation, deletion, and permission updates.
+   * Security: Log channels are automatically set to private (`view_channel=False` for @everyone).
+   * Performance: Event-driven architecture ensures zero CPU usage when idle.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
