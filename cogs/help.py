@@ -2,82 +2,82 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from cogs.help_commands import (
-    ai_fun, youtube, creative, utility, fun_text,
-    moderation, architect, ai_chat, creator
+    ai_fun, youtube, creative, utility,
+    moderation, architect, ai_chat, fun_text,
+    logging, roleplay, creator_note
 )
+
+class HelpView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None) # Persistent view if needed, but ephemeral usually times out.
+
+    # Row 1: [🧠 Brain] [📺 Shifo] [🎨 Creative] [🛠️ Utils]
+    @discord.ui.button(label="Brain", style=discord.ButtonStyle.secondary, emoji="🧠", row=0)
+    async def brain_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=ai_fun.get_embed(), view=self)
+
+    @discord.ui.button(label="Shifo", style=discord.ButtonStyle.secondary, emoji="📺", row=0)
+    async def shifo_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=youtube.get_embed(), view=self)
+
+    @discord.ui.button(label="Creative", style=discord.ButtonStyle.secondary, emoji="🎨", row=0)
+    async def creative_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=creative.get_embed(), view=self)
+
+    @discord.ui.button(label="Utils", style=discord.ButtonStyle.secondary, emoji="🛠️", row=0)
+    async def utils_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=utility.get_embed(), view=self)
+
+    # Row 2: [🛡️ Mod] [🏗️ Architect] [💬 AI Chat] [🎲 Fun]
+    @discord.ui.button(label="Mod", style=discord.ButtonStyle.danger, emoji="🛡️", row=1)
+    async def mod_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=moderation.get_embed(), view=self)
+
+    @discord.ui.button(label="Architect", style=discord.ButtonStyle.secondary, emoji="🏗️", row=1)
+    async def architect_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=architect.get_embed(), view=self)
+
+    @discord.ui.button(label="AI Chat", style=discord.ButtonStyle.primary, emoji="💬", row=1)
+    async def ai_chat_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=ai_chat.get_embed(), view=self)
+
+    @discord.ui.button(label="Fun", style=discord.ButtonStyle.secondary, emoji="🎲", row=1)
+    async def fun_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=fun_text.get_embed(), view=self)
+
+    # Row 3: [📊 Logs] [🎭 Roleplay] [📝 Creator]
+    @discord.ui.button(label="Logs", style=discord.ButtonStyle.secondary, emoji="📊", row=2)
+    async def logs_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=logging.get_embed(), view=self)
+
+    @discord.ui.button(label="Roleplay", style=discord.ButtonStyle.secondary, emoji="🎭", row=2)
+    async def roleplay_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=roleplay.get_embed(), view=self)
+
+    @discord.ui.button(label="Creator", style=discord.ButtonStyle.success, emoji="📝", row=2)
+    async def creator_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=creator_note.get_embed(), view=self)
+
 
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # --- Individual Help Commands ---
-
-    @app_commands.command(name="quick-ai", description="Guide: AI Fun Tools")
-    async def quick_ai(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=ai_fun.get_embed())
-
-    @app_commands.command(name="yt-explain", description="Guide: YouTube Integration")
-    async def yt_explain(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=youtube.get_embed())
-
-    @app_commands.command(name="vision-help", description="Guide: Creative & Vision Tools")
-    async def vision_help(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=creative.get_embed())
-
-    @app_commands.command(name="utility-help", description="Guide: Utility Belt")
-    async def utility_help(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=utility.get_embed())
-
-    @app_commands.command(name="text-help", description="Guide: Text Playground")
-    async def text_help(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=fun_text.get_embed())
-
-    @app_commands.command(name="staff-mod-help", description="Guide: Moderation Tools")
-    async def staff_mod_help(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=moderation.get_embed())
-
-    @app_commands.command(name="server-build-help", description="Guide: Architect Tools")
-    async def server_build_help(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=architect.get_embed())
-
-    @app_commands.command(name="ai-chat-help", description="Guide: S.I.L.K. Chat Interface")
-    async def ai_chat_help(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=ai_chat.get_embed())
-
-    @app_commands.command(name="shifo-info", description="Creator Profile: ShifoSan")
-    async def shifo_info(self, interaction: discord.Interaction):
-        await interaction.response.send_message(embed=creator.get_embed())
-
-    # --- The Master Help Command ---
-
     @app_commands.command(name="help", description="The S.I.L.K. Master Manual")
     async def help_master(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+        embed = discord.Embed(
+            title="S.I.L.K. Help Dashboard",
+            description="Select a module below to view its commands.",
+            color=discord.Color.blurple()
+        )
+        embed.set_footer(text="Use the buttons to navigate categories.")
 
-        # Logical Grouping for cleaner delivery and to avoid size limits
-        group1 = [
-            creator.get_embed(),
-            ai_fun.get_embed(),
-            ai_chat.get_embed()
-        ]
+        view = HelpView()
+        await interaction.response.send_message(embed=embed, view=view)
 
-        group2 = [
-            youtube.get_embed(),
-            creative.get_embed(),
-            fun_text.get_embed()
-        ]
-
-        group3 = [
-            utility.get_embed(),
-            moderation.get_embed(),
-            architect.get_embed()
-        ]
-
-        # Send sequentially
-        await interaction.followup.send(embeds=group1)
-        await interaction.followup.send(embeds=group2)
-        await interaction.followup.send(embeds=group3)
-
+    @app_commands.command(name="creator-note", description="A personal note from the developer.")
+    async def creator_note_cmd(self, interaction: discord.Interaction):
+        await interaction.response.send_message(embed=creator_note.get_embed())
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
