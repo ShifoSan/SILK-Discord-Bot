@@ -67,7 +67,7 @@ class Help(commands.Cog):
     async def help_master(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="S.I.L.K. Help Dashboard",
-            description="Select a module below to view its commands.",
+            description="Select a module below to view its commands.\nNow supporting Secure Direct Messages (DM).",
             color=discord.Color.blurple()
         )
         embed.set_footer(text="Use the buttons to navigate categories.")

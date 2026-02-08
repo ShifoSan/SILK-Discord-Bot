@@ -29,6 +29,12 @@ def get_embed() -> discord.Embed:
     )
 
     embed.add_field(
+        name="📩 Direct Messages",
+        value="You can also DM S.I.L.K. (Requires Approval).",
+        inline=False
+    )
+
+    embed.add_field(
         name="Global Reach",
         value="Even if auto-chat is disabled, S.I.L.K. will always respond if you:\n• **Mention** the bot (@S.I.L.K.)\n• **Reply** to one of its messages.",
         inline=False
