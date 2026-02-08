@@ -89,6 +89,7 @@ class Logger(commands.Cog):
     # --- Channel Events ---
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel):
+        if hasattr(channel, 'guild') and channel.guild is None: return
         log_channel = await self.get_log_channel(channel.guild.id, "channel_logs")
         if log_channel:
             embed = await log_channels_module.log_channel_create(channel)
@@ -96,6 +97,7 @@ class Logger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_channel_delete(self, channel):
+        if hasattr(channel, 'guild') and channel.guild is None: return
         log_channel = await self.get_log_channel(channel.guild.id, "channel_logs")
         if log_channel:
             embed = await log_channels_module.log_channel_delete(channel)
@@ -103,6 +105,7 @@ class Logger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_channel_update(self, before, after):
+        if hasattr(after, 'guild') and after.guild is None: return
         log_channel = await self.get_log_channel(after.guild.id, "channel_logs")
         if log_channel:
             embed = await log_channels_module.log_channel_update(before, after)
@@ -111,6 +114,7 @@ class Logger(commands.Cog):
     # --- Role Events ---
     @commands.Cog.listener()
     async def on_guild_role_create(self, role):
+        if hasattr(role, 'guild') and role.guild is None: return
         log_channel = await self.get_log_channel(role.guild.id, "role_logs")
         if log_channel:
             embed = await log_roles_module.log_role_create(role)
@@ -118,6 +122,7 @@ class Logger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role):
+        if hasattr(role, 'guild') and role.guild is None: return
         log_channel = await self.get_log_channel(role.guild.id, "role_logs")
         if log_channel:
             embed = await log_roles_module.log_role_delete(role)
@@ -125,6 +130,7 @@ class Logger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_role_update(self, before, after):
+        if hasattr(after, 'guild') and after.guild is None: return
         log_channel = await self.get_log_channel(after.guild.id, "role_logs")
         if log_channel:
             embed = await log_roles_module.log_role_update(before, after)
@@ -133,6 +139,7 @@ class Logger(commands.Cog):
     # --- Member Events ---
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
+        if hasattr(after, 'guild') and after.guild is None: return
         log_channel = await self.get_log_channel(after.guild.id, "member_logs")
         if log_channel:
             embed = await log_members_module.log_member_update(before, after)
@@ -142,7 +149,7 @@ class Logger(commands.Cog):
     # --- Message Events ---
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        if not before.guild: return
+        if before.guild is None: return
         log_channel = await self.get_log_channel(before.guild.id, "message_edit_logs")
         if log_channel:
             embed = log_messages_module.log_message_edit(before, after)
@@ -151,7 +158,7 @@ class Logger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        if not message.guild: return
+        if message.guild is None: return
         log_channel = await self.get_log_channel(message.guild.id, "message_delete_logs")
         if log_channel:
             embed = log_messages_module.log_message_delete(message)
@@ -161,6 +168,7 @@ class Logger(commands.Cog):
     # --- Voice Events ---
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
+        if hasattr(member, 'guild') and member.guild is None: return
         log_channel = await self.get_log_channel(member.guild.id, "vc_logs")
         if log_channel:
             embed = log_voice_module.log_voice_event(member, before, after)
