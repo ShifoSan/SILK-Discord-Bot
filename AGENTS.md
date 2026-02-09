@@ -126,7 +126,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * Key Features:
    * Interactive Dashboard: The /help command sends a single embed with a 3-row Button View to navigate all 11 categories without chat flooding.
    * Content Updates:
-     * AI Chat Help: Updated to include Global Reach (Mentions/Replies) and /voice_mode documentation.
+     * AI Chat Help: Updated to include Global Reach (Mentions/Replies), /voice_mode documentation, and **DM Chat instructions**.
      * Log Help: New manual for Phase 11 (The Watcher), explaining audit logs and color codes.
      * Roleplay Help: New manual for Phase 12 (Anime GIFs), explaining interactive vs. solo commands.
      * Creator Note: A dedicated embed for the developer's journey and social links.
@@ -156,6 +156,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * Voice: Logs Joins, Leaves, and Moves.
      * Infrastructure: Logs Channel/Role creation, deletion, and permission updates.
    * Security: Log channels are automatically set to private (`view_channel=False` for @everyone).
+   * **DM Privacy Circuit Breaker (Updated):** Strictly ignores all events where `guild is None`. Ensures private DMs are never logged to public server channels.
    * Performance: Event-driven architecture ensures zero CPU usage when idle.
 14. Roleplay Module (Phase 12)
  * File: cogs/roleplay_commands.py
@@ -174,5 +175,20 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Visual Style: Uses "Soft Pink" (0xFFC0CB) embeds with unique, flavor-text descriptions for every command.
    * Stability: Ephemeral error handling ensures the bot doesn't crash if the API times out.
    * Stateless: No database required; fetches fresh GIFs on every request.
+15. DM Gatekeeper Module (Phase 13)
+ * File: cogs/dm_chat.py
+ * Role: Secure, privacy-focused handler for Direct Message interactions with a strict approval system.
+ * Dependencies: dm_config.json (Runtime persistence), CREATOR_ID (Hardcoded Constant).
+ * Commands:
+   * /dm-list (Creator Only): Displays an ephemeral embed listing all Approved, Pending, and Blocked users.
+ * Key Features:
+   * The Gatekeeper Protocol:
+     * Restricts AI chat access in DMs to a whitelist (`approved` list).
+     * Unknown users are auto-added to `pending` and receive a "Restricted Access" warning.
+     * Sends an interactive DM to the Creator with `[Approve]` / `[Block]` buttons for every new request.
+   * God Mode (Creator Override): Hardcoded `CREATOR_ID` check bypasses all approval logic, ensuring the developer always has access even if config files are reset.
+   * Persona Lock: Strictly enforces the "Helpful" personality for all DM interactions to ensure polite assistance.
+   * Private Memory: Maintains a separate `dm_history` dictionary (Last 20 messages) per user, isolated from server chat contexts.
+   * Data Privacy: DMs are explicitly filtered out of the global Logging Module to prevent leaks.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
