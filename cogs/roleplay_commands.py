@@ -13,26 +13,20 @@ class RoleplayCommands(commands.Cog):
             # Affection (Target Mandatory)
             "hug": {"target": "{user} wraps their arms tightly around {target}!"},
             "kiss": {"target": "{user} leans in and gives {target} a soft kiss."},
-            "cuddle": {"target": "{user} snuggles up close to {target}."},
             "pat": {"target": "{user} pats {target} on the head. Good job!"},
             "poke": {"target": "{user} pokes {target}. Hey! Listen!"},
             "lick": {"target": "{user} licks {target}... wait, why?"},
             "bite": {"target": "{user} bites {target}! Nom!"},
             "handhold": {"target": "{user} holds {target}'s hand. How lewd!"},
-            "glomp": {"target": "{user} tackles {target} with a massive hug!"},
 
             # Action (Target Mandatory)
             "slap": {"target": "{user} slaps {target} across the face!"},
             "kill": {"target": "{user} ends {target}. Press F to pay respects."},
             "kick": {"target": "{user} kicks {target} into the stratosphere!"},
-            "bonk": {"target": "{user} bonked {target} on the head! Go to horny jail!"},
-            "yeet": {"target": "{user} grabs {target} and YEETS them away!"},
             "highfive": {"target": "{user} high-fives {target}! Up top!"},
-            "wave": {"target": "{user} waves at {target}. Hello!"},
 
             # Special (Target Mandatory)
             "bully": {"target": "{user} is bullying {target}. That's just mean."},
-            "smug": {"target": "{user} gives {target} a smug look."},
 
             # Emotion/Reaction (Target Optional)
             # API categories that support both solo and target logically
@@ -82,6 +76,16 @@ class RoleplayCommands(commands.Cog):
 
     async def _perform_roleplay(self, interaction: discord.Interaction, category: str, target: discord.Member = None):
         """Helper to handle the logic, embedding, and error handling for all roleplay commands."""
+        target_required = [
+            "hug", "kiss", "pat", "poke", "lick", "bite", "handhold",
+            "slap", "kill", "kick", "highfive",
+            "bully"
+        ]
+
+        if category in target_required and target is None:
+            await interaction.response.send_message("You need to specify a target for this emote!", ephemeral=True)
+            return
+
         # Defer immediately as per protocol
         await interaction.response.defer(thinking=True)
 
@@ -116,113 +120,35 @@ class RoleplayCommands(commands.Cog):
             print(f"Roleplay API Error ({category}): {e}")
             await interaction.followup.send("❌ The GIF API is taking a nap. Try again later.", ephemeral=True)
 
-    # --- Affection Commands (Target Required) ---
-    @app_commands.command(name="hug", description="Give someone a big hug!")
-    async def hug(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "hug", user)
-
-    @app_commands.command(name="kiss", description="Give someone a kiss!")
-    async def kiss(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "kiss", user)
-
-    @app_commands.command(name="cuddle", description="Cuddle with someone!")
-    async def cuddle(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "cuddle", user)
-
-    @app_commands.command(name="pat", description="Pat someone on the head!")
-    async def pat(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "pat", user)
-
-    @app_commands.command(name="poke", description="Poke someone!")
-    async def poke(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "poke", user)
-
-    @app_commands.command(name="lick", description="Lick someone!")
-    async def lick(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "lick", user)
-
-    @app_commands.command(name="bite", description="Bite someone!")
-    async def bite(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "bite", user)
-
-    @app_commands.command(name="handhold", description="Hold someone's hand!")
-    async def handhold(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "handhold", user)
-
-    @app_commands.command(name="glomp", description="Tackle hug someone!")
-    async def glomp(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "glomp", user)
-
-    # --- Action Commands (Target Required) ---
-    @app_commands.command(name="slap", description="Slap someone!")
-    async def slap(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "slap", user)
-
-    @app_commands.command(name="kill", description="End someone.")
-    async def kill(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "kill", user)
-
-    @app_commands.command(name="kick", description="Kick someone!")
-    async def kick(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "kick", user)
-
-    @app_commands.command(name="bonk", description="Bonk someone to horny jail!")
-    async def bonk(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "bonk", user)
-
-    @app_commands.command(name="yeet", description="Yeet someone away!")
-    async def yeet(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "yeet", user)
-
-    @app_commands.command(name="highfive", description="High-five someone!")
-    async def highfive(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "highfive", user)
-
-    @app_commands.command(name="wave", description="Wave at someone!")
-    async def wave(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "wave", user)
-
-    # --- Special Commands (Target Required) ---
-    @app_commands.command(name="bully", description="Bully someone!")
-    async def bully(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "bully", user)
-
-    @app_commands.command(name="smug", description="Give someone a smug look!")
-    async def smug(self, interaction: discord.Interaction, user: discord.Member):
-        await self._perform_roleplay(interaction, "smug", user)
-
-    # --- Emotion/Hybrid Commands (Target Optional) ---
-    @app_commands.command(name="nom", description="Eat something or someone!")
-    async def nom(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "nom", user)
-
-    @app_commands.command(name="smile", description="Smile at someone or just smile!")
-    async def smile(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "smile", user)
-
-    @app_commands.command(name="blush", description="Blush at someone or just blush!")
-    async def blush(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "blush", user)
-
-    @app_commands.command(name="wink", description="Wink at someone or just wink!")
-    async def wink(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "wink", user)
-
-    @app_commands.command(name="dance", description="Dance with someone or just dance!")
-    async def dance(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "dance", user)
-
-    @app_commands.command(name="cringe", description="Cringe at someone or something!")
-    async def cringe(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "cringe", user)
-
-    @app_commands.command(name="cry", description="Cry about it!")
-    async def cry(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "cry", user)
-
-    @app_commands.command(name="happy", description="Be happy!")
-    async def happy(self, interaction: discord.Interaction, user: discord.Member = None):
-        await self._perform_roleplay(interaction, "happy", user)
+    @app_commands.command(name="emote", description="Perform a roleplay emote!")
+    @app_commands.describe(
+        action="The emote action to perform",
+        target="The member you want to target (required for some actions)"
+    )
+    @app_commands.choices(action=[
+        app_commands.Choice(name="Hug", value="hug"),
+        app_commands.Choice(name="Kiss", value="kiss"),
+        app_commands.Choice(name="Pat", value="pat"),
+        app_commands.Choice(name="Poke", value="poke"),
+        app_commands.Choice(name="Lick", value="lick"),
+        app_commands.Choice(name="Bite", value="bite"),
+        app_commands.Choice(name="Handhold", value="handhold"),
+        app_commands.Choice(name="Slap", value="slap"),
+        app_commands.Choice(name="Kill", value="kill"),
+        app_commands.Choice(name="Kick", value="kick"),
+        app_commands.Choice(name="Highfive", value="highfive"),
+        app_commands.Choice(name="Bully", value="bully"),
+        app_commands.Choice(name="Nom", value="nom"),
+        app_commands.Choice(name="Smile", value="smile"),
+        app_commands.Choice(name="Blush", value="blush"),
+        app_commands.Choice(name="Wink", value="wink"),
+        app_commands.Choice(name="Dance", value="dance"),
+        app_commands.Choice(name="Cringe", value="cringe"),
+        app_commands.Choice(name="Cry", value="cry"),
+        app_commands.Choice(name="Happy", value="happy")
+    ])
+    async def emote(self, interaction: discord.Interaction, action: app_commands.Choice[str], target: discord.Member = None):
+        await self._perform_roleplay(interaction, action.value, target)
 
 async def setup(bot):
     await bot.add_cog(RoleplayCommands(bot))
