@@ -8,8 +8,8 @@ def get_embed() -> discord.Embed:
     )
 
     embed.add_field(
-        name="**/chat_toggle** `[state]`",
-        value="Enable (`True`) or Disable (`False`) auto-chat in the current channel.",
+        name="**/chat_toggle** `[enable]` `[mode]` `[toxicity]`",
+        value="Configure auto-chat in the current channel. Set `enable` to True/False, choose `mode` (Censored/Uncensored), and optionally set `toxicity`.",
         inline=False
     )
     embed.add_field(
@@ -19,7 +19,7 @@ def get_embed() -> discord.Embed:
     )
     embed.add_field(
         name="**/ask-silk** `[question]`",
-        value="Ask S.I.L.K. a question directly from anywhere in the server, using the current persona.",
+        value="Ask S.I.L.K. a question directly from anywhere in the server. Respects the channel's active Uncensored/Censored mode.",
         inline=False
     )
     embed.add_field(
@@ -42,7 +42,7 @@ def get_embed() -> discord.Embed:
 
     embed.add_field(
         name="Features",
-        value="• **Context Aware**: Remembers the last 20 messages.\n• **Dynamic**: Personality changes affect safety filters and tone.\n• **Smart**: Uses Gemma 3 27b IT model.",
+        value="• **Context Aware**: Remembers the last 20 messages.\n• **Dual-Model Architecture**: Toggle between Censored (Gemma 3) and Uncensored (Dolphin Mistral) AI modes per channel.\n• **Dynamic**: Uncensored mode supports 6 distinct toxicity levels.",
         inline=False
     )
 
