@@ -30,18 +30,22 @@ class SilkBot(commands.Bot):
                     except Exception as e:
                         print(f"Failed to load extension {filename}: {e}")
 
-        # Sync commands to specific Guild
-        guild_id = os.getenv("GUILD_ID")
-        if guild_id:
-            try:
-                guild_obj = discord.Object(id=guild_id)
-                self.tree.copy_global_to(guild=guild_obj)
-                await self.tree.sync(guild=guild_obj)
-                print(f"Synced commands to Guild ID: {guild_id}")
-            except Exception as e:
-                 print(f"Failed to sync commands: {e}")
+        # Sync commands to specific Guilds
+        guild_ids_str = os.getenv("GUILD_IDS")
+        if guild_ids_str:
+            guild_ids = [g_id.strip() for g_id in guild_ids_str.split(",") if g_id.strip()]
+            for guild_id in guild_ids:
+                try:
+                    guild_obj = discord.Object(id=int(guild_id))
+                    self.tree.copy_global_to(guild=guild_obj)
+                    await self.tree.sync(guild=guild_obj)
+                    print(f"Synced commands to Guild ID: {guild_id}")
+                except Exception as e:
+                     print(f"Failed to sync commands to Guild ID {guild_id}: {e}")
+            if not guild_ids:
+                print("Warning: GUILD_IDS string was empty or malformed. Commands not synced.")
         else:
-            print("Warning: GUILD_ID not found in environment variables. Commands not synced.")
+            print("Warning: GUILD_IDS not found in environment variables. Commands not synced.")
 
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
