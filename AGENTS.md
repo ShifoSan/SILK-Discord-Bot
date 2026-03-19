@@ -188,5 +188,20 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Persona Lock: Strictly enforces the "Helpful" personality for all DM interactions to ensure polite assistance.
    * Private Memory: Maintains a separate `dm_history` dictionary (Last 20 messages) per user, isolated from server chat contexts.
    * Data Privacy: DMs are explicitly filtered out of the global Logging Module to prevent leaks.
+16. Task Agent Module (Phase 14)
+ * File: cogs/task_agent.py
+ * Role: Intercepts direct mentions to analyze and execute complex tasks (e.g., creating embeds, parsing structured data) based on user instructions.
+ * Dependencies: google-genai (New SDK), asyncio, json.
+ * Model: gemma-3-27b-it.
+ * Key Features:
+   * Bridge Architecture: Intercepts direct bot mentions (`@S.I.L.K.`) before they reach the standard Chat Module, determining if the message is a "TASK" or "CHAT".
+   * Intent Analysis: Uses AI to classify the user's message. Chat messages are ignored by this module and pass through to `chat.py`.
+   * Interactive Confirmation UI: If a task is detected, it replies with an ephemeral-style interaction containing `[✅ Confirm]` and `[❌ Cancel]` buttons to verify execution.
+   * Execution Engine:
+     * Capable of outputting raw text or structured JSON for Discord Embed generation.
+     * Gracefully falls back to text if JSON parsing fails.
+   * Security & State: 
+     * Interactions are strictly locked to the user who initiated the task.
+     * Uses an in-memory dictionary to manage pending tasks with a 60-second timeout.
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
