@@ -8,7 +8,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Solution: keep_alive.py runs a Flask server on 0.0.0.0.
    * Port: Must use os.environ.get("PORT", 8080).
  * Command Syncing:
-   * Development: Commands are strictly synced to a specific test guild (GUILD_ID in .env) for instant updates.
+   * Development: Commands are strictly synced to specific test guilds (comma-separated GUILD_IDS in .env) for instant updates across multiple servers.
    * Production: Global sync is currently disabled to prioritize development speed.
  * File Structure:
    * main.py: Entry point. Loads env vars, starts Flask thread, iterates cogs/ to load extensions, and syncs commands.
@@ -27,7 +27,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
 1. The Core (System Orchestrator)
  * File: main.py
  * Role: Initializes the bot, manages the setup_hook for extension loading, and handles the Discord connection.
- * Key Behavior: Automatically ignores non-py files in cogs/. Syncs commands immediately to the target Guild ID upon login.
+ * Key Behavior: Automatically ignores non-py files in cogs/. Iterates through the GUILD_IDS environment variable and syncs commands immediately to multiple target servers upon login.
 2. The Heartbeat (Uptime Agent)
  * File: keep_alive.py
  * Role: Tricks Render into treating the bot as a web service.
@@ -141,11 +141,12 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * File: cogs/logger.py
  * Sub-Modules: cogs/logs/ (channels.py, roles.py, members.py, messages.py, voice.py)
  * Role: Comprehensive, event-driven server surveillance and audit logging system.
- * Dependencies: log_config.json (Runtime persistence).
+ * Dependencies: Dynamic multi-file JSON config (`log_config_{guild_id}.json`) for Runtime persistence.
  * Commands:
    * /setup_logs: Master Admin command. Auto-creates "『LOGS』" category and 6 specific channels (#📊-channel-logs, etc.).
      * Idempotent Logic: Checks for existing channels/categories before creation to prevent duplicates after restarts.
  * Key Features:
+   * Multi-Server Support: Uses a "Multi-File" configuration approach, generating individual JSON files per guild to ensure isolated and bug-free logging across different servers.
    * Visual Coding: Distinct color-coded Embeds for Creates (Green), Deletes (Red), and Updates (Yellow).
    * Audit Intelligence: Automatically fetches `guild.audit_logs` to identify *who* performed an action (e.g., who deleted a channel) instead of just reporting the event.
    * Granular Tracking:
