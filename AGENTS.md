@@ -121,8 +121,6 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * Role: Comprehensive, interactive dashboard system for bot documentation.
  * Commands:
    * /help: Master command that launches the "Help Dashboard" (Interactive Button UI).
-   * /creator-note: Displays the "S.I.L.K. Journey" Dev Log and support links.
-   * /quick-ai, /yt-explain, /vision-help, /utility-help, /text-help, /staff-mod-help, /server-build-help, /ai-chat-help (Updated), /log-help, /roleplay-help.
  * Key Features:
    * Interactive Dashboard: The /help command sends a single embed with a 3-row Button View to navigate all 11 categories without chat flooding.
    * Content Updates:
@@ -164,14 +162,14 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
  * Dependencies: aiohttp.
  * API: waifu.pics (SFW endpoints).
  * Commands:
-   * Affection: /hug, /kiss, /cuddle, /pat, /poke, /lick, /bite, /handhold, /glomp.
-   * Action: /slap, /kill, /kick, /bonk, /yeet, /highfive, /wave.
-   * Emotion: /smile, /blush, /wink, /dance, /cringe, /cry, /happy, /nom.
-   * Special: /bully, /smug.
+   * /emote [action] [target]: Master roleplay command using `app_commands.Choice`.
+     * Affection Actions (Requires target): hug, kiss, pat, poke, lick, bite, handhold.
+     * Action Actions (Requires target): slap, kill, kick, highfive.
+     * Special Actions (Requires target): bully.
+     * Emotion Actions (Target optional): nom, smile, blush, wink, dance, cringe, cry, happy.
  * Key Features:
-   * Smart Targeting:
-     * Interactive commands (e.g., /hug) REQUIRE a target user.
-     * Solo/Emotion commands (e.g., /smile) have OPTIONAL targets (e.g., "User smiles" vs "User smiles at Target").
+   * Centralized Command: Compress 20 actions into a single `/emote` command.
+   * Smart Targeting Logic: Automatically requires a target for interactive actions and warns the user if one isn't provided. Optionally incorporates the target into solo/emotion actions if provided.
    * Visual Style: Uses "Soft Pink" (0xFFC0CB) embeds with unique, flavor-text descriptions for every command.
    * Stability: Ephemeral error handling ensures the bot doesn't crash if the API times out.
    * Stateless: No database required; fetches fresh GIFs on every request.
