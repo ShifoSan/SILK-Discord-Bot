@@ -212,6 +212,14 @@ class Chat(commands.Cog):
         if message.content.startswith('/'):
             return
 
+        # Bridge Hook for TaskAgent
+        if is_mentioned:
+            task_cog = self.bot.get_cog("TaskAgent")
+            if task_cog:
+                is_task = await task_cog.analyze_and_intercept(message)
+                if is_task:
+                    return # Stop chat.py, the Task Agent is handling it
+
         # 2. Rate Limit Check
         if not self.can_reply():
             # Silently return if rate limit exceeded
