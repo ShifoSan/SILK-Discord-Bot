@@ -15,7 +15,6 @@ from cogs.logs import voice as log_voice_module
 class Logger(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.config_path = "log_config.json"
         self.log_channels_map = {
             "channel_logs": "📊-channel-logs",
             "role_logs": "📊-role-logs",
@@ -25,21 +24,26 @@ class Logger(commands.Cog):
             "vc_logs": "📊-vc-logs"
         }
 
-    def load_config(self):
-        if os.path.exists(self.config_path):
+    def _get_config_path(self, guild_id):
+        return f"log_config_{guild_id}.json"
+
+    def load_config(self, guild_id):
+        config_path = self._get_config_path(guild_id)
+        if os.path.exists(config_path):
             try:
-                with open(self.config_path, "r") as f:
+                with open(config_path, "r") as f:
                     return json.load(f)
             except json.JSONDecodeError:
                 return {}
         return {}
 
-    def save_config(self, config):
-        with open(self.config_path, "w") as f:
+    def save_config(self, guild_id, config):
+        config_path = self._get_config_path(guild_id)
+        with open(config_path, "w") as f:
             json.dump(config, f, indent=4)
 
     async def get_log_channel(self, guild_id, log_type):
-        config = self.load_config()
+        config = self.load_config(guild_id)
         if str(guild_id) not in config:
             return None
         channel_id = config[str(guild_id)].get(log_type)
@@ -52,8 +56,8 @@ class Logger(commands.Cog):
     async def setup_logs(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
         guild = interaction.guild
-        config = self.load_config()
         guild_id = str(guild.id)
+        config = self.load_config(guild_id)
 
         if guild_id not in config:
             config[guild_id] = {}
@@ -83,7 +87,7 @@ class Logger(commands.Cog):
             config[guild_id][key] = channel.id
             created_channels.append(channel.mention)
 
-        self.save_config(config)
+        self.save_config(guild_id, config)
         await interaction.followup.send(f"✅ Logs configured. Linked to: {', '.join(created_channels)}")
 
     # --- Channel Events ---
