@@ -25,8 +25,10 @@ class Fun(commands.Cog):
 
     @app_commands.command(name="say", description="Repeats what you say")
     async def say(self, interaction: discord.Interaction, text: str):
-        # Keep as slash command, "Used /say" will be visible.
-        await interaction.response.send_message(text)
+        # Send an ephemeral response to the user so the command invocation is hidden
+        await interaction.response.send_message("Message sent!", ephemeral=True)
+        # Send the actual text directly to the channel
+        await interaction.channel.send(text)
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))

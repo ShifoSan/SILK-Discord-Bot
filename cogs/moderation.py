@@ -123,15 +123,68 @@ class Moderation(commands.Cog):
         except discord.HTTPException as e:
             await interaction.response.send_message(f"❌ An error occurred (User might not be banned): {e}", ephemeral=True)
 
-    @app_commands.command(name="purge", description="Delete a number of messages")
+    @app_commands.command(name="purge", description="Delete a number of messages with optional filters")
     @app_commands.checks.has_permissions(manage_messages=True)
-    @app_commands.describe(amount="Number of messages to delete")
-    async def purge(self, interaction: discord.Interaction, amount: int):
+    @app_commands.describe(
+        amount="Number of messages to delete",
+        user="Filter by a specific user",
+        role="Filter by a specific role",
+        only_users="Only delete messages from non-bot users",
+        only_bots="Only delete messages from bots",
+        has_link="Only delete messages containing a link"
+    )
+    async def purge(
+        self,
+        interaction: discord.Interaction,
+        amount: int,
+        user: discord.Member = None,
+        role: discord.Role = None,
+        only_users: bool = False,
+        only_bots: bool = False,
+        has_link: bool = False
+    ):
+        if only_users and only_bots:
+            await interaction.response.send_message("❌ You cannot select both `only_users` and `only_bots`.", ephemeral=True)
+            return
+
+        if user and only_bots and not user.bot:
+            await interaction.response.send_message("❌ You selected `only_bots` but provided a user who is not a bot.", ephemeral=True)
+            return
+
+        if user and only_users and user.bot:
+            await interaction.response.send_message("❌ You selected `only_users` but provided a bot user.", ephemeral=True)
+            return
+
         # Defer Protocol: Purging takes time
         await interaction.response.defer(thinking=True, ephemeral=True)
 
+        def check(m: discord.Message):
+            # 1. User check
+            if user and m.author.id != user.id:
+                return False
+
+            # 2. Role check
+            if role:
+                # If author is not a member (e.g. webhook), they won't have roles
+                if not isinstance(m.author, discord.Member) or role not in m.author.roles:
+                    return False
+
+            # 3. Only users check
+            if only_users and m.author.bot:
+                return False
+
+            # 4. Only bots check
+            if only_bots and not m.author.bot:
+                return False
+
+            # 5. Has link check
+            if has_link and "http" not in m.content.lower():
+                return False
+
+            return True
+
         try:
-            deleted = await interaction.channel.purge(limit=amount)
+            deleted = await interaction.channel.purge(limit=amount, check=check)
 
             embed = discord.Embed(
                 description=f"✅ Purged {len(deleted)} messages.",
