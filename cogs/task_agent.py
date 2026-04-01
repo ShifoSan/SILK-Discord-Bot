@@ -34,7 +34,7 @@ class TaskConfirmView(discord.ui.View):
 
     @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.green)
     async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(content="⏳ Working on it...", view=None)
+        await interaction.response.edit_message(content=f"⏳ Working on: **{self.original_message.content}**", view=None)
         self.stop()
         if self.original_message.id in self.task_cog.pending_tasks:
             confirm_message = self.task_cog.pending_tasks[self.original_message.id]["confirm_message"]
@@ -67,10 +67,12 @@ class TaskAgent(commands.Cog):
             return False
 
         system_prompt = (
-            "Analyze the user's message. If the user is explicitly instructing you to perform an action, "
-            "create something structured (like an embed, a poll, or a script), or complete a specific assignment (like homework), "
-            "output exactly 'TASK'. If the user is just having a casual conversation, asking a general knowledge question, "
-            "or greeting you, output exactly 'CHAT'."
+            "Analyze the user's message. If the user is explicitly commanding you to perform an action, "
+            "such as creating something structured (like an embed, a poll, or a script) or completing a specific assignment, "
+            "output exactly 'TASK'. You must be strictly triggered ONLY by explicit task commands. "
+            "If the user is just having a casual conversation, asking a general knowledge question, greeting you, "
+            "or simply referring to an action conversationally (e.g., 'watch him', 'look at that'), "
+            "output exactly 'CHAT'."
         )
 
         try:
@@ -86,7 +88,7 @@ class TaskAgent(commands.Cog):
                 # It's a task. Send confirmation UI.
                 view = TaskConfirmView(self, message)
                 confirm_message = await message.reply(
-                    f"Hey {message.author.mention}! Just wanna confirm if you want me to execute this task...",
+                    f"Hey {message.author.mention}! Just wanna confirm if you want me to execute this task: **{message.content}**...",
                     view=view
                 )
                 self.pending_tasks[message.id] = {"confirm_message": confirm_message}
@@ -111,9 +113,11 @@ class TaskAgent(commands.Cog):
 
         system_prompt = (
             "You are a helpful AI assistant. Complete the user's task. "
-            "If the user asks for a poll or an embed, you MUST output raw JSON representing a Discord embed. "
-            "Do not include any other text if outputting JSON. Make sure the JSON is valid."
-            "\n\nExample Embed JSON:\n"
+            "If the user explicitly asks for an embed, a poll, or an announcement, you MUST output raw JSON representing a Discord embed. "
+            "Do not include any other text if outputting JSON. Make sure the JSON is valid. "
+            "If the user asks for anything else (like mentioning a user, repeating text, general text output, etc.), "
+            "you MUST output raw text directly into the channel without formatting it as an embed or JSON."
+            "\n\nExample Embed JSON (ONLY use if explicitly requested):\n"
             "```json\n"
             "{\n"
             "  \"title\": \"Example Title\",\n"
