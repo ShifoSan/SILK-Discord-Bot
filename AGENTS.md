@@ -94,7 +94,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Primary Role: Handles text manipulation and entertainment commands.
    * Files Included:
      * `cogs/fun.py`: Pure Python text processing utilities.
-   * Core Logic & Features: Simple string manipulation functions mapping inputs to mocked case, reversed case, or inserting emojis.
+   * Core Logic & Features: Simple string manipulation functions mapping inputs to mocked case, reversed case, or inserting emojis. [span_0](start_span)Configured `/say` to act stealthily by sending an ephemeral "Message sent!" response to hide the interaction from the main chat feed, while dumping the raw text payload directly into the channel via `channel.send`[span_0](end_span).
    * Commands: `/mock [text]`, `/reverse [text]`, `/clap [text]`, `/say [text]`.
    * Dependencies/Configs: None.
 
@@ -102,12 +102,12 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Primary Role: Standard server management and discipline tools.
    * Files Included:
      * `cogs/moderation.py`: Cog encapsulating kick, ban, purge, and slowmode logic.
-   * Core Logic & Features: Contains `check_hierarchy` to enforce Discord role hierarchies and prevent standard users/bot from punishing those with higher roles. Captures `discord.Forbidden` to provide clean errors.
+   * Core Logic & Features: Contains `check_hierarchy` to enforce Discord role hierarchies and prevent standard users/bot from punishing those with higher roles. Captures `discord.Forbidden` to provide clean errors. [span_1](start_span)Added five new optional filters to the `/purge` command (`user`, `role`, `only_users`, `only_bots`, `has_link`)[span_1](end_span). [span_2](start_span)It validates these arguments (like mutually exclusive bot/user flags) and uses `channel.purge` with a targeted check function[span_2](end_span).
    * Commands:
      * `/kick [user] [reason]`
      * `/ban [user] [reason]`
      * `/unban [user_id]` (Attempts to fetch user for display, falls back to ID)
-     * `/purge [amount]`
+     * `/purge [amount] [user] [role] [only_users] [only_bots] [has_link]`
      * `/slowmode [seconds]`
    * Dependencies/Configs: None.
 
@@ -201,9 +201,9 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Files Included:
      * `cogs/task_agent.py`: Controller identifying and processing instructional messages.
    * Core Logic & Features:
-     * Evaluates messages targeting the bot with an initial GenAI call to classify them as "TASK" or "CHAT". If a TASK, blocks default chat processing.
-     * Offers an interactive UI (`TaskConfirmView`) to confirm the execution of the task.
-     * Secondary GenAI call produces structural output (e.g. JSON strings), falling back to raw text if parsing fails.
+     * Evaluates messages targeting the bot with an initial GenAI call to classify them as "TASK" or "CHAT". [span_3](start_span)Tweaked LLM system prompts so the bot strictly triggers on explicitly stated tasks, avoiding casual chat[span_3](end_span). If a TASK, blocks default chat processing.
+     * Offers an interactive UI (`TaskConfirmView`) to confirm the execution of the task. [span_4](start_span)Appended the `message.content` context into the confirmation prompts and "waiting" state[span_4](end_span).
+     * Secondary GenAI call produces structural output (e.g. JSON strings), falling back to raw text if parsing fails. [span_5](start_span)Set the default response type to raw text instead of forcing embeds, except when explicitly asked (e.g. polls, embeds)[span_5](end_span).
    * Commands: None explicitly, triggers automatically on mentions based on context.
    * Dependencies/Configs: `google-genai`.
 
