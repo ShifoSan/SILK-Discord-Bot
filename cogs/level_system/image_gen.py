@@ -1,6 +1,5 @@
 import io
 from PIL import Image, ImageDraw, ImageFont
-import requests
 
 def load_font(size, bold=False):
     font_name = "Roboto-Bold.ttf" if bold else "Roboto.ttf"
@@ -9,11 +8,10 @@ def load_font(size, bold=False):
     except IOError:
         return ImageFont.load_default()
 
-def get_circular_avatar(avatar_url: str, size: int) -> Image.Image:
+def get_circular_avatar(avatar_bytes: bytes, size: int) -> Image.Image:
     try:
-        response = requests.get(avatar_url, timeout=5)
-        response.raise_for_status()
-        avatar = Image.open(io.BytesIO(response.content)).convert("RGBA")
+        # Load from raw bytes instead of relying on slow synchronous web requests
+        avatar = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
     except Exception:
         # Create a default solid color avatar if fetching fails
         avatar = Image.new("RGBA", (size, size), (100, 100, 100, 255))
@@ -29,7 +27,7 @@ def get_circular_avatar(avatar_url: str, size: int) -> Image.Image:
     circular_avatar.paste(avatar, (0, 0), mask=mask)
     return circular_avatar
 
-def generate_rank_card(user_name: str, avatar_url: str, level: int, current_xp: int, next_level_xp: int, rank: int) -> io.BytesIO:
+def generate_rank_card(user_name: str, avatar_bytes: bytes, level: int, current_xp: int, next_level_xp: int, rank: int) -> io.BytesIO:
     try:
         background = Image.open("banner.png").convert("RGBA")
     except FileNotFoundError:
@@ -41,7 +39,7 @@ def generate_rank_card(user_name: str, avatar_url: str, level: int, current_xp: 
     # Avatar
     avatar_size = 160
     avatar_x, avatar_y = 40, 45
-    avatar = get_circular_avatar(avatar_url, avatar_size)
+    avatar = get_circular_avatar(avatar_bytes, avatar_size)
     background.paste(avatar, (avatar_x, avatar_y), avatar)
 
     # Fonts
@@ -89,3 +87,4 @@ def generate_rank_card(user_name: str, avatar_url: str, level: int, current_xp: 
     background.save(final_buffer, format="PNG")
     final_buffer.seek(0)
     return final_buffer
+            
