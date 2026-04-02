@@ -5,10 +5,17 @@ from .. import database
 
 class DashboardView(discord.ui.View):
     def __init__(self, bot: discord.Client, guild: discord.Guild, config: dict):
-        super().__init__(timeout=300)
+        super().__init__(timeout=600)
         self.bot = bot
         self.guild = guild
         self.config = config
+
+    @discord.ui.select(cls=discord.ui.ChannelSelect, channel_types=[discord.ChannelType.text], placeholder="Select Level-Up Channel...", row=2)
+    async def select_level_channel(self, interaction: discord.Interaction, select: discord.ui.ChannelSelect):
+        channel = select.values[0]
+        self.config["level_up_channel"] = channel.id
+        await database.update_guild_config(self.guild.id, {"level_up_channel": channel.id})
+        await interaction.response.send_message(f"✅ Level-up messages will now be sent to {channel.mention}.", ephemeral=True)
 
     @discord.ui.button(label="Role Rewards", style=discord.ButtonStyle.primary, row=0)
     async def btn_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -74,7 +81,7 @@ class BotConfigCommand(commands.Cog):
     @app_commands.command(name="bot_config", description="Configure S.I.L.K. modules.")
     async def run_bot_config(self, interaction: discord.Interaction, show_stats: bool = False):
         if show_stats:
-            await interaction.response.defer(thinking=True)
+            await interaction.response.defer(ephemeral=True)
             config = await database.get_guild_config(interaction.guild_id)
 
             embed = discord.Embed(title="Level System Configuration", color=discord.Color.green())
@@ -90,7 +97,7 @@ class BotConfigCommand(commands.Cog):
             rw_len = len(config.get('role_rewards', {}))
             embed.add_field(name="Role Rewards", value=str(rw_len))
 
-            await interaction.followup.send(embed=embed)
+            await interaction.followup.send(embed=embed, ephemeral=True)
         else:
             if not interaction.user.guild_permissions.administrator:
                 await interaction.response.send_message("❌ You need Administrator permissions to access the configuration dashboard.", ephemeral=True)

@@ -1,41 +1,94 @@
 import discord
 from .. import database
 
-class RoleRewardsView(discord.ui.View):
-    def __init__(self, bot, guild, config, parent_view):
-        super().__init__(timeout=300)
+class MapRoleModal(discord.ui.Modal, title="Map Role Reward"):
+    level_input = discord.ui.TextInput(
+        label="Enter Level",
+        style=discord.TextStyle.short,
+        placeholder="e.g. 15",
+        required=True
+    )
+
+    def __init__(self, bot, guild, config):
+        super().__init__()
         self.bot = bot
         self.guild = guild
         self.config = config
-        self.parent_view = parent_view
-        self.selected_level = None
 
-    @discord.ui.select(placeholder="Select Level to map...", options=[
-        discord.SelectOption(label=f"Level {i}", value=str(i)) for i in [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
-    ], row=0)
-    async def select_level(self, interaction: discord.Interaction, select: discord.ui.Select):
-        self.selected_level = select.values[0]
-        await interaction.response.send_message(f"Selected Level {self.selected_level}. Now select a role below.", ephemeral=True)
-
-    @discord.ui.select(cls=discord.ui.RoleSelect, placeholder="Select Role to award...", row=1)
-    async def select_role(self, interaction: discord.Interaction, select: discord.ui.RoleSelect):
-        if not self.selected_level:
-            await interaction.response.send_message("Please select a level first from the dropdown above.", ephemeral=True)
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            level = int(self.level_input.value)
+            if level <= 0:
+                raise ValueError
+        except ValueError:
+            await interaction.response.send_message("❌ Please enter a valid positive integer for the level.", ephemeral=True)
             return
 
+        view = RoleSelectView(self.bot, self.guild, self.config, level)
+        await interaction.response.send_message(f"Selected Level {level}. Please select the role to map to it.", view=view, ephemeral=True)
+
+class RoleSelectView(discord.ui.View):
+    def __init__(self, bot, guild, config, level):
+        super().__init__(timeout=600)
+        self.bot = bot
+        self.guild = guild
+        self.config = config
+        self.level = level
+
+    @discord.ui.select(cls=discord.ui.RoleSelect, placeholder="Select Role to award...", row=0)
+    async def select_role(self, interaction: discord.Interaction, select: discord.ui.RoleSelect):
         role = select.values[0]
 
-        # Prevent selecting roles higher than the bot
         bot_member = self.guild.get_member(self.bot.user.id)
         if role.position >= bot_member.top_role.position:
             await interaction.response.send_message("❌ I cannot assign that role because it is higher or equal to my own top role.", ephemeral=True)
             return
 
-        self.config["role_rewards"][self.selected_level] = role.id
+        self.config["role_rewards"][str(self.level)] = role.id
         await database.update_guild_config(self.guild.id, {"role_rewards": self.config["role_rewards"]})
 
-        await interaction.response.send_message(f"✅ Mapped Level {self.selected_level} to {role.mention}.", ephemeral=True)
+        await interaction.response.send_message(f"✅ Mapped Level {self.level} to {role.mention}.", ephemeral=True)
 
-    @discord.ui.button(label="Back to Main Menu", style=discord.ButtonStyle.secondary, row=2)
+class RemoveRoleModal(discord.ui.Modal, title="Remove Role Reward"):
+    level_input = discord.ui.TextInput(
+        label="Enter Level to Remove",
+        style=discord.TextStyle.short,
+        placeholder="e.g. 15",
+        required=True
+    )
+
+    def __init__(self, guild, config):
+        super().__init__()
+        self.guild = guild
+        self.config = config
+
+    async def on_submit(self, interaction: discord.Interaction):
+        level_str = self.level_input.value.strip()
+
+        if level_str in self.config.get("role_rewards", {}):
+            del self.config["role_rewards"][level_str]
+            await database.update_guild_config(self.guild.id, {"role_rewards": self.config["role_rewards"]})
+            await interaction.response.send_message(f"✅ Removed role reward for Level {level_str}.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ No role reward found for Level {level_str}.", ephemeral=True)
+
+
+class RoleRewardsView(discord.ui.View):
+    def __init__(self, bot, guild, config, parent_view):
+        super().__init__(timeout=600)
+        self.bot = bot
+        self.guild = guild
+        self.config = config
+        self.parent_view = parent_view
+
+    @discord.ui.button(label="Add Role Reward", style=discord.ButtonStyle.success, row=0)
+    async def btn_add_reward(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(MapRoleModal(self.bot, self.guild, self.config))
+
+    @discord.ui.button(label="Remove Role Reward", style=discord.ButtonStyle.danger, row=0)
+    async def btn_remove_reward(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(RemoveRoleModal(self.guild, self.config))
+
+    @discord.ui.button(label="Back to Main Menu", style=discord.ButtonStyle.secondary, row=1)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(content="🔓 Welcome to the S.I.L.K. Level System Dashboard.", view=self.parent_view)
