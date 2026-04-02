@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
+import asyncio
 from . import database
 from . import image_gen
 from .bot_config.main_menu import ConfigPasswordModal
@@ -81,13 +82,15 @@ class LevelSystemCommands(commands.Cog):
         current_xp = user_data["xp"]
         next_level_xp = 5 * (level**2) + 50 * level + 100
 
-        avatar_url = target.avatar.url if target.avatar else target.default_avatar.url
+        # Safely download the avatar bytes asynchronously to prevent blocking/lag
+        avatar_asset = target.avatar if target.avatar else target.default_avatar
+        avatar_bytes = await avatar_asset.read()
 
-        # Run image generation in thread to avoid blocking
-        image_bytes = await discord.utils.to_thread(
+        # Run image generation in thread to avoid blocking using asyncio
+        image_bytes = await asyncio.to_thread(
             image_gen.generate_rank_card,
             target.display_name,
-            avatar_url,
+            avatar_bytes,
             level,
             current_xp,
             next_level_xp,
@@ -98,11 +101,18 @@ class LevelSystemCommands(commands.Cog):
         await interaction.followup.send(file=file)
 
     @app_commands.command(name="leaderboard", description="Displays the server leaderboard.")
-    async def leaderboard(self, interaction: discord.Interaction, voice_lb: bool = False):
+    async def leaderboard(self, interaction: discord.Interaction, page: int = 1, voice_lb: bool = False):
         await interaction.response.defer(thinking=True)
+        
+        # Convert user's 1-based page input to our 0-based index
+        page_index = max(0, page - 1)
+        
         view = LeaderboardPaginationView(interaction.guild_id, voice_lb)
+        view.current_page = page_index
+        
         embed = await view.generate_embed(interaction.guild)
         await interaction.followup.send(embed=embed, view=view)
 
 async def setup(bot):
     await bot.add_cog(LevelSystemCommands(bot))
+    
