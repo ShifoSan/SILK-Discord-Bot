@@ -5,62 +5,16 @@ import os
 import io
 import requests
 from gtts import gTTS
-from newsapi import NewsApiClient
 
 class Creative(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
         # Load API keys
-        self.news_api_key = os.getenv("NEWS_API_KEY")
         self.hf_token = os.getenv("HUGGINGFACE_TOKEN")
-        
-        # Initialize NewsAPI Client
-        if self.news_api_key:
-            self.newsapi = NewsApiClient(api_key=self.news_api_key)
-        else:
-            self.newsapi = None
-            print("Warning: NEWS_API_KEY not found in environment variables.")
 
         # Hugging Face Constants
         self.HF_API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
-
-    # --- Tech News Command ---
-    @app_commands.command(name="tech_news", description="Get the top 3 technology headlines")
-    async def tech_news(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
-
-        if not self.newsapi:
-            await interaction.followup.send("❌ NewsAPI is not configured.")
-            return
-
-        try:
-            top_headlines = self.newsapi.get_top_headlines(category='technology', language='en', page_size=3)
-            
-            if top_headlines['status'] != 'ok':
-                await interaction.followup.send("❌ Failed to fetch news.")
-                return
-
-            articles = top_headlines.get('articles', [])
-            if not articles:
-                await interaction.followup.send("ℹ️ No tech news found at the moment.")
-                return
-
-            embed = discord.Embed(title="📰 Top Tech News", color=discord.Color.blue())
-            
-            for article in articles:
-                title = article.get('title', 'No Title')
-                description = article.get('description', 'No description available.')
-                url = article.get('url', '')
-                
-                value_text = f"{description}\n[Read more]({url})"
-                embed.add_field(name=title, value=value_text, inline=False)
-
-            embed.set_footer(text="Powered by NewsAPI")
-            await interaction.followup.send(embed=embed)
-
-        except Exception as e:
-            await interaction.followup.send(f"❌ An error occurred while fetching news: {e}")
 
     # --- Imagine Command (Image Generation) ---
     @app_commands.command(name="imagine", description="Generate an image from a prompt using AI")

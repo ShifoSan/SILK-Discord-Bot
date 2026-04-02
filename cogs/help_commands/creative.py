@@ -8,11 +8,6 @@ def get_embed() -> discord.Embed:
     )
 
     embed.add_field(
-        name="**/tech_news**",
-        value="Fetches the top 3 AI/Tech headlines.",
-        inline=False
-    )
-    embed.add_field(
         name="**/imagine** `[prompt]`",
         value="Generates an AI image based on your description (Stable Diffusion XL).",
         inline=False
