@@ -97,6 +97,9 @@ class BotConfigCommand(commands.Cog):
             rw_len = len(config.get('role_rewards', {}))
             embed.add_field(name="Role Rewards", value=str(rw_len))
 
+            lvl_up_chan = config.get("level_up_channel")
+            embed.add_field(name="Level-Up Channel", value=f"<#{lvl_up_chan}>" if lvl_up_chan else "Not Set")
+
             await interaction.followup.send(embed=embed, ephemeral=True)
         else:
             if not interaction.user.guild_permissions.administrator:

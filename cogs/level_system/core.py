@@ -3,6 +3,7 @@ from discord.ext import commands
 from datetime import datetime, timezone
 import random
 import traceback
+import asyncio
 from . import database
 from . import ai_responses
 
@@ -51,7 +52,7 @@ class LevelSystemCore(commands.Cog):
                 ch = message.guild.get_channel(config["level_up_channel"])
                 if ch: target_channel = ch
 
-            ai_msg = await discord.utils.to_thread(
+            ai_msg = await asyncio.to_thread(
                 ai_responses.generate_level_up_message,
                 message.author.display_name,
                 new_level
