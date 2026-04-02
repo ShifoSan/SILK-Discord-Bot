@@ -5,7 +5,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
 
 ## Root Configuration
 * `requirements.txt`: Contains the list of Python dependencies required to run the bot.
-* `.env`: (Ignored by Git) Environment variables such as `DISCORD_TOKEN`, `GEMINI_API_KEY`, `YOUTUBE_API_KEY`, `YOUTUBE_CHANNEL_ID`, `NEWS_API_KEY`, `HUGGINGFACE_TOKEN`, and `GUILD_IDS`.
+* `.env`: (Ignored by Git) Environment variables such as `DISCORD_TOKEN`, `GEMINI_API_KEY`, `HUGGINGFACE_TOKEN`, and `GUILD_IDS`.
 
 ## 🏗️ Architectural Standards
  * Framework: discord.py (latest version) using app_commands (Slash Commands).
@@ -54,51 +54,39 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Files Included:
      * `cogs/brain.py`: The main Cog containing general AI text commands.
    * Core Logic & Features: Sends prompts to the GenAI model with manual system prompting to simulate the S.I.L.K. persona. Enforces defer protocols and handles safety filters.
-   * Commands: `/idea`, `/roast [user]`, `/whois [character]`, `/summary [text]`, `/define [word]`, `/slang [word]`, `/translate [language] [text]`, `/ship [user1] [user2]`.
+   * Commands: `/roast [user]`, `/translate [language] [text]`.
    * Dependencies/Configs: `google-genai` (New SDK), model `gemma-3-27b-it`. Requires `GEMINI_API_KEY`.
 
-4. Shifo Module (Phase 2)
-   * Primary Role: Handles YouTube Data API integration for channel stats and promotion.
-   * Files Included:
-     * `cogs/shifo.py`: Cog for YouTube interactions.
-   * Core Logic & Features: Queries the YouTube v3 API. Retrieves statistics for a specific channel ID or searches handles. Converts numeric stats to formatted integers. Executes API requests via `run_in_executor` to avoid blocking.
-   * Commands:
-     * `/stats`: Displays live subscriber count, total views, and video count for ShifoLabs.
-     * `/latest`: Fetches and links the most recent ShifoLabs video upload.
-     * `/shoutout [channel_handle]`: Generates a "Promo Card" embed for any YouTube channel.
-   * Dependencies/Configs: `google-api-python-client`. Requires `YOUTUBE_API_KEY` and `YOUTUBE_CHANNEL_ID`.
-
-5. Creative Module (Phase 3)
+4. Creative Module (Phase 3)
    * Primary Role: Handles external API calls for media generation and information fetching.
    * Files Included:
-     * `cogs/creative.py`: Cog integrating text-to-speech, image generation, and news API.
+     * `cogs/creative.py`: Cog integrating text-to-speech and image generation.
    * Core Logic & Features:
-     * `tech_news`: Fetches top 3 articles.
      * `imagine`: Uses Hugging Face router for Stable Diffusion XL. Returns images as byte streams (`io.BytesIO`) directly in embeds. Warns users on 503 Cold Starts.
      * `voice`: Uses gTTS to create audio buffers in memory and uploads them as discord Files.
-   * Commands: `/tech_news`, `/imagine [prompt]`, `/voice [text]`.
-   * Dependencies/Configs: `requests` (Hugging Face), `gTTS`, `newsapi-python`, `io`. Requires `NEWS_API_KEY` and `HUGGINGFACE_TOKEN`.
+   * Commands: `/imagine [prompt]`, `/voice [text]`.
+   * Dependencies/Configs: `requests` (Hugging Face), `gTTS`, `io`. Requires `HUGGINGFACE_TOKEN`.
 
-6. Utilities Module (Phase 4)
+5. Utilities Module (Phase 4)
    * Primary Role: Provides essential tools, server stats, and logic-based utilities.
    * Files Included:
      * `cogs/utils.py`: Cog handling bot latency, up time, random events, polls, math, and QR generation.
-   * Core Logic & Features: Evaluates basic math expressions using strict regex sanitization. Tracks bot uptime using a datetime marker on load. Uses `io.BytesIO` for QR code generation to avoid disk IO.
+   * Core Logic & Features: Tracks bot uptime using a datetime marker on load. Uses `io.BytesIO` for QR code generation to avoid disk IO.
    * Commands:
      * Info: `/ping`, `/uptime`, `/serverinfo`, `/userinfo [member]`, `/avatar [member]`.
-     * RNG: `/roll`, `/flip`, `/choose [choice1] [choice2]`.
-     * Tools: `/calc [expression]`, `/poll [question] [option_a] [option_b]`, `/qr [url]`, `/dm [member] [message]` (Admin only).
+     * RNG: `/roll`, `/choose [choice1] [choice2]`.
+     * Tools: `/poll [question] [option_a] [option_b]`, `/qr [url]`, `/dm [member] [message]` (Admin only).
    * Dependencies/Configs: `qrcode`, `Pillow`, `io`, `re`.
 
-7. Fun Module (Phase 5)
+6. Fun Module (Phase 5)
    * Primary Role: Handles text manipulation and entertainment commands.
    * Files Included:
      * `cogs/fun.py`: Pure Python text processing utilities.
-   * Core Logic & Features: Simple string manipulation functions mapping inputs to mocked case, reversed case, or inserting emojis. Configured `/say` to act stealthily by sending an ephemeral "Message sent!" response to hide the interaction from the main chat feed, while dumping the raw text payload directly into the channel via `channel.send`.
-   * Commands: `/mock [text]`, `/reverse [text]`, `/clap [text]`, `/say [text]`.
+   * Core Logic & Features: Configured `/say` to act stealthily by sending an ephemeral "Message sent!" response to hide the interaction from the main chat feed, while dumping the raw text payload directly into the channel via `channel.send`.
+   * Commands: `/say [text]`.
    * Dependencies/Configs: None.
 
-8. Moderation Module (Phase 6)
+7. Moderation Module (Phase 6)
    * Primary Role: Standard server management and discipline tools.
    * Files Included:
      * `cogs/moderation.py`: Cog encapsulating kick, ban, purge, and slowmode logic.
@@ -111,7 +99,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/slowmode [seconds]`
    * Dependencies/Configs: None.
 
-9. Architect Module (Phase 7)
+8. Architect Module (Phase 7)
    * Primary Role: "Natural Language to Infrastructure" engine using AI.
    * Files Included:
      * `cogs/architect.py`: Interprets natural language and translates it into Discord guild structure actions.
@@ -121,7 +109,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/demolish [instruction]`: Destruction Mode (No Creates).
    * Dependencies/Configs: `google-genai` (New SDK), `gemma-3-27b-it`.
 
-10. Chat Module (Phase 8)
+9. Chat Module (Phase 8)
    * Primary Role: Advanced, context-aware automatic chat handler with hot-swappable personalities and global reach.
    * Files Included:
      * `cogs/chat.py`: Main cog for auto-chat, mention, and reply interception.
@@ -138,21 +126,20 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/chat_toggle [state]`: Enable/Disable auto-chat in the current channel.
      * `/voice_mode [state]`: Enable/Disable Hybrid Voice responses in the current channel.
      * `/persona [name]`: Switch between Standard, Edgy, or Helpful.
-     * `/ask-silk [question]`: Direct, server-wide command using the active persona.
    * Dependencies/Configs: `google-genai` (New SDK), `gTTS`, `io`, `collections.deque`, `re`.
 
-11. Help Module (Phase 9)
+10. Help Module (Phase 9)
    * Primary Role: Comprehensive, interactive dashboard system for bot documentation.
    * Files Included:
      * `cogs/help.py`: Core dashboard utilizing `discord.ui.View` for a 3-row button grid interface.
-     * `cogs/help_commands/*.py`: 11 discrete files (`ai_fun.py`, `youtube.py`, `creative.py`, `utility.py`, `fun_text.py`, `moderation.py`, `architect.py`, `ai_chat.py`, `logging.py`, `roleplay.py`, `creator_note.py`). Each returns a specific `discord.Embed`.
+     * `cogs/help_commands/*.py`: 11 discrete files (`ai_fun.py`, `creative.py`, `utility.py`, `fun_text.py`, `moderation.py`, `architect.py`, `ai_chat.py`, `logging.py`, `roleplay.py`, `creator_note.py`, `leveling.py`). Each returns a specific `discord.Embed`.
    * Core Logic & Features: Instantiates a persistent dashboard replacing standard walls-of-text with an interactive UI. Edits the original embed when users click categorical buttons to display commands.
    * Commands:
      * `/help`: Launches the interactive dashboard.
      * `/creator-note`: A dedicated personal note/dev log from the creator.
    * Dependencies/Configs: None.
 
-12. Presence Module (Phase 10)
+11. Presence Module (Phase 10)
    * Primary Role: Handles the bot's status, activity loops, and "Rich Presence" logic.
    * Files Included:
      * `cogs/presence.py`: Manages the dynamic rotating presence.
@@ -160,7 +147,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Commands: None.
    * Dependencies/Configs: `discord.ext.tasks`, `itertools`.
 
-13. Logging Module (Phase 11)
+12. Logging Module (Phase 11)
    * Primary Role: Comprehensive, event-driven server surveillance and audit logging system.
    * Files Included:
      * `cogs/logger.py`: The orchestrator handling event listeners and the `setup_logs` command.
@@ -174,7 +161,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/setup_logs`: Master Admin command to generate the `『LOGS』` category and channels.
    * Dependencies/Configs: Dynamically generated `log_config_{guild_id}.json` files for persistent state mapping channel IDs.
 
-14. Roleplay Module (Phase 12)
+13. Roleplay Module (Phase 12)
    * Primary Role: "Anime Roleplay" engine that sends animated reaction GIFs via Embeds.
    * Files Included:
      * `cogs/roleplay_commands.py`: A unified cog for expressive interactions.
@@ -183,7 +170,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/emote [action] [target]`: Actions include Affection (hug, kiss), Action (slap, kill), Special (bully), Emotion (smile, blush).
    * Dependencies/Configs: `aiohttp`. External API: `https://api.waifu.pics/sfw/{category}`.
 
-15. DM Gatekeeper Module (Phase 13)
+14. DM Gatekeeper Module (Phase 13)
    * Primary Role: Secure, privacy-focused handler for Direct Message interactions with a strict approval system.
    * Files Included:
      * `cogs/dm_chat.py`: Controller handling DM routing, intent processing, and interactive approvals.
@@ -196,7 +183,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/dm-list`: Displays ephemeral embed listing Approved, Pending, and Blocked users (Creator Only).
    * Dependencies/Configs: Requires `dm_config.json` for persistence and `google-genai`.
 
-16. Task Agent Module (Phase 14)
+15. Task Agent Module (Phase 14)
    * Primary Role: Intercepts direct mentions to analyze and execute complex tasks (e.g., creating embeds, parsing structured data) based on user instructions.
    * Files Included:
      * `cogs/task_agent.py`: Controller identifying and processing instructional messages.
@@ -207,7 +194,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Commands: None explicitly, triggers automatically on mentions based on context.
    * Dependencies/Configs: `google-genai`.
 
-17. Level System Module (Phase 15)
+16. Level System Module (Phase 15)
    * Primary Role: Advanced XP and leveling system tracking messages, reactions, and voice activity with a robust UI dashboard.
    * Files Included:
      * `cogs/level_system/core.py`: Main cog loading the configurations and handling `on_message`, `on_raw_reaction_add`, `on_voice_state_update`, and join/leave logic.
