@@ -30,6 +30,19 @@ class SilkBot(commands.Bot):
                     except Exception as e:
                         print(f"Failed to load extension {filename}: {e}")
 
+            # Load level_system extensions manually since they are in subdirectories
+            level_system_extensions = [
+                'cogs.level_system.core',
+                'cogs.level_system.commands',
+                'cogs.level_system.bot_config.main_menu'
+            ]
+            for ext in level_system_extensions:
+                try:
+                    await self.load_extension(ext)
+                    print(f"Loaded extension: {ext}")
+                except Exception as e:
+                    print(f"Failed to load extension {ext}: {e}")
+
         # Sync commands to specific Guilds
         guild_ids_str = os.getenv("GUILD_IDS")
         if guild_ids_str:
