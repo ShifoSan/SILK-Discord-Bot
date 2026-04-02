@@ -1,10 +1,12 @@
 import os
 import motor.motor_asyncio
+import certifi
 from datetime import datetime
 
 MONGO_URI = os.getenv("MONGO_URI")
 if MONGO_URI:
-    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+    # Added the tlsCAFile parameter to force updated certificates
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
     db = client.silk_level_system
 else:
     # Dummy DB for testing without URI
@@ -82,3 +84,4 @@ async def get_user_rank(guild_id: int, user_id: int, sort_by_vc: bool = False) -
         sort_field: {"$gt": score}
     })
     return count + 1
+    
