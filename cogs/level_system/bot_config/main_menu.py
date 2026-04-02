@@ -49,15 +49,23 @@ class ConfigPasswordModal(discord.ui.Modal, title="Admin Authentication"):
         self.bot = bot
 
     async def on_submit(self, interaction: discord.Interaction):
+        # 1. DEFER THE INTERACTION immediately to reset the 3-second timer to 15 minutes
+        await interaction.response.defer(ephemeral=True)
+        
         import os
         correct_pass = os.getenv("CONFIG_PASS", "admin")
+        
         if self.password.value != correct_pass:
-            await interaction.response.send_message("❌ Incorrect password.", ephemeral=True)
+            # 2. Use followup since we already deferred
+            await interaction.followup.send("❌ Incorrect password.", ephemeral=True)
             return
 
         config = await database.get_guild_config(interaction.guild_id)
         view = DashboardView(self.bot, interaction.guild, config)
-        await interaction.response.send_message("🔓 Welcome to the S.I.L.K. Level System Dashboard.", view=view, ephemeral=True)
+        
+        # 3. Use followup for the successful response too
+        await interaction.followup.send("🔓 Welcome to the S.I.L.K. Level System Dashboard.", view=view, ephemeral=True)
+
 
 class BotConfigCommand(commands.Cog):
     def __init__(self, bot):
@@ -73,7 +81,7 @@ class BotConfigCommand(commands.Cog):
             embed.add_field(name="Text Cooldown", value=f"{config.get('text_cooldown')}s")
             embed.add_field(name="Reaction Cooldown", value=f"{config.get('reaction_cooldown')}s")
             embed.add_field(name="VC XP Enabled", value=str(config.get('vc_xp_enabled')))
-            embed.add_field(name="VC XP Rate", value=f"{config.get('vc_xp_per_minute')} XP/min")
+            embed.add_field(name="VC XP Rate", value=f"{config.get('vc_vc_xp_per_minute')} XP/min")
             embed.add_field(name="Spam Min Length", value=str(config.get('spam_min_length')))
 
             bl_len = len(config.get('spam_channels_blacklist', []))
@@ -91,3 +99,4 @@ class BotConfigCommand(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(BotConfigCommand(bot))
+    
