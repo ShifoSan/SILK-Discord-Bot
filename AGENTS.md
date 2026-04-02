@@ -211,22 +211,23 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Primary Role: Advanced XP and leveling system tracking messages, reactions, and voice activity with a robust UI dashboard.
    * Files Included:
      * `cogs/level_system/core.py`: Main cog loading the configurations and handling `on_message`, `on_raw_reaction_add`, `on_voice_state_update`, and join/leave logic.
-     * `cogs/level_system/database.py`: Asynchronous MongoDB connector for saving/retrieving user progress and server configs.
-     * `cogs/level_system/commands.py`: Houses the user-facing slash commands (`/rank`, `/leaderboard`, `/bot_config`).
-     * `cogs/level_system/image_gen.py`: Pillow-based generator drawing dynamic rank cards using `banner.png`.
+     * `cogs/level_system/database.py`: Asynchronous MongoDB connector for saving/retrieving user progress and server configs. (Uses `certifi` to force updated SSL certs on Render).
+     * `cogs/level_system/commands.py`: Houses the user-facing slash commands (`/rank`, `/leaderboard`, `/bot_config`). Passes avatar bytes to prevent blocking.
+     * `cogs/level_system/image_gen.py`: Pillow-based generator drawing dynamic rank cards using `banner.png`. (Handles raw bytes instead of synchronous URL requests).
      * `cogs/level_system/ai_responses.py`: Isolated GenAI connector generating personalized level-up messages via `gemma-3-27b-it`.
-     * `cogs/level_system/bot_config/`: Sub-directory containing interactive configuration UI components (`main_menu.py`, `role_rewards.py`, `xp_management.py`, `vc_settings.py`, `spam_filters.py`, `cooldown_settings.py`).
+     * `cogs/level_system/bot_config/`: Sub-directory containing interactive configuration UI components (`main_menu.py`, `role_rewards.py`, `xp_management.py`, `vc_settings.py`, `spam_filters.py`, `cooldown_settings.py`). Employs the Defer Protocol to avoid 3-second modal timeouts.
    * Core Logic & Features:
      * Dynamic math using a quadratic curve `5*(level^2) + 50*level + 100` for leveling.
      * Soft data retention tracking `in_server` status to preserve leaving users' progress without cluttering leaderboards.
      * Dynamic cooldown timers and spam mitigation (length check, blacklist) mapped directly to server configs.
      * Administrative dashboard requiring a `CONFIG_PASS` to lock out unauthorized users.
      * Strictly ignores bots.
+     * Performance Optimization: Uses `asyncio.to_thread` for PIL image generation and `await asset.read()` for avatars to completely prevent blocking the bot's event loop.
    * Commands:
      * `/rank [user]`: Generates a real-time Pillow image displaying the target's stats.
      * `/leaderboard [page] [voice-lb]`: Paginated view of the top server users.
      * `/bot_config [show-stats]`: Dashboard trigger (ephemeral modal) or text-based stats display.
-   * Dependencies/Configs: `motor`, `Pillow`, `requests`, `google-genai`. Requires `MONGO_URI` and `CONFIG_PASS` in `.env`. Database defaults defined in `database.py`.
+   * Dependencies/Configs: `motor`, `Pillow`, `google-genai`, `certifi`. Requires `MONGO_URI` and `CONFIG_PASS` in `.env`. Database defaults defined in `database.py`.
 
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
