@@ -1,9 +1,35 @@
 import discord
 from .. import database
 
+class VCRateModal(discord.ui.Modal, title="VC XP Rate"):
+    rate_input = discord.ui.TextInput(
+        label="XP per Minute",
+        style=discord.TextStyle.short,
+        placeholder="e.g. 5",
+        required=True
+    )
+
+    def __init__(self, guild, config):
+        super().__init__()
+        self.guild = guild
+        self.config = config
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            rate = int(self.rate_input.value)
+            if rate < 0:
+                raise ValueError
+        except ValueError:
+            await interaction.response.send_message("❌ Please enter a valid non-negative integer.", ephemeral=True)
+            return
+
+        self.config["vc_xp_per_minute"] = rate
+        await database.update_guild_config(self.guild.id, {"vc_xp_per_minute": rate})
+        await interaction.response.send_message(f"✅ VC XP Rate set to **{rate} XP / minute**.", ephemeral=True)
+
 class VCSettingsView(discord.ui.View):
     def __init__(self, bot, guild, config, parent_view):
-        super().__init__(timeout=300)
+        super().__init__(timeout=600)
         self.bot = bot
         self.guild = guild
         self.config = config
@@ -17,17 +43,9 @@ class VCSettingsView(discord.ui.View):
         status = "Enabled" if self.config["vc_xp_enabled"] else "Disabled"
         await interaction.response.send_message(f"✅ VC XP is now **{status}**.", ephemeral=True)
 
-    @discord.ui.select(placeholder="Set XP per Minute...", options=[
-        discord.SelectOption(label="1 XP / min", value="1"),
-        discord.SelectOption(label="5 XP / min", value="5"),
-        discord.SelectOption(label="10 XP / min", value="10"),
-        discord.SelectOption(label="20 XP / min", value="20"),
-    ], row=1)
-    async def select_rate(self, interaction: discord.Interaction, select: discord.ui.Select):
-        rate = int(select.values[0])
-        self.config["vc_xp_per_minute"] = rate
-        await database.update_guild_config(self.guild.id, {"vc_xp_per_minute": rate})
-        await interaction.response.send_message(f"✅ VC XP Rate set to **{rate} XP / minute**.", ephemeral=True)
+    @discord.ui.button(label="Set XP per Minute", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_set_rate(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(VCRateModal(self.guild, self.config))
 
     @discord.ui.button(label="Back to Main Menu", style=discord.ButtonStyle.secondary, row=2)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):

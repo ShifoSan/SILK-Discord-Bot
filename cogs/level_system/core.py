@@ -22,18 +22,24 @@ class LevelSystemCore(commands.Cog):
                     if member.bot: continue
                     await database.save_user_data(guild.id, member.id, {"last_vc_join": now})
 
+    def calculate_level_from_xp(self, xp: int) -> int:
+        level = 0
+        total_required = 0
+        while True:
+            xp_required = 5 * (level**2) + 50 * level + 100
+            total_required += xp_required
+            if xp >= total_required:
+                level += 1
+            else:
+                break
+        return level
+
     async def handle_level_up(self, message: discord.Message, user_data: dict, config: dict):
         current_xp = user_data["xp"]
         current_level = user_data["level"]
 
         # Calculate new level
-        new_level = current_level
-        while True:
-            xp_required = 5 * (new_level**2) + 50 * new_level + 100
-            if current_xp >= xp_required:
-                new_level += 1
-            else:
-                break
+        new_level = self.calculate_level_from_xp(current_xp)
 
         if new_level > current_level:
             # Save new level

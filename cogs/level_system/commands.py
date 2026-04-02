@@ -30,13 +30,28 @@ class LeaderboardPaginationView(discord.ui.View):
             embed.add_field(name="No Data", value="Nobody is on the leaderboard yet!")
             return embed
 
+        def calculate_level_from_xp(xp: int) -> int:
+            level = 0
+            total_required = 0
+            while True:
+                xp_required = 5 * (level**2) + 50 * level + 100
+                total_required += xp_required
+                if xp >= total_required:
+                    level += 1
+                else:
+                    break
+            return level
+
         desc = ""
         for i, u in enumerate(users):
             rank = (self.current_page * self.limit) + i + 1
             member = guild.get_member(u["user_id"])
             name = member.display_name if member else f"Unknown User ({u['user_id']})"
             xp = u.get("vc_xp", 0) if self.sort_by_vc else u.get("xp", 0)
-            level = u.get("level", 0)
+
+            # Dynamically calculate the user's level based on XP instead of relying on cached values
+            level = calculate_level_from_xp(u.get("xp", 0))
+
             desc += f"**#{rank}** | {name} - Lvl {level} | {xp} XP\n"
 
         embed.description += "\n\n" + desc
@@ -78,9 +93,39 @@ class LevelSystemCommands(commands.Cog):
         user_data = await database.get_user_data(interaction.guild_id, target.id)
         rank_pos = await database.get_user_rank(interaction.guild_id, target.id, sort_by_vc=False)
 
-        level = user_data["level"]
         current_xp = user_data["xp"]
-        next_level_xp = 5 * (level**2) + 50 * level + 100
+        def calculate_level_from_xp(xp: int) -> int:
+            level = 0
+            total_required = 0
+            while True:
+                xp_required = 5 * (level**2) + 50 * level + 100
+                total_required += xp_required
+                if xp >= total_required:
+                    level += 1
+                else:
+                    break
+            return level
+
+        level = calculate_level_from_xp(current_xp)
+
+        # We need the XP specifically for the CURRENT level out of the total XP required
+        # Wait, the prompt says "next_level_xp" calculation... it was:
+        # prev_level_xp = 5 * ((level - 1)**2) + 50 * (level - 1) + 100 if level > 0 else 0
+        # In image_gen it uses prev_level_xp to show progress... Wait!
+        # `next_level_xp` in previous code was: 5 * (level**2) + 50 * level + 100.
+        # But this is actually just the XP delta required to go from current level to next level!
+        # If image_gen expects total xp required for next level...
+        # Wait, `image_gen.py` does this:
+        # prev_level_xp = 5 * ((level - 1)**2) + 50 * (level - 1) + 100 if level > 0 else 0
+        # xp_in_level = max(0, current_xp - prev_level_xp)
+        # xp_required_for_level = next_level_xp - prev_level_xp
+        # If `prev_level_xp` is calculated there, it assumes `prev_level_xp` is the total XP to reach the current level.
+        # Let's fix image_gen's logic too or calculate next_level_xp properly here as total.
+
+        total_xp_for_next_level = 0
+        for l in range(level + 1):
+            total_xp_for_next_level += 5 * (l**2) + 50 * l + 100
+        next_level_xp = total_xp_for_next_level
 
         # Safely download the avatar bytes asynchronously to prevent blocking/lag
         avatar_asset = target.avatar if target.avatar else target.default_avatar
