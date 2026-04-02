@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from cogs.help_commands import (
-    ai_fun, youtube, creative, utility,
+    ai_fun, leveling, creative, utility,
     moderation, architect, ai_chat, fun_text,
     logging, roleplay, creator_note
 )
@@ -11,14 +11,14 @@ class HelpView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None) # Persistent view if needed, but ephemeral usually times out.
 
-    # Row 1: [🧠 Brain] [📺 Shifo] [🎨 Creative] [🛠️ Utils]
+    # Row 1: [🧠 Brain] [📈 Leveling] [🎨 Creative] [🛠️ Utils]
     @discord.ui.button(label="Brain", style=discord.ButtonStyle.secondary, emoji="🧠", row=0)
     async def brain_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(embed=ai_fun.get_embed(), view=self)
 
-    @discord.ui.button(label="Shifo", style=discord.ButtonStyle.secondary, emoji="📺", row=0)
-    async def shifo_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(embed=youtube.get_embed(), view=self)
+    @discord.ui.button(label="Leveling", style=discord.ButtonStyle.secondary, emoji="📈", row=0)
+    async def leveling_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(embed=leveling.get_embed(), view=self)
 
     @discord.ui.button(label="Creative", style=discord.ButtonStyle.secondary, emoji="🎨", row=0)
     async def creative_button(self, interaction: discord.Interaction, button: discord.ui.Button):

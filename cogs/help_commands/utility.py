@@ -38,18 +38,8 @@ def get_embed() -> discord.Embed:
         inline=True
     )
     embed.add_field(
-        name="**/flip**",
-        value="Flips a coin (Heads or Tails).",
-        inline=True
-    )
-    embed.add_field(
         name="**/choose** `[choice1]` `[choice2]`",
         value="Randomly picks between two options.",
-        inline=True
-    )
-    embed.add_field(
-        name="**/calc** `[expression]`",
-        value="Solves a basic math expression (e.g., `5 + 5`).",
         inline=True
     )
     embed.add_field(

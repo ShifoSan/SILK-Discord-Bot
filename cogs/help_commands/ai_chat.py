@@ -18,11 +18,6 @@ def get_embed() -> discord.Embed:
         inline=False
     )
     embed.add_field(
-        name="**/ask-silk** `[question]`",
-        value="Ask S.I.L.K. a question directly from anywhere in the server, using the current persona.",
-        inline=False
-    )
-    embed.add_field(
         name="**/persona** `[name]`",
         value="Switch S.I.L.K.'s personality (e.g., Standard, Edgy, Helpful).",
         inline=False

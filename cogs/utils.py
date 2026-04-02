@@ -84,35 +84,12 @@ class Utils(commands.Cog):
         result = random.randint(1, 6)
         await interaction.response.send_message(f"🎲 You rolled a {result}!")
 
-    @app_commands.command(name="flip", description="Flip a coin")
-    async def flip(self, interaction: discord.Interaction):
-        result = random.choice(["Heads", "Tails"])
-        await interaction.response.send_message(f"🪙 It's {result}!")
-
     @app_commands.command(name="choose", description="Randomly choose between two options")
     async def choose(self, interaction: discord.Interaction, choice1: str, choice2: str):
         result = random.choice([choice1, choice2])
         await interaction.response.send_message(f"I choose: **{result}**")
 
     # --- Utility Tools ---
-
-    @app_commands.command(name="calc", description="Solve a basic math expression")
-    @app_commands.describe(expression="The math expression to solve (e.g., 5 + 5)")
-    async def calc(self, interaction: discord.Interaction, expression: str):
-        # Allow numbers, operators, parens, decimal points, and spaces
-        allowed_pattern = r"^[0-9+\-*/().\s]+$"
-
-        if not re.match(allowed_pattern, expression):
-            await interaction.response.send_message("❌ Invalid characters in expression. Only numbers and basic operators are allowed.", ephemeral=True)
-            return
-
-        try:
-            # Safe to eval because we checked against the allowed pattern
-            # Using a restricted scope just in case
-            result = eval(expression, {"__builtins__": None}, {})
-            await interaction.response.send_message(f"🧮 Result: `{expression}` = **{result}**")
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Error calculating: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="poll", description="Create a simple poll with two options")
     async def poll(self, interaction: discord.Interaction, question: str, option_a: str, option_b: str):
