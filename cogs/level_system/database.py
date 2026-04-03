@@ -27,7 +27,6 @@ DEFAULT_CONFIG = {
     "spam_min_length": 5,
     "role_rewards": {}, # "level_number": "role_id"
     "level_up_channel": None, # ID of channel to route messages to
-    "wiki_channels": [], # List of channel IDs where Wiki AI is enabled
 }
 
 async def get_guild_config(guild_id: int) -> dict:
