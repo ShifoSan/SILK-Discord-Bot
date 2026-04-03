@@ -125,10 +125,29 @@ class WikiChat(commands.Cog):
             return
 
         async with message.channel.typing():
-            # 1. Fetch wiki content
-            wiki_text = await self.fetch_wiki_text(message.content)
+            # 1. Extract a clean search query using the fast model
+            extraction_prompt = f"""
+            Extract the core subject from the following user question to be used as a wiki search query. 
+            Return ONLY the 1-3 word search query and absolutely nothing else.
+            User Question: "{message.content}"
+            """
+            
+            try:
+                query_response = await asyncio.to_thread(
+                    self.client.models.generate_content,
+                    model='gemini-3.1-flash-lite-preview',
+                    contents=extraction_prompt,
+                    config=types.GenerateContentConfig(safety_settings=[])
+                )
+                search_term = query_response.text.strip()
+            except Exception as e:
+                print(f"Error in WikiChat AI Extraction: {e}")
+                search_term = message.content # Fallback to raw message if it fails
 
-            # 2. Compile recent history
+            # 2. Fetch wiki content using the cleaned search term
+            wiki_text = await self.fetch_wiki_text(search_term)
+
+            # 3. Compile recent history
             history_messages = [msg async for msg in message.channel.history(limit=20)]
             history_messages.reverse()
 
@@ -141,7 +160,7 @@ class WikiChat(commands.Cog):
 
             history_string = "\n".join(formatted_history)
 
-            # 3. Prompt Setup
+            # 4. Prompt Setup
             system_prompt = (
                 "You are S.I.L.K., an expert Wiki Agent. Your ONLY source of truth is the provided Fandom Wiki Extract below. "
                 "You must ONLY answer the user's questions based on this exact text. Do NOT hallucinate stats, prices, or information. "
@@ -174,3 +193,4 @@ class WikiChat(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(WikiChat(bot))
+            
