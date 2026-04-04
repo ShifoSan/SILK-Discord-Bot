@@ -50,15 +50,53 @@ class LevelSystemCore(commands.Cog):
             target_channel = message.channel
             if config.get("level_up_channel"):
                 ch = message.guild.get_channel(config["level_up_channel"])
-                if ch: target_channel = ch
+                if ch:
+                    target_channel = ch
+
+            if config.get("level_up_thread_id"):
+                thread = message.guild.get_thread(config["level_up_thread_id"])
+                if thread:
+                    target_channel = thread
 
             ai_msg = await asyncio.to_thread(
                 ai_responses.generate_level_up_message,
                 message.author.display_name,
                 new_level
             )
+
+            # Rank Card Generation
             try:
-                await target_channel.send(f"{message.author.mention} {ai_msg}")
+                rank_pos = await database.get_user_rank(message.guild.id, message.author.id, sort_by_vc=False)
+                total_xp_for_next_level = 0
+                for l in range(new_level + 1):
+                    total_xp_for_next_level += 5 * (l**2) + 50 * l + 100
+                next_level_xp = total_xp_for_next_level
+
+                avatar_asset = message.author.avatar if message.author.avatar else message.author.default_avatar
+                avatar_bytes = await avatar_asset.read()
+
+                from . import image_gen
+                image_bytes = await asyncio.to_thread(
+                    image_gen.generate_rank_card,
+                    message.author.display_name,
+                    avatar_bytes,
+                    new_level,
+                    current_xp,
+                    next_level_xp,
+                    rank_pos
+                )
+            except Exception as e:
+                print(f"Failed to generate rank card for level up: {e}")
+                image_bytes = None
+
+            try:
+                if image_bytes:
+                    await target_channel.send(
+                        content=f"{message.author.mention} {ai_msg}",
+                        file=discord.File(fp=image_bytes, filename='levelup.png')
+                    )
+                else:
+                    await target_channel.send(f"{message.author.mention} {ai_msg}")
             except discord.Forbidden:
                 pass
 
