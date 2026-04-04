@@ -60,22 +60,22 @@ class LeaderboardPaginationView(discord.ui.View):
 
     @discord.ui.button(emoji="⬅️", style=discord.ButtonStyle.secondary)
     async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # FIXED: Defer immediately before generating the DB-heavy embed
+        await interaction.response.defer()
         if self.current_page > 0:
             self.current_page -= 1
             embed = await self.generate_embed(interaction.guild)
-            await interaction.response.edit_message(embed=embed, view=self)
-        else:
-            await interaction.response.defer()
+            await interaction.message.edit(embed=embed, view=self)
 
     @discord.ui.button(emoji="➡️", style=discord.ButtonStyle.secondary)
     async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # FIXED: Defer immediately before querying the DB for user counts
+        await interaction.response.defer()
         users_count = await database.users_collection.count_documents({"guild_id": self.guild_id, "in_server": True})
         if (self.current_page + 1) * self.limit < users_count:
             self.current_page += 1
             embed = await self.generate_embed(interaction.guild)
-            await interaction.response.edit_message(embed=embed, view=self)
-        else:
-            await interaction.response.defer()
+            await interaction.message.edit(embed=embed, view=self)
 
 class LevelSystemCommands(commands.Cog):
     def __init__(self, bot):
@@ -107,20 +107,6 @@ class LevelSystemCommands(commands.Cog):
             return level
 
         level = calculate_level_from_xp(current_xp)
-
-        # We need the XP specifically for the CURRENT level out of the total XP required
-        # Wait, the prompt says "next_level_xp" calculation... it was:
-        # prev_level_xp = 5 * ((level - 1)**2) + 50 * (level - 1) + 100 if level > 0 else 0
-        # In image_gen it uses prev_level_xp to show progress... Wait!
-        # `next_level_xp` in previous code was: 5 * (level**2) + 50 * level + 100.
-        # But this is actually just the XP delta required to go from current level to next level!
-        # If image_gen expects total xp required for next level...
-        # Wait, `image_gen.py` does this:
-        # prev_level_xp = 5 * ((level - 1)**2) + 50 * (level - 1) + 100 if level > 0 else 0
-        # xp_in_level = max(0, current_xp - prev_level_xp)
-        # xp_required_for_level = next_level_xp - prev_level_xp
-        # If `prev_level_xp` is calculated there, it assumes `prev_level_xp` is the total XP to reach the current level.
-        # Let's fix image_gen's logic too or calculate next_level_xp properly here as total.
 
         total_xp_for_next_level = 0
         for l in range(level + 1):
@@ -160,4 +146,4 @@ class LevelSystemCommands(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(LevelSystemCommands(bot))
-    
+                
