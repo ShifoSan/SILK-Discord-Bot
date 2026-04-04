@@ -17,7 +17,8 @@ class DashboardView(discord.ui.View):
         await database.update_guild_config(self.guild.id, {"level_up_channel": channel.id})
         await interaction.response.send_message(f"✅ Level-up messages will now be sent to {channel.mention}.", ephemeral=True)
 
-    @discord.ui.button(label="Set Thread Name", style=discord.ButtonStyle.secondary, row=2)
+    # FIXED: Moved button to row=3 to avoid the 5-width limit crash
+    @discord.ui.button(label="Set Thread Name", style=discord.ButtonStyle.secondary, row=3)
     async def btn_thread_name(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.config.get("level_up_channel"):
             await interaction.response.send_message("❌ Please select a Level-Up Channel first!", ephemeral=True)
