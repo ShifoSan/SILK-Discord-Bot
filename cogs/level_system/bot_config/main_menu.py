@@ -17,6 +17,15 @@ class DashboardView(discord.ui.View):
         await database.update_guild_config(self.guild.id, {"level_up_channel": channel.id})
         await interaction.response.send_message(f"✅ Level-up messages will now be sent to {channel.mention}.", ephemeral=True)
 
+    @discord.ui.button(label="Set Thread Name", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_thread_name(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.config.get("level_up_channel"):
+            await interaction.response.send_message("❌ Please select a Level-Up Channel first!", ephemeral=True)
+            return
+
+        modal = ThreadNameModal(self.bot, self.guild, self.config)
+        await interaction.response.send_modal(modal)
+
     @discord.ui.button(label="Role Rewards", style=discord.ButtonStyle.primary, row=0)
     async def btn_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
         from .role_rewards import RoleRewardsView
@@ -42,6 +51,42 @@ class DashboardView(discord.ui.View):
         from .cooldown_settings import CooldownSettingsView
         await interaction.response.edit_message(content="Configure XP Cooldowns.", view=CooldownSettingsView(self.bot, self.guild, self.config, self), embed=None)
 
+
+class ThreadNameModal(discord.ui.Modal, title="Set Level-Up Thread"):
+    thread_name = discord.ui.TextInput(
+        label="Thread Name",
+        style=discord.TextStyle.short,
+        placeholder="e.g. Level Ups!",
+        required=True
+    )
+
+    def __init__(self, bot: discord.Client, guild: discord.Guild, config: dict):
+        super().__init__()
+        self.bot = bot
+        self.guild = guild
+        self.config = config
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        channel_id = self.config.get("level_up_channel")
+        channel = self.guild.get_channel(channel_id)
+        if not channel:
+            await interaction.followup.send("❌ The configured Level-Up Channel no longer exists.", ephemeral=True)
+            return
+
+        try:
+            thread = await channel.create_thread(
+                name=self.thread_name.value,
+                type=discord.ChannelType.public_thread
+            )
+            self.config["level_up_thread_id"] = thread.id
+            await database.update_guild_config(self.guild.id, {"level_up_thread_id": thread.id})
+            await interaction.followup.send(f"✅ Level-up messages will now be sent to {thread.mention}.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.followup.send("❌ I do not have permission to create threads in that channel.", ephemeral=True)
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"❌ Failed to create thread: {e}", ephemeral=True)
 
 class ConfigPasswordModal(discord.ui.Modal, title="Admin Authentication"):
     password = discord.ui.TextInput(

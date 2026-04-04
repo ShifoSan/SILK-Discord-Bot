@@ -14,7 +14,7 @@ def generate_level_up_message(user_name: str, new_level: int, persona_instructio
         client = genai.Client(api_key=api_key)
 
         prompt = (
-            f"System Instruction: {persona_instruction}\n\n"
+            f"System Instruction: {persona_instruction} You are to generate EXACTLY ONE short, hype-filled congratulatory message. DO NOT provide multiple options. DO NOT provide choices. Output ONLY the final message text and nothing else.\n\n"
             f"User '{user_name}' just leveled up to Level {new_level}! "
             "Write a short, engaging, 1-2 sentence congratulatory message. "
             "Do not use emojis if the persona is serious, but do if it's casual."
