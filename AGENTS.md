@@ -26,8 +26,8 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
 ## ⚠️ Critical Protocols (The "Render Rules")
  * The Defer Protocol:
    * Render's free tier can be slow to wake up. Discord times out interactions after 3 seconds.
-   * Rule: Any command performing logic (API calls, image generation, math, database fetches) MUST start with await interaction.response.defer(thinking=True).
-   * Follow-up: Once deferred, use await interaction.followup.send(...) instead of response.send_message.
+   * Rule: Any command performing logic (API calls, image generation, math, database fetches) MUST start with `await interaction.response.defer(thinking=True)` instantly to prevent `10062: Unknown interaction` errors.
+   * Follow-up: Once deferred, use `await interaction.followup.send(...)` or `await interaction.message.edit(...)`.
  * Input Sanitization:
    * Math/Eval commands must strictly strip dangerous characters to prevent code injection.
 
@@ -110,7 +110,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Dependencies/Configs: `google-genai` (New SDK), `gemma-3-27b-it`.
 
 9. Chat Module (Phase 8)
-   * Primary Role: Advanced, context-aware automatic chat handler with hot-swappable personalities and global reach.
+   * Primary Role: Advanced, context-aware automatic chat handler with hot-swappable personalities, multi-language support, and global reach.
    * Files Included:
      * `cogs/chat.py`: Main cog for auto-chat, mention, and reply interception.
      * `cogs/personalities/standard.py`: Standard personality system prompt and safety config.
@@ -122,11 +122,13 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * Maintains a 30 RPM sliding window rate limit using a deque.
      * Retrieves conversational history (last 20 messages) and reformats it with `[Model - S.I.L.K.]` and `[User - Name]`.
      * Identifies Creator explicitly using the `(CREATOR_VERIFIED)` tag for security overrides.
+     * Stores persistent auto-chat configurations (enabled state and language) in a MongoDB `chat_configs` collection.
+     * Multi-Language Routing: If 'Hindi' is selected, automatically shifts to `gemini-3.1-flash-lite-preview` using a dedicated Hinglish casual persona prompt. English defaults to `gemma-3-27b-it`.
    * Commands:
-     * `/chat_toggle [state]`: Enable/Disable auto-chat in the current channel.
+     * `/chat_toggle [state] [language]`: Enable/Disable auto-chat in the current channel and optionally set the language (English/Hindi).
      * `/voice_mode [state]`: Enable/Disable Hybrid Voice responses in the current channel.
      * `/persona [name]`: Switch between Standard, Edgy, or Helpful.
-   * Dependencies/Configs: `google-genai` (New SDK), `gTTS`, `io`, `collections.deque`, `re`.
+   * Dependencies/Configs: `google-genai` (New SDK), `gTTS`, `io`, `collections.deque`, `re`, `motor`.
 
 10. Help Module (Phase 9)
    * Primary Role: Comprehensive, interactive dashboard system for bot documentation.
@@ -202,14 +204,15 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `cogs/level_system/commands.py`: Houses the user-facing slash commands (`/rank`, `/leaderboard`, `/bot_config`). Passes avatar bytes to prevent blocking. 
      * `cogs/level_system/image_gen.py`: Pillow-based generator drawing dynamic rank cards using `banner.png`. (Handles raw bytes instead of synchronous URL requests).
      * `cogs/level_system/ai_responses.py`: Isolated GenAI connector generating personalized level-up messages via `gemma-3-27b-it`.
-     * `cogs/level_system/bot_config/`: Sub-directory containing interactive configuration UI components (`main_menu.py`, `role_rewards.py`, `xp_management.py`, `vc_settings.py`, `spam_filters.py`, `cooldown_settings.py`). 
+     * `cogs/level_system/bot_config/`: Sub-directory containing interactive configuration UI components. 
    * Core Logic & Features:
      * Dynamic math using a quadratic curve `5*(level^2) + 50*level + 100` for leveling. Tracks exact true level dynamically based on total XP.
      * Soft data retention tracking `in_server` status to preserve leaving users' progress without cluttering leaderboards.
-     * Dynamic Configuration UI: Utilizes `discord.ui.Button` triggers launching `discord.ui.Modal` with text inputs to allow for arbitrary integer configurations (custom XP values, custom cooldowns, mapped role rewards, deletion of role rewards). Views use an extended 10-minute timeout.
-     * Dedicated AI Channel Routing: Administrators can designate a specific `level_up_channel` via a Channel Select menu for automated AI messages to keep main chats uncluttered.
+     * Dynamic Configuration UI: UI components strictly manage row widths to avoid Discord limits. Includes modals for custom XP inputs and thread configurations.
+     * Dedicated AI Channel & Thread Routing: Administrators can designate a `level_up_channel` and explicitly set a `level_up_thread_id`. S.I.L.K. will generate a public thread inside the channel to centralize automated messages.
+     * Level-Up Payloads: S.I.L.K. uses a strict prompt to generate exactly ONE AI hype message, and dynamically attaches the Pillow-generated rank card into the same message payload.
      * Administrative dashboard requiring a `CONFIG_PASS` to lock out unauthorized users. Stats embeds are strictly ephemeral.
-     * Performance Optimization: Uses `asyncio.to_thread` for PIL image generation and `await asset.read()` for avatars to completely prevent blocking the bot's event loop.
+     * Performance Optimization: Uses `asyncio.to_thread` for PIL image generation, `await asset.read()` for avatars, and strict Defer Protocols (`await interaction.response.defer()`) *before* executing heavy DB tasks to completely prevent `10062` timeout errors.
    * Commands:
      * `/rank [user]`: Generates a real-time Pillow image displaying the target's stats.
      * `/leaderboard [page] [voice-lb]`: Paginated view of the top server users calculated dynamically.
