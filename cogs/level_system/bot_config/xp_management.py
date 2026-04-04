@@ -97,9 +97,12 @@ class XPManagementView(discord.ui.View):
             await interaction.response.send_message("Please select a user first.", ephemeral=True)
             return
 
+        # FIXED: Defer immediately to stop Discord from timing out during the DB call
+        await interaction.response.defer(ephemeral=True)
         await database.save_user_data(self.guild.id, self.selected_user.id, {"xp": 0, "level": 0, "vc_xp": 0})
-        await interaction.response.send_message(f"✅ Reset data for {self.selected_user.mention}.", ephemeral=True)
+        await interaction.followup.send(f"✅ Reset data for {self.selected_user.mention}.", ephemeral=True)
 
     @discord.ui.button(label="Back to Main Menu", style=discord.ButtonStyle.secondary, row=2)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(content="🔓 Welcome to the S.I.L.K. Level System Dashboard.", view=self.parent_view)
+
