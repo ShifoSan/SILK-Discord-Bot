@@ -1,5 +1,6 @@
 import discord
 import os
+import asyncio # <-- ADDED: Need this for the throttle delay
 from discord.ext import commands
 from dotenv import load_dotenv
 import keep_alive
@@ -53,6 +54,10 @@ class SilkBot(commands.Bot):
                     self.tree.copy_global_to(guild=guild_obj)
                     await self.tree.sync(guild=guild_obj)
                     print(f"Synced commands to Guild ID: {guild_id}")
+                    
+                    # FIXED: Added a 2-second throttle so Cloudflare stops banning your IP!
+                    await asyncio.sleep(2.0) 
+                    
                 except Exception as e:
                      print(f"Failed to sync commands to Guild ID {guild_id}: {e}")
             if not guild_ids:
@@ -75,3 +80,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
