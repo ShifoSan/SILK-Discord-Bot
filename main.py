@@ -13,7 +13,7 @@ keep_alive.run()
 class SilkBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix="!", # Required but not used for slash commands
+            command_prefix="!", # This is what allows the !sync command to work
             intents=discord.Intents.all(),
             help_command=None
         )
@@ -57,6 +57,21 @@ def main():
         return
 
     bot = SilkBot()
+    
+    # --- MANUAL SYNC COMMAND ---
+    # Type !sync in your server to update slash commands. 
+    # @commands.is_owner() ensures ONLY YOU can run this.
+    @bot.command(name="sync")
+    @commands.is_owner()
+    async def sync_commands(ctx):
+        await ctx.send("🔄 Syncing slash commands to this server...")
+        try:
+            bot.tree.copy_global_to(guild=ctx.guild)
+            synced = await bot.tree.sync(guild=ctx.guild)
+            await ctx.send(f"✅ Success! Synced {len(synced)} commands.")
+        except Exception as e:
+            await ctx.send(f"❌ Failed to sync: {e}")
+
     bot.run(token)
 
 if __name__ == "__main__":
