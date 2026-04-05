@@ -2,13 +2,9 @@ import discord
 import os
 from discord.ext import commands
 from dotenv import load_dotenv
-import keep_alive
 
 # Load environment variables
 load_dotenv()
-
-# Start the Keep-Alive server
-keep_alive.run()
 
 class SilkBot(commands.Bot):
     def __init__(self):
