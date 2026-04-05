@@ -1,5 +1,6 @@
 import discord
 import os
+import asyncio
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -55,18 +56,23 @@ def main():
     bot = SilkBot()
     
     # --- MANUAL SYNC COMMAND ---
-    # Type !sync in your server to update slash commands. 
-    # @commands.is_owner() ensures ONLY YOU can run this.
+    # Type !sync in any server to update slash commands across ALL servers with a safe cooldown.
     @bot.command(name="sync")
     @commands.is_owner()
     async def sync_commands(ctx):
-        await ctx.send("🔄 Syncing slash commands to this server...")
-        try:
-            bot.tree.copy_global_to(guild=ctx.guild)
-            synced = await bot.tree.sync(guild=ctx.guild)
-            await ctx.send(f"✅ Success! Synced {len(synced)} commands.")
-        except Exception as e:
-            await ctx.send(f"❌ Failed to sync: {e}")
+        await ctx.send(f"🔄 Starting sync across all {len(bot.guilds)} servers. This will take a moment...")
+        success_count = 0
+        
+        for guild in bot.guilds:
+            try:
+                bot.tree.copy_global_to(guild=guild)
+                await bot.tree.sync(guild=guild)
+                success_count += 1
+                await asyncio.sleep(5)  # 5-second cooldown to prevent API bans
+            except Exception as e:
+                print(f"Failed to sync to {guild.name}: {e}")
+        
+        await ctx.send(f"✅ Sync complete! Successfully synced commands to {success_count}/{len(bot.guilds)} servers.")
 
     bot.run(token)
 
