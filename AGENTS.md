@@ -212,5 +212,14 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `/bot_config [show-stats]`: Dashboard trigger (ephemeral modal) or ephemeral text-based stats display.
    * Dependencies/Configs: `motor`, `Pillow`, `google-genai`, `certifi`. Requires `MONGO_URI` and `CONFIG_PASS` in `.env`. Database defaults defined in `database.py`.
 
+16. Button Module (Phase 16)
+   * Primary Role: Generates interactive, clickable buttons for users with customizable timeouts, styles, and ephemeral responses.
+   * Files Included:
+     * `cogs/button.py`: Cog containing the isolated slash command and custom UI view logic.
+   * Core Logic & Features: Utilizes a custom `discord.ui.View` subclass to handle button timeouts (disabling the button when time expires). Reads optional file attachments directly into `io.BytesIO` buffers during execution to prevent Discord attachment links from expiring before a user clicks. Supports an anonymous mode by splitting the ephemeral acknowledgement from the public button payload.
+   * Commands:
+     * `/button [title] [text] [style] [timeout] [visibility] [anonymous] [file]`
+   * Dependencies/Configs: `io`.
+
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
