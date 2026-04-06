@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Start the Keep-Alive server
-keep_alive.run()
+keep_alive.keep_alive()
 
 class SilkBot(commands.Bot):
     def __init__(self):
