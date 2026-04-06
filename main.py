@@ -7,9 +7,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Start the Keep-Alive server
-keep_alive.keep_alive()
-
 class SilkBot(commands.Bot):
     def __init__(self):
         super().__init__(
@@ -76,6 +73,10 @@ def main():
                 print(f"Failed to sync to {guild.name}: {e}")
         
         await ctx.send(f"✅ Sync complete! Successfully synced commands to {success_count}/{len(bot.guilds)} servers.")
+
+    # ---> START THE WEB SERVER HERE <---
+    import keep_alive
+    keep_alive.keep_alive()
 
     bot.run(token)
 
