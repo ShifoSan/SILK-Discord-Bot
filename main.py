@@ -74,9 +74,9 @@ def main():
         
         await ctx.send(f"✅ Sync complete! Successfully synced commands to {success_count}/{len(bot.guilds)} servers.")
 
-    # ---> START THE WEB SERVER HERE <---
+        # ---> START THE WEB SERVER HERE <---
     import keep_alive
-    keep_alive.keep_alive()
+    keep_alive.run()
 
     bot.run(token)
 
