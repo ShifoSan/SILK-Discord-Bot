@@ -1,36 +1,34 @@
 # S.I.L.K. Bot - Codebase Context & Architecture
 
 ## Project Overview
-S.I.L.K. is a modular Discord bot written in Python using discord.py. It is hosted on Render as a Web Service. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
+S.I.L.K. is a modular Discord bot written in Python using discord.py. It is currently hosted on KataBump to bypass shared-IP Cloudflare bans from Discord. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
 
 ## Root Configuration
-* `requirements.txt`: Contains the list of Python dependencies required to run the bot.
-* `.env`: (Ignored by Git) Environment variables such as `DISCORD_TOKEN`, `GEMINI_API_KEY`, `HUGGINGFACE_TOKEN`, and `GUILD_IDS`.
+* `requirements.txt`: Contains the list of Python dependencies required to run the bot (Flask removed).
+* `.env`: (Ignored by Git) Environment variables such as `DISCORD_TOKEN`, `GEMINI_API_KEY`, `HUGGINGFACE_TOKEN`, `MONGO_URI`, and `CONFIG_PASS`.
 
 ## 🏗️ Architectural Standards
  * Framework: discord.py (latest version) using app_commands (Slash Commands).
- * Hosting: Render Web Service.
-   * Constraint: Requires a "Keep-Alive" mechanism to prevent sleeping.
-   * Solution: keep_alive.py runs a Flask server on 0.0.0.0.
-   * Port: Must use os.environ.get("PORT", 8080).
+ * Hosting: KataBump (Temporary Environment).
+   * Constraint: Background sleeping or restarts handled by KataBump's free tier. 
  * Command Syncing:
-   * Development: Commands are strictly synced to specific test guilds (comma-separated GUILD_IDS in .env) for instant updates across multiple servers.
-   * Production: Global sync is currently disabled to prioritize development speed.
+   * Strategy: Auto-syncing on boot is strictly disabled to prevent 1015 IP bans. 
+   * Execution: Command registration is handled manually by the bot owner using the `!sync` command, which slowly pushes updates to all servers to respect rate limits.
  * File Structure:
-   * main.py: Entry point. Loads env vars, starts Flask thread, iterates cogs/ to load extensions, and syncs commands.
+   * main.py: Entry point. Loads env vars, iterates cogs/ to load extensions, and handles the Discord connection.
    * cogs/: Directory for all bot modules. New features MUST be added here as separate files.
    * cogs/personalities/: Directory for personality configuration modules (Standard, Edgy, Helpful).
    * cogs/help_commands/: Directory for individual help embed modules (Phase 9).
    * cogs/logs/: Directory for logging logic modules (Phase 11).
 
-## ⚠️ Critical Protocols (The "Render Rules")
+## ⚠️ Critical Protocols
  * The Defer Protocol:
-   * Render's free tier can be slow to wake up. Discord times out interactions after 3 seconds.
+   * Free tier hosts can be slow to wake up or execute logic. Discord times out interactions after 3 seconds.
    * Rule: Any command performing logic (API calls, image generation, math, database fetches) MUST start with `await interaction.response.defer(thinking=True)` instantly to prevent `10062: Unknown interaction` errors.
    * Follow-up: Once deferred, use `await interaction.followup.send(...)` or `await interaction.message.edit(...)`.
  * Sync Throttling (Anti-Ban):
    * Discord strictly rate-limits slash command syncing. Syncing multiple servers back-to-back immediately on boot triggers a Cloudflare IP ban (Error 1015).
-   * Rule: Always enforce an `asyncio.sleep(2.0)` delay between iterations when looping through `GUILD_IDS` during `setup_hook`.
+   * Rule: The manual `!sync` command explicitly uses an `asyncio.sleep(5.0)` delay between iterations when looping through `bot.guilds`.
  * Input Sanitization:
    * Math/Eval commands must strictly strip dangerous characters to prevent code injection.
 
@@ -39,20 +37,12 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
 1. The Core (System Orchestrator)
    * Primary Role: Initializes the bot, manages the setup_hook for extension loading, and handles the Discord connection.
    * Files Included:
-     * `main.py`: Entry point. Loads env vars, starts Flask thread, iterates cogs/ to load extensions, and syncs commands.
-   * Core Logic & Features: Automatically ignores non-py files in cogs/. Iterates through the GUILD_IDS environment variable and syncs commands immediately to multiple target servers upon login, enforcing a strict 2.0-second delay between syncs to prevent API rate limits.
-   * Commands: None.
+     * `main.py`: Entry point. Loads env vars, connects to Discord, and provides the manual syncing tool.
+   * Core Logic & Features: Automatically ignores non-py files in cogs/. Bypasses auto-syncing during `setup_hook`. Provides a safe, owner-only manual sync tool to update commands across all servers via a controlled loop.
+   * Commands: `!sync` (Owner only, loops through all guilds with a 5-second cooldown).
    * Dependencies/Configs: `discord.py`, `python-dotenv`, `asyncio`.
 
-2. The Heartbeat (Uptime Agent)
-   * Primary Role: Tricks Render into treating the bot as a web service.
-   * Files Included:
-     * `keep_alive.py`: Runs a lightweight Flask app returning "Silk is Online!". It runs on a separate daemon thread initiated by main.py.
-   * Core Logic & Features: Exposes a `/` route on `0.0.0.0` bound to the port specified in `PORT` or default `8080`.
-   * Commands: None.
-   * Dependencies/Configs: `flask`, `threading`.
-
-3. Brain Module (Phase 1)
+2. Brain Module (Phase 1)
    * Primary Role: Handles AI intelligence, text generation, and creative writing.
    * Files Included:
      * `cogs/brain.py`: The main Cog containing general AI text commands.
@@ -60,7 +50,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Commands: `/roast [user]`, `/translate [language] [text]`.
    * Dependencies/Configs: `google-genai` (New SDK), model `gemma-3-27b-it`. Requires `GEMINI_API_KEY`.
 
-4. Creative Module (Phase 3)
+3. Creative Module (Phase 3)
    * Primary Role: Handles external API calls for media generation and information fetching.
    * Files Included:
      * `cogs/creative.py`: Cog integrating text-to-speech and image generation.
@@ -70,7 +60,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Commands: `/imagine [prompt]`, `/voice [text]`.
    * Dependencies/Configs: `requests` (Hugging Face), `gTTS`, `io`. Requires `HUGGINGFACE_TOKEN`.
 
-5. Utilities Module (Phase 4)
+4. Utilities Module (Phase 4)
    * Primary Role: Provides essential tools, server stats, and logic-based utilities.
    * Files Included:
      * `cogs/utils.py`: Cog handling bot latency, up time, random events, polls, math, and QR generation.
@@ -81,7 +71,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * Tools: `/poll [question] [option_a] [option_b]`, `/qr [url]`, `/dm [member] [message]` (Admin only).
    * Dependencies/Configs: `qrcode`, `Pillow`, `io`, `re`.
 
-6. Fun Module (Phase 5)
+5. Fun Module (Phase 5)
    * Primary Role: Handles text manipulation and entertainment commands.
    * Files Included:
      * `cogs/fun.py`: Pure Python text processing utilities.
@@ -89,7 +79,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Commands: `/say [text]`.
    * Dependencies/Configs: None.
 
-7. Moderation Module (Phase 6)
+6. Moderation Module (Phase 6)
    * Primary Role: Standard server management and discipline tools.
    * Files Included:
      * `cogs/moderation.py`: Cog encapsulating kick, ban, purge, and slowmode logic.
@@ -102,7 +92,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/slowmode [seconds]`
    * Dependencies/Configs: None.
 
-8. Architect Module (Phase 7)
+7. Architect Module (Phase 7)
    * Primary Role: "Natural Language to Infrastructure" engine using AI.
    * Files Included:
      * `cogs/architect.py`: Interprets natural language and translates it into Discord guild structure actions.
@@ -112,7 +102,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/demolish [instruction]`: Destruction Mode (No Creates).
    * Dependencies/Configs: `google-genai` (New SDK), `gemma-3-27b-it`.
 
-9. Chat Module (Phase 8)
+8. Chat Module (Phase 8)
    * Primary Role: Advanced, context-aware automatic chat handler with hot-swappable personalities, multi-language support, and global reach.
    * Files Included:
      * `cogs/chat.py`: Main cog for auto-chat, mention, and reply interception.
@@ -133,7 +123,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/persona [name]`: Switch between Standard, Edgy, or Helpful.
    * Dependencies/Configs: `google-genai` (New SDK), `gTTS`, `io`, `collections.deque`, `re`, `motor`.
 
-10. Help Module (Phase 9)
+9. Help Module (Phase 9)
    * Primary Role: Comprehensive, interactive dashboard system for bot documentation.
    * Files Included:
      * `cogs/help.py`: Core dashboard utilizing `discord.ui.View` for a 3-row button grid interface.
@@ -144,7 +134,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/creator-note`: A dedicated personal note/dev log from the creator.
    * Dependencies/Configs: None.
 
-11. Presence Module (Phase 10)
+10. Presence Module (Phase 10)
    * Primary Role: Handles the bot's status, activity loops, and "Rich Presence" logic.
    * Files Included:
      * `cogs/presence.py`: Manages the dynamic rotating presence.
@@ -152,7 +142,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Commands: None.
    * Dependencies/Configs: `discord.ext.tasks`, `itertools`.
 
-12. Logging Module (Phase 11)
+11. Logging Module (Phase 11)
    * Primary Role: Comprehensive, event-driven server surveillance and audit logging system.
    * Files Included:
      * `cogs/logger.py`: The orchestrator handling event listeners and the `setup_logs` command.
@@ -166,7 +156,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/setup_logs`: Master Admin command to generate the `『LOGS』` category and channels.
    * Dependencies/Configs: Dynamically generated `log_config_{guild_id}.json` files for persistent state mapping channel IDs.
 
-13. Roleplay Module (Phase 12)
+12. Roleplay Module (Phase 12)
    * Primary Role: "Anime Roleplay" engine that sends animated reaction GIFs via Embeds.
    * Files Included:
      * `cogs/roleplay_commands.py`: A unified cog for expressive interactions.
@@ -175,7 +165,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/emote [action] [target]`: Actions include Affection (hug, kiss), Action (slap, kill), Special (bully), Emotion (smile, blush).
    * Dependencies/Configs: `aiohttp`. External API: `https://api.waifu.pics/sfw/{category}`.
 
-14. DM Gatekeeper Module (Phase 13)
+13. DM Gatekeeper Module (Phase 13)
    * Primary Role: Secure, privacy-focused handler for Direct Message interactions with a strict approval system.
    * Files Included:
      * `cogs/dm_chat.py`: Controller handling DM routing, intent processing, and interactive approvals.
@@ -188,7 +178,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
      * `/dm-list`: Displays ephemeral embed listing Approved, Pending, and Blocked users (Creator Only).
    * Dependencies/Configs: Requires `dm_config.json` for persistence and `google-genai`.
 
-15. Task Agent Module (Phase 14)
+14. Task Agent Module (Phase 14)
    * Primary Role: Intercepts direct mentions to analyze and execute complex tasks (e.g., creating embeds, parsing structured data) based on user instructions.
    * Files Included:
      * `cogs/task_agent.py`: Controller identifying and processing instructional messages.
@@ -199,11 +189,11 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is host
    * Commands: None explicitly, triggers automatically on mentions based on context.
    * Dependencies/Configs: `google-genai`.
 
-16. Level System Module (Phase 15)
+15. Level System Module (Phase 15)
    * Primary Role: Advanced XP and leveling system tracking messages, reactions, and voice activity with a robust UI dashboard.
    * Files Included:
      * `cogs/level_system/core.py`: Main cog loading the configurations and handling `on_message`, `on_raw_reaction_add`, `on_voice_state_update`, and join/leave logic.
-     * `cogs/level_system/database.py`: Asynchronous MongoDB connector for saving/retrieving user progress and server configs. (Uses `certifi` to force updated SSL certs on Render).
+     * `cogs/level_system/database.py`: Asynchronous MongoDB connector for saving/retrieving user progress and server configs. (Uses `certifi` to force updated SSL certs on server hosts).
      * `cogs/level_system/commands.py`: Houses the user-facing slash commands (`/rank`, `/leaderboard`, `/bot_config`). Passes avatar bytes to prevent blocking. 
      * `cogs/level_system/image_gen.py`: Pillow-based generator drawing dynamic rank cards using `banner.png`. (Handles raw bytes instead of synchronous URL requests).
      * `cogs/level_system/ai_responses.py`: Isolated GenAI connector generating personalized level-up messages via `gemma-3-27b-it`.
