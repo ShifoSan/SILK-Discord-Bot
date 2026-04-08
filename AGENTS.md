@@ -4,8 +4,8 @@
 S.I.L.K. is a modular Discord bot written in Python using discord.py. It is currently hosted on HeavenCloud to bypass shared-IP Cloudflare bans from Discord. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
 
 ## Root Configuration
-* `requirements.txt`: Contains the list of Python dependencies required to run the bot (Flask removed).
-* `.env`: (Ignored by Git) Environment variables such as `DISCORD_TOKEN`, `GEMINI_API_KEY`, `HUGGINGFACE_TOKEN`, `MONGO_URI`, and `CONFIG_PASS`.
+* `requirements.txt`: Contains the list of Python dependencies required to run the bot.
+* `.env`: (Ignored by Git) Environment variables such as `DISCORD_TOKEN`, `GEMINI_API_KEY`, `HUGGINGFACE_TOKEN`, `MONGO_URI`, `CONFIG_PASS`, `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`.
 
 ## 🏗️ Architectural Standards
  * Framework: discord.py (latest version) using app_commands (Slash Commands).
@@ -15,7 +15,9 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Strategy: Auto-syncing on boot is strictly disabled to prevent 1015 IP bans. 
    * Execution: Command registration is handled manually by the bot owner using the `!sync` command, which slowly pushes updates to all servers to respect rate limits.
  * File Structure:
-   * main.py: Entry point. Loads env vars, iterates cogs/ to load extensions, and handles the Discord connection.
+   * launcher.py: The master entry point used by the hosting panel to concurrently launch both the bot and the web dashboard.
+   * main.py: Bot entry point. Loads env vars, iterates cogs/ to load extensions, and handles the Discord connection.
+   * dashboard.py: Async web server entry point (Quart).
    * cogs/: Directory for all bot modules. New features MUST be added here as separate files.
    * cogs/personalities/: Directory for personality configuration modules (Standard, Edgy, Helpful).
    * cogs/help_commands/: Directory for individual help embed modules (Phase 9).
@@ -221,5 +223,20 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `/button [title] [text] [style] [timeout] [visibility] [anonymous] [file]`
    * Dependencies/Configs: `io`.
 
+17. Web Dashboard Module (Phase 17)
+   * Primary Role: External web interface and API routing for configuring S.I.L.K.'s database settings securely via browser.
+   * Files Included:
+     * `launcher.py`: Subprocess orchestrator that concurrently boots `main.py` and `dashboard.py` and handles crash restarts.
+     * `dashboard.py`: Lightweight asynchronous web server running Quart.
+   * Core Logic & Features: 
+     * Runs completely parallel to the bot process to separate web traffic from Discord Gateway logic. 
+     * Uses `motor.motor_asyncio` to connect directly to the bot's shared MongoDB.
+     * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`).
+     * Prepared for Discord OAuth2 session management.
+   * Commands/Routes: 
+     * `/login`, `/callback`, `/dashboard`
+     * `GET/POST /api/chat_configs/<guild_id>`
+   * Dependencies/Configs: `quart`, `urllib.request`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
+
 ## 🔮 Future Roadmap (Context for Expansion)
-Currently Empty. S.I.L.K. is functionally complete.
+Currently Empty. S.I.L.K. is functionally comp
