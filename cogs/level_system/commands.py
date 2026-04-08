@@ -77,6 +77,7 @@ class LeaderboardPaginationView(discord.ui.View):
             embed = await self.generate_embed(interaction.guild)
             await interaction.message.edit(embed=embed, view=self)
 
+
 class LevelSystemCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -113,9 +114,8 @@ class LevelSystemCommands(commands.Cog):
             total_xp_for_next_level += 5 * (l**2) + 50 * l + 100
         next_level_xp = total_xp_for_next_level
 
-        # Safely download the avatar bytes asynchronously to prevent blocking/lag
-        avatar_asset = target.avatar if target.avatar else target.default_avatar
-        avatar_bytes = await avatar_asset.read()
+        # FIX 1: Offload resizing to Discord's CDN. display_avatar automatically handles custom/default avatars.
+        avatar_bytes = await target.display_avatar.replace(size=512, static_format="png").read()
 
         # Run image generation in thread to avoid blocking using asyncio
         image_bytes = await asyncio.to_thread(
@@ -129,7 +129,12 @@ class LevelSystemCommands(commands.Cog):
         )
 
         file = discord.File(fp=image_bytes, filename="rank.png")
-        await interaction.followup.send(file=file)
+        
+        # FIX 2: Catch the error if an impatient user deleted the "Thinking..." message
+        try:
+            await interaction.followup.send(file=file)
+        except discord.NotFound:
+            pass 
 
     @app_commands.command(name="leaderboard", description="Displays the server leaderboard.")
     async def leaderboard(self, interaction: discord.Interaction, page: int = 1, voice_lb: bool = False):
@@ -144,6 +149,7 @@ class LevelSystemCommands(commands.Cog):
         embed = await view.generate_embed(interaction.guild)
         await interaction.followup.send(embed=embed, view=view)
 
+
 async def setup(bot):
     await bot.add_cog(LevelSystemCommands(bot))
-                
+    
