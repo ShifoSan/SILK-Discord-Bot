@@ -224,19 +224,17 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Dependencies/Configs: `io`.
 
 17. Web Dashboard Module (Phase 17)
-   * Primary Role: External web interface and API routing for configuring S.I.L.K.'s database settings securely via browser.
+   * Primary Role: External web interface and API routing for configuring S.I.L.K.'s database settings securely via browser using Discord OAuth2.
    * Files Included:
      * `launcher.py`: Subprocess orchestrator that concurrently boots `main.py` and `dashboard.py` and handles crash restarts.
      * `dashboard.py`: Lightweight asynchronous web server running Quart.
    * Core Logic & Features: 
      * Runs completely parallel to the bot process to separate web traffic from Discord Gateway logic. 
      * Uses `motor.motor_asyncio` to connect directly to the bot's shared MongoDB.
+     * Implements full Discord OAuth2 login flow using `aiohttp` to exchange codes for tokens and fetch user profiles.
+     * Secures endpoints using Quart's encrypted `session` cookies based on the `QUART_SECRET_KEY`.
      * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`).
-     * Prepared for Discord OAuth2 session management.
    * Commands/Routes: 
-     * `/login`, `/callback`, `/dashboard`
-     * `GET/POST /api/chat_configs/<guild_id>`
-   * Dependencies/Configs: `quart`, `urllib.request`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
-
-## 🔮 Future Roadmap (Context for Expansion)
-Currently Empty. S.I.L.K. is functionally comp
+     * `/login`: Redirects user to Discord Authorization URL.
+     * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
+     * `/dashboard`: Protected r
