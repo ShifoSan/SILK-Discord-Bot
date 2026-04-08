@@ -1,10 +1,12 @@
 import os
 import secrets
-from quart import Quart, request, jsonify
+from quart import Quart, request, jsonify, session, redirect
 from dotenv import load_dotenv
 import motor.motor_asyncio
 import certifi
 import urllib.request
+import urllib.parse
+import aiohttp
 print("MY RAW SERVER IP IS:", urllib.request.urlopen('https://api.ipify.org').read().decode('utf8'))
 
 
@@ -20,6 +22,11 @@ app.secret_key = os.getenv("QUART_SECRET_KEY") or secrets.token_hex(24)
 MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     print("Warning: MONGO_URI not found in .env file.")
+
+# Discord OAuth2 Setup
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 
 @app.before_serving
 async def setup_db():
@@ -90,19 +97,72 @@ async def update_chat_config(guild_id):
     return jsonify({"message": "Configuration updated successfully", "updated": update_data}), 200
 
 
-# --- OAuth Placeholder Routes ---
+# --- OAuth Routes ---
 
 @app.route("/login")
 async def login():
-    return jsonify({"status": "Under construction", "route": "login"}), 200
+    params = {
+        "client_id": DISCORD_CLIENT_ID,
+        "redirect_uri": DISCORD_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "identify guilds"
+    }
+    auth_url = f"https://discord.com/api/oauth2/authorize?{urllib.parse.urlencode(params)}"
+    return redirect(auth_url)
 
 @app.route("/callback")
 async def callback():
-    return jsonify({"status": "Under construction", "route": "callback"}), 200
+    code = request.args.get("code")
+    if not code:
+        return jsonify({"error": "Failed to authenticate with Discord"}), 500
+
+    data = {
+        "client_id": DISCORD_CLIENT_ID,
+        "client_secret": DISCORD_CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": DISCORD_REDIRECT_URI
+    }
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        # Exchange code for token
+        async with http_session.post("https://discord.com/api/oauth2/token", data=data, headers=headers) as resp:
+            if resp.status != 200:
+                return jsonify({"error": "Failed to authenticate with Discord"}), 500
+            token_data = await resp.json()
+            access_token = token_data.get("access_token")
+
+        if not access_token:
+            return jsonify({"error": "Failed to authenticate with Discord"}), 500
+
+        # Fetch user profile
+        user_headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        async with http_session.get("https://discord.com/api/users/@me", headers=user_headers) as resp:
+            if resp.status != 200:
+                return jsonify({"error": "Failed to authenticate with Discord"}), 500
+            user_data = await resp.json()
+
+    # Store user in session
+    session["user_id"] = user_data.get("id")
+    session["username"] = user_data.get("username")
+
+    return redirect("/dashboard")
 
 @app.route("/dashboard")
 async def dashboard():
-    return jsonify({"status": "Under construction", "route": "dashboard"}), 200
+    user_id = session.get("user_id")
+    username = session.get("username")
+
+    if user_id and username:
+        return jsonify({"message": f"Welcome, {username}!"}), 200
+    else:
+        return jsonify({"error": "Unauthorized. Please visit /login."}), 401
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2160)
