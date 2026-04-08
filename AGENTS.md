@@ -1,7 +1,7 @@
 # S.I.L.K. Bot - Codebase Context & Architecture
 
 ## Project Overview
-S.I.L.K. is a modular Discord bot written in Python using discord.py. It is currently hosted on KataBump to bypass shared-IP Cloudflare bans from Discord. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
+S.I.L.K. is a modular Discord bot written in Python using discord.py. It is currently hosted on HeavenCloud to bypass shared-IP Cloudflare bans from Discord. The codebase is strictly modular, using "Cogs" (extensions) to separate functionality into distinct domains.
 
 ## Root Configuration
 * `requirements.txt`: Contains the list of Python dependencies required to run the bot (Flask removed).
@@ -9,8 +9,8 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
 
 ## 🏗️ Architectural Standards
  * Framework: discord.py (latest version) using app_commands (Slash Commands).
- * Hosting: KataBump (Temporary Environment).
-   * Constraint: Background sleeping or restarts handled by KataBump's free tier. 
+ * Hosting: HeavenCloud (Temporary Environment).
+   * Constraint: Background sleeping or restarts handled by HeavenCloud's free tier. 
  * Command Syncing:
    * Strategy: Auto-syncing on boot is strictly disabled to prevent 1015 IP bans. 
    * Execution: Command registration is handled manually by the bot owner using the `!sync` command, which slowly pushes updates to all servers to respect rate limits.
