@@ -102,4 +102,4 @@ async def dashboard():
     return jsonify({"status": "Under construction", "route": "dashboard"}), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=2160)
