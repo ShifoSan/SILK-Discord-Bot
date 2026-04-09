@@ -128,7 +128,8 @@ class LevelSystemCommands(commands.Cog):
             rank_pos
         )
 
-        file = discord.File(fp=image_bytes, filename="rank.png")
+        # Updated to WEBP extension
+        file = discord.File(fp=image_bytes, filename="rank.webp")
         
         # FIX 2: Catch the error if an impatient user deleted the "Thinking..." message
         try:
