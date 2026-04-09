@@ -42,6 +42,7 @@ async def setup_db():
     app.bot_statuses = app.db.bot_statuses
     app.personalities = app.db.personalities
     app.bot_live_stats = app.db.bot_live_stats
+    app.custom_commands = app.db.custom_commands
 
     app.level_db = app.db_client.silk_level_system
     app.level_configs = app.level_db.guild_configs
@@ -350,6 +351,62 @@ async def delete_personality():
     await app.personalities.delete_one({"name": data["name"]})
     return jsonify({"message": "Personality deleted successfully"}), 200
 
+
+
+@app.route("/api/custom_commands/<int:guild_id>", methods=["GET"])
+async def get_custom_commands(guild_id):
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if getattr(app, "custom_commands", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    commands = []
+    async for cmd in app.custom_commands.find({"guild_id": guild_id}, {"_id": 0}):
+        commands.append(cmd)
+
+    return jsonify(commands), 200
+
+@app.route("/api/custom_commands/<int:guild_id>", methods=["POST"])
+async def upsert_custom_command(guild_id):
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if getattr(app, "custom_commands", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    data = await request.get_json()
+    if not data or "trigger" not in data or "response" not in data:
+        return jsonify({"error": "Missing 'trigger' or 'response'"}), 400
+
+    reply_directly = data.get("reply_directly", False)
+
+    await app.custom_commands.update_one(
+        {"guild_id": guild_id, "trigger": data["trigger"]},
+        {"$set": {
+            "guild_id": guild_id,
+            "trigger": data["trigger"],
+            "response": data["response"],
+            "reply_directly": reply_directly
+        }},
+        upsert=True
+    )
+    return jsonify({"message": "Custom command saved successfully"}), 200
+
+@app.route("/api/custom_commands/<int:guild_id>", methods=["DELETE"])
+async def delete_custom_command(guild_id):
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if getattr(app, "custom_commands", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    data = await request.get_json()
+    if not data or "trigger" not in data:
+        return jsonify({"error": "Missing 'trigger'"}), 400
+
+    await app.custom_commands.delete_one({"guild_id": guild_id, "trigger": data["trigger"]})
+    return jsonify({"message": "Custom command deleted successfully"}), 200
 
 
 @app.route("/dashboard")
