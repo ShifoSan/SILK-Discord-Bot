@@ -35,7 +35,8 @@ def get_circular_avatar(avatar_bytes: bytes, size: int) -> Image.Image:
     except Exception:
         avatar = Image.new("RGBA", (size, size), (100, 100, 100, 255))
 
-    avatar = avatar.resize((size, size), Image.Resampling.LANCZOS)
+    # Swapped from LANCZOS to BILINEAR for faster CPU processing
+    avatar = avatar.resize((size, size), Image.Resampling.BILINEAR)
 
     mask = Image.new("L", (size, size), 0)
     draw = ImageDraw.Draw(mask)
@@ -111,9 +112,9 @@ def generate_rank_card(user_name: str, avatar_bytes: bytes, level: int, current_
         xp_width = font_stats.getsize(xp_text)[0]
     draw.text((1700 - xp_width, 440), xp_text, font=font_stats, fill=(200, 200, 200, 255))
 
-    # Save to buffer
+    # Save to buffer using optimized WEBP format
     final_buffer = io.BytesIO()
-    background.save(final_buffer, format="PNG")
+    background.save(final_buffer, format="WEBP", quality=90)
     final_buffer.seek(0)
     return final_buffer
     
