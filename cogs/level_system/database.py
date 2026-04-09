@@ -18,6 +18,8 @@ configs_collection = db.guild_configs
 
 # DEFAULT CONFIGURATION
 DEFAULT_CONFIG = {
+    "text_min_xp": 15,
+    "text_max_xp": 25,
     "text_cooldown": 60,
     "reaction_cooldown": 60,
     "vc_cooldown": 60,
