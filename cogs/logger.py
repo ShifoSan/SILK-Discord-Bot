@@ -3,7 +3,6 @@ from discord.ext import commands
 from discord import app_commands
 import json
 import os
-import asyncio
 
 # Logic Modules
 from cogs.logs import channels as log_channels_module
