@@ -259,7 +259,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Commands: None
    * Dependencies/Configs: `psutil`, `requests`, `motor`.
 
-19. Custom Commands Module (Phase 4 / 19)
+19. Custom Commands Module (Phase 19)
    * Primary Role: Database-driven custom text command system managed via the web dashboard.
    * Files Included:
      * `cogs/custom_commands.py`: Cog with an `on_message` listener that checks incoming text for exact trigger matches against the MongoDB `custom_commands` collection for the guild.
