@@ -51,6 +51,21 @@ async def close_db():
     if app.db_client:
         app.db_client.close()
 
+def is_authorized(guild_id):
+    """
+    Check if the user is authenticated and authorized for a specific guild.
+    Returns (True, None) if authorized, (False, error_response) otherwise.
+    """
+    if not session.get("user_id"):
+        return False, (jsonify({"error": "Unauthorized"}), 401)
+
+    authorized_guilds = session.get("authorized_guilds", [])
+    # guild_id from URL is int, g['id'] from Discord API is string
+    if not any(g.get("id") == str(guild_id) for g in authorized_guilds):
+        return False, (jsonify({"error": "Forbidden"}), 403)
+
+    return True, None
+
 # --- API Routes ---
 
 @app.route("/api/live_stats", methods=["GET"])
@@ -68,6 +83,10 @@ async def get_live_stats():
 
 @app.route("/api/chat_configs/<int:guild_id>", methods=["GET"])
 async def get_chat_config(guild_id):
+    authorized, response = is_authorized(guild_id)
+    if not authorized:
+        return response
+
     if app.chat_configs is None:
         return jsonify({"error": "Database not connected"}), 500
 
@@ -80,6 +99,10 @@ async def get_chat_config(guild_id):
 
 @app.route("/api/chat_configs/<int:guild_id>", methods=["POST"])
 async def update_chat_config(guild_id):
+    authorized, response = is_authorized(guild_id)
+    if not authorized:
+        return response
+
     if app.chat_configs is None:
         return jsonify({"error": "Database not connected"}), 500
 
@@ -121,8 +144,9 @@ async def update_chat_config(guild_id):
 
 @app.route("/api/level_configs/<int:guild_id>", methods=["GET"])
 async def get_level_config(guild_id):
-    if not session.get("user_id"):
-        return jsonify({"error": "Unauthorized"}), 401
+    authorized, response = is_authorized(guild_id)
+    if not authorized:
+        return response
 
     if getattr(app, "level_configs", None) is None:
         return jsonify({"error": "Database not connected"}), 500
@@ -145,8 +169,9 @@ async def get_level_config(guild_id):
 
 @app.route("/api/level_configs/<int:guild_id>", methods=["POST"])
 async def update_level_config(guild_id):
-    if not session.get("user_id"):
-        return jsonify({"error": "Unauthorized"}), 401
+    authorized, response = is_authorized(guild_id)
+    if not authorized:
+        return response
 
     if getattr(app, "level_configs", None) is None:
         return jsonify({"error": "Database not connected"}), 500
