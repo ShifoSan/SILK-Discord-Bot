@@ -13,8 +13,8 @@ class Creative(commands.Cog):
         # Load API keys
         self.hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
-        # Hugging Face Constants - Swapped to FLUX.1 [schnell]
-        self.HF_API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+        # Hugging Face Constants - Updated to the new router endpoint
+        self.HF_API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
 
     # --- Imagine Command (Image Generation) ---
     @app_commands.command(name="imagine", description="Generate an image from a prompt using AI")
@@ -79,3 +79,4 @@ class Creative(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Creative(bot))
+    
