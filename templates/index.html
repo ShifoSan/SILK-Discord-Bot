@@ -28,24 +28,29 @@
 </head>
 <body class="bg-discord-darkest text-discord-text font-sans antialiased min-h-screen">
 
-    <nav class="bg-discord-darker p-4 shadow-md flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-white tracking-wide">S.I.L.K. Control Panel</h1>
+    <nav class="bg-discord-darker p-4 shadow-md flex justify-between items-center sticky top-0 z-10">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-2xl font-bold text-white tracking-wide">S.I.L.K. Control Panel</h1>
+            <button id="toggle-all-btn" class="text-xs bg-discord-darkest hover:bg-gray-700 text-gray-300 px-3 py-1 rounded transition-colors border border-gray-600">
+                Expand All
+            </button>
+        </div>
         {% if username %}
             <div class="text-sm">Logged in as <span class="font-bold text-discord-blurple">{{ username }}</span></div>
         {% endif %}
     </nav>
 
-    <div class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="max-w-6xl mx-auto p-6 flex flex-col gap-8">
 
         <!-- Master Information Panel (Full Width) -->
-        <div class="col-span-1 md:col-span-2 bg-discord-darker rounded-lg shadow-lg border border-gray-700 overflow-hidden flex flex-col">
-            <div class="bg-discord-dark p-4 border-b border-gray-700 flex justify-between items-center">
+        <details class="bg-discord-darker rounded-lg shadow-lg border border-gray-700 overflow-hidden flex flex-col dashboard-card" id="card-master">
+            <summary class="bg-discord-dark p-4 border-b border-gray-700 flex justify-between items-center cursor-pointer select-none">
                 <h2 class="text-xl font-bold text-white flex items-center">
                     <svg class="w-6 h-6 mr-2 text-discord-blurple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                     Master Information Panel
                 </h2>
-                <span class="text-xs text-gray-400">Updates every 60s</span>
-            </div>
+                <span class="text-xs text-gray-400">Updates every 60s (Click to toggle)</span>
+            </summary>
             <div class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
 
                 <!-- Hardware -->
@@ -93,18 +98,20 @@
                 </div>
             </div>
             <!-- Server Names Collapse -->
-            <div class="bg-discord-dark p-2 border-t border-gray-700 text-xs">
+            <div class="bg-discord-dark p-2 border-t border-gray-700 text-xs mt-4">
                  <details>
                     <summary class="cursor-pointer text-gray-400 hover:text-white select-none">View Connected Server Names</summary>
                     <div id="stat-server-names" class="mt-2 text-gray-300 font-mono overflow-auto max-h-24">--</div>
                  </details>
             </div>
-        </div>
+        </details>
 
         <!-- Status Manager Card -->
-        <div class="bg-discord-dark rounded-lg shadow-lg p-6 flex flex-col">
-            <h2 class="text-xl font-bold text-white mb-4 border-b border-discord-darker pb-2">Status Manager</h2>
-
+        <details class="bg-discord-dark rounded-lg shadow-lg border border-gray-700 flex flex-col dashboard-card" id="card-status">
+            <summary class="p-4 cursor-pointer select-none bg-discord-darker border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">Status Manager</h2>
+            </summary>
+            <div class="p-6">
             <form id="status-form" class="mb-6 bg-discord-darker p-4 rounded-md">
                 <h3 class="text-sm font-semibold mb-3 text-gray-300">Add / Edit Status</h3>
 
@@ -141,11 +148,75 @@
                     <div class="text-center text-gray-500 italic text-sm">Loading statuses...</div>
                 </div>
             </div>
-        </div>
+            </div>
+        </details>
+
+        <!-- Leveling System Settings Card -->
+        <details class="bg-discord-dark rounded-lg shadow-lg border border-gray-700 flex flex-col dashboard-card" id="card-leveling">
+            <summary class="p-4 cursor-pointer select-none bg-discord-darker border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">Leveling System Settings</h2>
+            </summary>
+            <div class="p-6">
+                <div class="mb-6">
+                    <label class="block text-xs uppercase font-bold text-gray-400 mb-2">Select Server</label>
+                    <select id="leveling-server-select" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                        <option value="">Select a server...</option>
+                    </select>
+                </div>
+
+                <form id="leveling-form" class="bg-discord-darker p-4 rounded-md hidden">
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Edit Settings for <span id="leveling-server-name" class="text-discord-blurple font-bold"></span></h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs uppercase font-bold text-gray-400 mb-1" title="Cooldown between XP gains in seconds">Text Cooldown (s)</label>
+                            <input type="number" id="lvl-text-cooldown" min="0" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase font-bold text-gray-400 mb-1" title="Minimum XP gained per message">Min Text XP</label>
+                            <input type="number" id="lvl-text-min-xp" min="0" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase font-bold text-gray-400 mb-1" title="Maximum XP gained per message">Max Text XP</label>
+                            <input type="number" id="lvl-text-max-xp" min="0" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase font-bold text-gray-400 mb-1" title="XP gained per minute in voice channels">VC XP / Minute</label>
+                            <input type="number" id="lvl-vc-xp-per-minute" min="0" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs uppercase font-bold text-gray-400 mb-1" title="Format: Level:RoleID, Level:RoleID">Role Rewards</label>
+                        <input type="text" id="lvl-role-rewards" placeholder="e.g. 5:123456789, 10:987654321" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs uppercase font-bold text-gray-400 mb-1" title="Comma-separated channel IDs">Spam Channels Blacklist</label>
+                        <input type="text" id="lvl-spam-channels" placeholder="e.g. 111111111, 222222222" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                    </div>
+
+                    <div class="mb-6 flex items-center">
+                        <input type="checkbox" id="lvl-vc-enabled" class="w-4 h-4 text-discord-blurple bg-discord-darkest rounded focus:ring-discord-blurple focus:ring-2">
+                        <label for="lvl-vc-enabled" class="ml-2 text-sm font-medium text-gray-300">Enable Voice Channel XP</label>
+                    </div>
+
+                    <button type="submit" class="w-full bg-discord-blurple hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded transition duration-200">
+                        Save Settings
+                    </button>
+                </form>
+            </div>
+        </details>
 
         <!-- Personality Manager Card -->
-        <div class="bg-discord-dark rounded-lg shadow-lg p-6 flex flex-col">
-            <h2 class="text-xl font-bold text-white mb-4 border-b border-discord-darker pb-2">Personality Manager</h2>
+        <details class="bg-discord-dark rounded-lg shadow-lg border border-gray-700 flex flex-col dashboard-card" id="card-personality">
+            <summary class="p-4 cursor-pointer select-none bg-discord-darker border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">Personality Manager</h2>
+            </summary>
+            <div class="p-6">
+            <div class="bg-yellow-900 border border-yellow-700 text-yellow-200 px-4 py-3 rounded relative mb-4" role="alert">
+                <span class="block sm:inline text-sm">⚠️ <b>Warning:</b> Prompts containing explicit material or violating safety guidelines may result in your API key being permanently banned.</span>
+            </div>
 
             <form id="personality-form" class="mb-6 bg-discord-darker p-4 rounded-md">
                 <h3 class="text-sm font-semibold mb-3 text-gray-300">Add / Edit Personality</h3>
@@ -172,15 +243,34 @@
                     <div class="text-center text-gray-500 italic text-sm">Loading personalities...</div>
                 </div>
             </div>
-        </div>
+            </div>
+        </details>
 
     </div>
 
     <script>
+        // UX Toggle All
+        document.getElementById('toggle-all-btn').addEventListener('click', function() {
+            const details = document.querySelectorAll('details.dashboard-card');
+            const isExpanding = this.textContent.trim() === 'Expand All';
+
+            details.forEach(d => {
+                if (isExpanding) {
+                    d.setAttribute('open', '');
+                } else {
+                    d.removeAttribute('open');
+                }
+            });
+
+            this.textContent = isExpanding ? 'Collapse All' : 'Expand All';
+        });
+
         // API Base URLs
         const API_LIVE_STATS = '/api/live_stats';
         const API_STATUSES = '/api/statuses';
         const API_PERSONALITIES = '/api/personalities';
+        const API_USER_GUILDS = '/api/user_guilds';
+        const API_LEVEL_CONFIGS = '/api/level_configs';
 
         // --- Live Stats Manager ---
 
@@ -410,7 +500,12 @@
                     document.getElementById('personality-prompt').value = '';
                     fetchPersonalities();
                 } else {
-                    alert("Failed to save personality.");
+                    const errorData = await res.json();
+                    if (errorData && errorData.error) {
+                        alert(`❌ Save Rejected: ${errorData.error}`);
+                    } else {
+                        alert("Failed to save personality.");
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -437,6 +532,113 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // --- Leveling Integration ---
+
+        async function fetchUserGuilds() {
+            try {
+                const res = await fetch(API_USER_GUILDS);
+                if (!res.ok) throw new Error('Failed to fetch user guilds');
+                const guilds = await res.json();
+
+                const select = document.getElementById('leveling-server-select');
+                select.innerHTML = '<option value="">Select a server...</option>';
+
+                guilds.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g.id;
+                    option.textContent = g.name;
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', async (e) => {
+                    const guildId = e.target.value;
+                    const form = document.getElementById('leveling-form');
+                    const serverNameSpan = document.getElementById('leveling-server-name');
+
+                    if (!guildId) {
+                        form.classList.add('hidden');
+                        return;
+                    }
+
+                    const option = select.options[select.selectedIndex];
+                    serverNameSpan.textContent = option.textContent;
+
+                    try {
+                        const configRes = await fetch(`${API_LEVEL_CONFIGS}/${guildId}`);
+                        if (!configRes.ok) throw new Error('Failed to fetch level config');
+                        const config = await configRes.json();
+
+                        document.getElementById('lvl-text-cooldown').value = config.text_cooldown || 60;
+                        document.getElementById('lvl-text-min-xp').value = config.text_min_xp || 15;
+                        document.getElementById('lvl-text-max-xp').value = config.text_max_xp || 25;
+                        document.getElementById('lvl-vc-xp-per-minute').value = config.vc_xp_per_minute || 5;
+                        document.getElementById('lvl-vc-enabled').checked = config.vc_xp_enabled !== false;
+
+                        // Parse role rewards back to string
+                        if (config.role_rewards) {
+                            const rewardsStr = Object.entries(config.role_rewards)
+                                .map(([lvl, roleId]) => `${lvl}:${roleId}`)
+                                .join(', ');
+                            document.getElementById('lvl-role-rewards').value = rewardsStr;
+                        } else {
+                            document.getElementById('lvl-role-rewards').value = '';
+                        }
+
+                        // Parse spam channels back to string
+                        if (config.spam_channels_blacklist && config.spam_channels_blacklist.length > 0) {
+                            document.getElementById('lvl-spam-channels').value = config.spam_channels_blacklist.join(', ');
+                        } else {
+                            document.getElementById('lvl-spam-channels').value = '';
+                        }
+
+                        form.classList.remove('hidden');
+                    } catch (err) {
+                        console.error("Error loading level config:", err);
+                        alert("Failed to load leveling config for this server.");
+                        form.classList.add('hidden');
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error fetching user guilds:", err);
+            }
+        }
+
+        document.getElementById('leveling-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const select = document.getElementById('leveling-server-select');
+            const guildId = select.value;
+            if (!guildId) return;
+
+            const payload = {
+                text_cooldown: document.getElementById('lvl-text-cooldown').value,
+                text_min_xp: document.getElementById('lvl-text-min-xp').value,
+                text_max_xp: document.getElementById('lvl-text-max-xp').value,
+                vc_xp_per_minute: document.getElementById('lvl-vc-xp-per-minute').value,
+                vc_xp_enabled: document.getElementById('lvl-vc-enabled').checked,
+                role_rewards: document.getElementById('lvl-role-rewards').value,
+                spam_channels_blacklist: document.getElementById('lvl-spam-channels').value
+            };
+
+            try {
+                const res = await fetch(`${API_LEVEL_CONFIGS}/${guildId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert('Leveling settings saved successfully!');
+                } else {
+                    const errorData = await res.json();
+                    alert(`Failed to save settings: ${errorData.error || 'Unknown error'}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred while saving.');
+            }
+        });
+
         // --- Init ---
         document.addEventListener('DOMContentLoaded', () => {
             fetchLiveStats();
@@ -444,6 +646,7 @@
 
             fetchStatuses();
             fetchPersonalities();
+            fetchUserGuilds();
         });
 
     </script>

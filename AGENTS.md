@@ -210,6 +210,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `/rank [user]`: Generates a real-time Pillow image displaying the target's stats.
      * `/leaderboard [page] [voice-lb]`: Paginated view of the top server users calculated dynamically.
      * `/bot_config [show-stats]`: Dashboard trigger (ephemeral modal) or ephemeral text-based stats display.
+     * Web Dashboard Access: `GET/POST /api/level_configs/<guild_id>` handled by `dashboard.py`.
    * Dependencies/Configs: `motor`, `Pillow`, `google-genai`, `certifi`. Requires `MONGO_URI` and `CONFIG_PASS` in `.env`. Database defaults defined in `database.py`.
 
 16. Button Module (Phase 16)
@@ -234,6 +235,8 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Secures endpoints using Quart's encrypted `session` cookies based on the `QUART_SECRET_KEY`.
      * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`), as well as global `bot_statuses` and `personalities`.
      * Provides UI to manage bot statuses and AI persona configurations dynamically without restarting the bot.
+     * Restricts `/dashboard` access by requiring the user to have "Server Admin" or "Manage Server" permissions in at least one server where S.I.L.K. is present, verified by cross-referencing `api/users/@me/guilds` with the bot's connected guild IDs stored in MongoDB by `heartbeat.py`.
+     * Implements safety screening on the `POST /api/personalities` route using the `better_profanity` library to reject inappropriate system prompts and prevent GenAI API bans.
    * Commands/Routes: 
      * `/login`: Redirects user to Discord Authorization URL.
      * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
@@ -242,7 +245,9 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `GET/POST/DELETE /api/statuses`
      * `GET/POST/DELETE /api/personalities`
      * `GET /api/live_stats`
-   * Dependencies/Configs: `quart`, `aiohttp`, `certifi`, `urllib.request`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
+     * `GET /api/user_guilds`
+     * `GET/POST /api/level_configs/<guild_id>`
+   * Dependencies/Configs: `quart`, `aiohttp`, `certifi`, `urllib.request`, `better_profanity`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
 
 18. Heartbeat Module (Phase 18)
    * Primary Role: Background loop that continuously monitors and pushes bot statistics and hardware health.
