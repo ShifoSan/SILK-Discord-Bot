@@ -168,8 +168,24 @@ class Chat(commands.Cog):
                 self.voice_active_channels.remove(interaction.channel_id)
             await interaction.response.send_message("Cx Voice Mode DISABLED.", ephemeral=True)
 
+    async def persona_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        choices = []
+        try:
+            # Query the database for personalities
+            async for persona_doc in self.personalities.find({}, {"name": 1, "_id": 0}):
+                name = persona_doc.get("name")
+                if name and current.lower() in name.lower():
+                    choices.append(app_commands.Choice(name=name, value=name))
+                    if len(choices) >= 25:
+                        break
+        except Exception as e:
+            print(f"Error in persona autocomplete: {e}")
+
+        return choices
+
     @app_commands.command(name="persona", description="Switch S.I.L.K.'s personality.")
     @app_commands.describe(name="The personality to switch to (must exist in the database)")
+    @app_commands.autocomplete(name=persona_autocomplete)
     @app_commands.checks.has_permissions(manage_messages=True)
     async def persona(self, interaction: discord.Interaction, name: str):
         self.current_persona_name = name

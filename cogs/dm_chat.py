@@ -7,10 +7,30 @@ import asyncio
 from collections import deque
 from google import genai
 from google.genai import types
-from cogs.personalities import helpful
+import motor.motor_asyncio
+import certifi
 
 CREATOR_ID = 871066849205448724
 DM_CONFIG_FILE = "dm_config.json"
+
+DEFAULT_SAFETY_SETTINGS = [
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold=types.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold=types.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold=types.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold=types.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
+]
 
 class DMControlView(discord.ui.View):
     def __init__(self, bot, user_id):
@@ -48,6 +68,14 @@ class DMChat(commands.Cog):
         self.bot = bot
         self.dm_history = {}  # {user_id: deque(maxlen=20)}
         self.config = self.load_config()
+
+        # Database connection
+        MONGO_URI = os.getenv("MONGO_URI")
+        if MONGO_URI:
+            self.db_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
+        else:
+            self.db_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017/")
+        self.personalities = self.db_client.silk_bot.personalities
 
         api_key = os.getenv("GEMINI_API_KEY")
         if api_key:
@@ -189,7 +217,12 @@ class DMChat(commands.Cog):
 
         async with message.channel.typing():
             # Construct Prompt
-            system_prompt = helpful.config['system_instruction']
+            persona_doc = await self.personalities.find_one({"name": "Helpful"})
+            if persona_doc and "prompt" in persona_doc:
+                system_prompt = persona_doc["prompt"]
+            else:
+                system_prompt = "You are a helpful AI."
+
             history_text = "\n".join(history)
 
             full_prompt = (
@@ -203,7 +236,7 @@ class DMChat(commands.Cog):
                     self.client.models.generate_content,
                     model='gemma-3-27b-it',
                     contents=full_prompt,
-                    config=types.GenerateContentConfig(safety_settings=helpful.config['safety_settings'])
+                    config=types.GenerateContentConfig(safety_settings=DEFAULT_SAFETY_SETTINGS)
                 )
 
                 if response.text:
