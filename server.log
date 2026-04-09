@@ -1,0 +1,10 @@
+[2026-04-09 22:00:06 +0000] [119721] [INFO] Running on http://0.0.0.0:3000 (CTRL + C to quit)
+ * Serving Quart app 'test_server'
+ * Debug mode: False
+ * Please use an ASGI server (e.g. Hypercorn) directly in production
+ * Running on http://0.0.0.0:3000 (CTRL + C to quit)
+[2026-04-09 22:00:20 +0000] [119721] [INFO] 127.0.0.1:36484 GET / 1.1 200 35622 13576
+[2026-04-09 22:00:20 +0000] [119721] [INFO] 127.0.0.1:36484 GET /api/live_stats 1.1 404 207 5366
+[2026-04-09 22:00:20 +0000] [119721] [INFO] 127.0.0.1:36498 GET /api/statuses 1.1 404 207 1615
+[2026-04-09 22:00:20 +0000] [119721] [INFO] 127.0.0.1:36514 GET /api/personalities 1.1 404 207 2139
+[2026-04-09 22:00:20 +0000] [119721] [INFO] 127.0.0.1:36520 GET /api/user_guilds 1.1 404 207 1067

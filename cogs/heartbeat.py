@@ -46,6 +46,7 @@ class Heartbeat(commands.Cog):
             total_server_count = len(self.bot.guilds)
             total_member_count = sum(g.member_count for g in self.bot.guilds if g.member_count)
             connected_server_names = [g.name for g in self.bot.guilds]
+            connected_server_ids = [str(g.id) for g in self.bot.guilds]
 
             # 3. AI/API Metrics
             chat_cog = self.bot.get_cog('Chat')
@@ -87,7 +88,8 @@ class Heartbeat(commands.Cog):
                     "uptime_seconds": uptime_seconds,
                     "total_server_count": total_server_count,
                     "total_member_count": total_member_count,
-                    "connected_server_names": connected_server_names
+                    "connected_server_names": connected_server_names,
+                    "connected_server_ids": connected_server_ids
                 },
                 "ai_api": {
                     "ai_chat_counter": ai_chat_counter,

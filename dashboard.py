@@ -7,6 +7,7 @@ import certifi
 import urllib.request
 import urllib.parse
 import aiohttp
+from better_profanity import profanity
 print("MY RAW SERVER IP IS:", urllib.request.urlopen('https://api.ipify.org').read().decode('utf8'))
 
 
@@ -167,6 +168,7 @@ async def callback():
     # Store user in session
     session["user_id"] = user_data.get("id")
     session["username"] = user_data.get("username")
+    session["access_token"] = access_token
 
     return redirect("/dashboard")
 
@@ -229,6 +231,10 @@ async def upsert_personality():
     data = await request.get_json()
     if not data or "name" not in data or "prompt" not in data:
         return jsonify({"error": "Missing 'name' or 'prompt'"}), 400
+
+    if profanity.contains_profanity(data["prompt"]):
+        return jsonify({"error": "Profanity or inappropriate content detected"}), 400
+
     await app.personalities.update_one(
         {"name": data["name"]},
         {"$set": {"name": data["name"], "prompt": data["prompt"]}},
@@ -251,15 +257,203 @@ async def delete_personality():
 
 
 
+@app.route("/api/user_guilds", methods=["GET"])
+async def get_user_guilds():
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if getattr(app, "bot_live_stats", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    # Fetch bot stats to get connected guilds
+    stats = await app.bot_live_stats.find_one({"_id": "current_stats"})
+    if not stats or "discord" not in stats or "connected_server_ids" not in stats["discord"]:
+        bot_guild_ids = []
+    else:
+        bot_guild_ids = stats["discord"]["connected_server_ids"]
+
+    # Fetch user guilds from Discord API
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.get("https://discord.com/api/users/@me/guilds", headers=headers) as resp:
+            if resp.status != 200:
+                return jsonify({"error": "Failed to fetch user guilds"}), 500
+            user_guilds_data = await resp.json()
+
+    # Filter guilds where user has Admin or Manage Server and bot is present
+    # Permissions in Discord API: Admin = 0x8, Manage Server = 0x20
+    # Bitwise AND to check permissions
+    ADMIN_PERMISSION = 0x8
+    MANAGE_SERVER_PERMISSION = 0x20
+
+    valid_guilds = []
+    valid_guild_ids = []
+    for guild in user_guilds_data:
+        permissions = int(guild.get("permissions", 0))
+        is_admin = (permissions & ADMIN_PERMISSION) == ADMIN_PERMISSION
+        is_manage_server = (permissions & MANAGE_SERVER_PERMISSION) == MANAGE_SERVER_PERMISSION
+
+        if (is_admin or is_manage_server) and str(guild["id"]) in bot_guild_ids:
+            valid_guilds.append({
+                "id": guild["id"],
+                "name": guild["name"],
+                "icon": guild.get("icon")
+            })
+            valid_guild_ids.append(str(guild["id"]))
+
+    # Cache valid guild ids in session for fast authorization checks
+    session["valid_guild_ids"] = valid_guild_ids
+
+    return jsonify(valid_guilds), 200
+
+@app.route("/api/level_configs/<int:guild_id>", methods=["GET"])
+async def get_level_config(guild_id):
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if str(guild_id) not in session.get("valid_guild_ids", []):
+        return jsonify({"error": "Forbidden: You do not have permission to view configs for this guild."}), 403
+
+    if not hasattr(app, "level_guild_configs"):
+        if getattr(app, "db_client", None):
+            level_db = app.db_client.silk_level_system
+            app.level_guild_configs = level_db.guild_configs
+        else:
+            return jsonify({"error": "Database not connected"}), 500
+
+    config = await app.level_guild_configs.find_one({"guild_id": guild_id}, {"_id": 0})
+    if config:
+        return jsonify(config), 200
+    else:
+        # Default config from database.py
+        default_config = {
+            "guild_id": guild_id,
+            "text_cooldown": 60,
+            "text_min_xp": 15,
+            "text_max_xp": 25,
+            "vc_cooldown": 60,
+            "vc_xp_per_minute": 5,
+            "vc_xp_enabled": True,
+            "spam_channels_blacklist": [],
+            "spam_min_length": 5,
+            "role_rewards": {},
+            "level_up_channel": None,
+            "level_up_thread_id": None,
+        }
+        return jsonify(default_config), 200
+
+@app.route("/api/level_configs/<int:guild_id>", methods=["POST"])
+async def update_level_config(guild_id):
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if str(guild_id) not in session.get("valid_guild_ids", []):
+        return jsonify({"error": "Forbidden: You do not have permission to modify configs for this guild."}), 403
+
+    if not hasattr(app, "level_guild_configs"):
+        if getattr(app, "db_client", None):
+            level_db = app.db_client.silk_level_system
+            app.level_guild_configs = level_db.guild_configs
+        else:
+            return jsonify({"error": "Database not connected"}), 500
+
+    data = await request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON payload"}), 400
+
+    # Fields to update
+    updates = {}
+    if "text_cooldown" in data:
+        updates["text_cooldown"] = int(data["text_cooldown"])
+    if "text_min_xp" in data:
+        updates["text_min_xp"] = int(data["text_min_xp"])
+    if "text_max_xp" in data:
+        updates["text_max_xp"] = int(data["text_max_xp"])
+    if "vc_xp_enabled" in data:
+        updates["vc_xp_enabled"] = bool(data["vc_xp_enabled"])
+    if "vc_xp_per_minute" in data:
+        updates["vc_xp_per_minute"] = int(data["vc_xp_per_minute"])
+
+    if "role_rewards" in data:
+        # Parse comma-separated string to dict
+        rewards_str = data["role_rewards"].strip()
+        rewards_dict = {}
+        if rewards_str:
+            pairs = rewards_str.split(',')
+            for pair in pairs:
+                try:
+                    level, role_id = pair.split(':')
+                    rewards_dict[str(level.strip())] = str(role_id.strip())
+                except ValueError:
+                    pass # Ignore invalid format
+        updates["role_rewards"] = rewards_dict
+
+    if "spam_channels_blacklist" in data:
+        # Parse comma-separated string to list
+        blacklist_str = data["spam_channels_blacklist"].strip()
+        if blacklist_str:
+            updates["spam_channels_blacklist"] = [int(cid.strip()) for cid in blacklist_str.split(',') if cid.strip().isdigit()]
+        else:
+            updates["spam_channels_blacklist"] = []
+
+    if updates:
+        await app.level_guild_configs.update_one(
+            {"guild_id": guild_id},
+            {"$set": updates},
+            upsert=True
+        )
+
+    return jsonify({"message": "Level config updated successfully", "updated": updates}), 200
+
 @app.route("/dashboard")
 async def dashboard():
     user_id = session.get("user_id")
     username = session.get("username")
+    access_token = session.get("access_token")
 
-    if user_id and username:
-        return await render_template("index.html", username=username)
-    else:
+    if not user_id or not username or not access_token:
         return jsonify({"error": "Unauthorized. Please visit /login."}), 401
+
+    if getattr(app, "bot_live_stats", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    stats = await app.bot_live_stats.find_one({"_id": "current_stats"})
+    if not stats or "discord" not in stats or "connected_server_ids" not in stats["discord"]:
+        bot_guild_ids = []
+    else:
+        bot_guild_ids = stats["discord"]["connected_server_ids"]
+
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.get("https://discord.com/api/users/@me/guilds", headers=headers) as resp:
+            if resp.status != 200:
+                return jsonify({"error": "Failed to fetch user guilds"}), 500
+            user_guilds_data = await resp.json()
+
+    ADMIN_PERMISSION = 0x8
+    MANAGE_SERVER_PERMISSION = 0x20
+
+    has_access = False
+    for guild in user_guilds_data:
+        permissions = int(guild.get("permissions", 0))
+        is_admin = (permissions & ADMIN_PERMISSION) == ADMIN_PERMISSION
+        is_manage_server = (permissions & MANAGE_SERVER_PERMISSION) == MANAGE_SERVER_PERMISSION
+
+        if (is_admin or is_manage_server) and str(guild["id"]) in bot_guild_ids:
+            has_access = True
+            break
+
+    if not has_access:
+        return jsonify({"error": "Unauthorized. You must have Server Admin or Manage Server permissions in a server where S.I.L.K. is present."}), 403
+
+    return await render_template("index.html", username=username)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2160)
