@@ -93,7 +93,8 @@ class LevelSystemCore(commands.Cog):
                 if image_bytes:
                     await target_channel.send(
                         content=f"{message.author.mention} {ai_msg}",
-                        file=discord.File(fp=image_bytes, filename='levelup.png')
+                        # Updated to WEBP extension
+                        file=discord.File(fp=image_bytes, filename='levelup.webp')
                     )
                 else:
                     await target_channel.send(f"{message.author.mention} {ai_msg}")
@@ -274,3 +275,4 @@ class LevelSystemCore(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(LevelSystemCore(bot))
+    
