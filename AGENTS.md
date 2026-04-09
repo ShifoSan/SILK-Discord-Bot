@@ -18,8 +18,8 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * launcher.py: The master entry point used by the hosting panel to concurrently launch both the bot and the web dashboard.
    * main.py: Bot entry point. Loads env vars, iterates cogs/ to load extensions, and handles the Discord connection.
    * dashboard.py: Async web server entry point (Quart).
+   * templates/index.html: Frontend UI for the web dashboard built with Tailwind CSS.
    * cogs/: Directory for all bot modules. New features MUST be added here as separate files.
-   * cogs/personalities/: Directory for personality configuration modules (Standard, Edgy, Helpful).
    * cogs/help_commands/: Directory for individual help embed modules (Phase 9).
    * cogs/logs/: Directory for logging logic modules (Phase 11).
 
@@ -108,9 +108,6 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Primary Role: Advanced, context-aware automatic chat handler with hot-swappable personalities, multi-language support, and global reach.
    * Files Included:
      * `cogs/chat.py`: Main cog for auto-chat, mention, and reply interception.
-     * `cogs/personalities/standard.py`: Standard personality system prompt and safety config.
-     * `cogs/personalities/edgy.py`: Edgy personality system prompt and safety config.
-     * `cogs/personalities/helpful.py`: Helpful personality system prompt and safety config.
    * Core Logic & Features:
      * Uses `asyncio.to_thread` for GenAI and gTTS calls to avoid blocking the event loop.
      * Voice mode converts responses to an MP3 stream using `io.BytesIO` while filtering URLs/code blocks and limiting to 500 chars.
@@ -118,11 +115,12 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Retrieves conversational history (last 20 messages) and reformats it with `[Model - S.I.L.K.]` and `[User - Name]`.
      * Identifies Creator explicitly using the `(CREATOR_VERIFIED)` tag for security overrides.
      * Stores persistent auto-chat configurations (enabled state and language) in a MongoDB `chat_configs` collection.
+     * Dynamically fetches the active system prompt from the `personalities` MongoDB collection based on the selected persona.
      * Multi-Language Routing: If 'Hindi' is selected, automatically shifts to `gemini-3.1-flash-lite-preview` using a dedicated Hinglish casual persona prompt. English defaults to `gemma-3-27b-it`.
    * Commands:
      * `/chat_toggle [state] [language]`: Enable/Disable auto-chat in the current channel and optionally set the language (English/Hindi).
      * `/voice_mode [state]`: Enable/Disable Hybrid Voice responses in the current channel.
-     * `/persona [name]`: Switch between Standard, Edgy, or Helpful.
+     * `/persona [name]`: Switch between personalities (uses an autocomplete dropdown querying the database).
    * Dependencies/Configs: `google-genai` (New SDK), `gTTS`, `io`, `collections.deque`, `re`, `motor`.
 
 9. Help Module (Phase 9)
@@ -140,9 +138,9 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Primary Role: Handles the bot's status, activity loops, and "Rich Presence" logic.
    * Files Included:
      * `cogs/presence.py`: Manages the dynamic rotating presence.
-   * Core Logic & Features: Uses a `tasks.loop` running every 20 seconds cycling through standard statuses. Supports dynamic `{member_count}` interpolation aggregating users across all connected guilds. Uses `before_loop` to `wait_until_ready()`.
+   * Core Logic & Features: Uses a `tasks.loop` running every 20 seconds. It fetches active statuses dynamically from the `bot_statuses` MongoDB collection and randomly selects one. Supports dynamic `{member_count}` interpolation aggregating users across all connected guilds. Uses `before_loop` to `wait_until_ready()`.
    * Commands: None.
-   * Dependencies/Configs: `discord.ext.tasks`, `itertools`.
+   * Dependencies/Configs: `discord.ext.tasks`, `motor`.
 
 11. Logging Module (Phase 11)
    * Primary Role: Comprehensive, event-driven server surveillance and audit logging system.
@@ -175,10 +173,10 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Ignores server messages. Checks if DMs originate from Approved, Pending, or Blocked lists.
      * Automatically routes unlisted users to "Pending" and pushes an interactive DM request to the hardcoded `CREATOR_ID` allowing approval or denial.
      * Overrides safety protocols via `CREATOR_ID` matching.
-     * Enforces the "Helpful" personality for all AI outputs and maintains a separate 20-message `deque` history limit for each user.
+     * Enforces the "Helpful" personality for all AI outputs by dynamically fetching its prompt from the MongoDB `personalities` collection, and maintains a separate 20-message `deque` history limit for each user.
    * Commands:
      * `/dm-list`: Displays ephemeral embed listing Approved, Pending, and Blocked users (Creator Only).
-   * Dependencies/Configs: Requires `dm_config.json` for persistence and `google-genai`.
+   * Dependencies/Configs: Requires `dm_config.json` for persistence, `google-genai`, `motor`.
 
 14. Task Agent Module (Phase 14)
    * Primary Role: Intercepts direct mentions to analyze and execute complex tasks (e.g., creating embeds, parsing structured data) based on user instructions.
@@ -228,13 +226,22 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Files Included:
      * `launcher.py`: Subprocess orchestrator that concurrently boots `main.py` and `dashboard.py` and handles crash restarts.
      * `dashboard.py`: Lightweight asynchronous web server running Quart.
+     * `templates/index.html`: Dynamic web dashboard UI built with Tailwind CSS.
    * Core Logic & Features: 
      * Runs completely parallel to the bot process to separate web traffic from Discord Gateway logic. 
      * Uses `motor.motor_asyncio` to connect directly to the bot's shared MongoDB.
      * Implements full Discord OAuth2 login flow using `aiohttp` to exchange codes for tokens and fetch user profiles.
      * Secures endpoints using Quart's encrypted `session` cookies based on the `QUART_SECRET_KEY`.
-     * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`).
+     * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`), as well as global `bot_statuses` and `personalities`.
+     * Provides UI to manage bot statuses and AI persona configurations dynamically without restarting the bot.
    * Commands/Routes: 
      * `/login`: Redirects user to Discord Authorization URL.
      * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
      * `/dashboard`: Protected route for authenticated users to configure bot settings.
+     * `GET/POST /api/chat_configs/<guild_id>`
+     * `GET/POST/DELETE /api/statuses`
+     * `GET/POST/DELETE /api/personalities`
+   * Dependencies/Configs: `quart`, `aiohttp`, `certifi`, `urllib.request`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
+
+## 🔮 Future Roadmap (Context for Expansion)
+Currently Empty. S.I.L.K. is functionally complete.
