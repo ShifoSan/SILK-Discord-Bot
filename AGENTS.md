@@ -241,7 +241,18 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `GET/POST /api/chat_configs/<guild_id>`
      * `GET/POST/DELETE /api/statuses`
      * `GET/POST/DELETE /api/personalities`
+     * `GET /api/live_stats`
    * Dependencies/Configs: `quart`, `aiohttp`, `certifi`, `urllib.request`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
+
+18. Heartbeat Module (Phase 2 Update)
+   * Primary Role: Background loop that continuously monitors and pushes bot statistics and hardware health.
+   * Files Included:
+     * `cogs/heartbeat.py`: Controller handling the data collection and pushing to MongoDB.
+   * Core Logic & Features:
+     * Gathers hardware usage (RAM, CPU), Discord states (Ping, Uptime, Server/Member counts), AI activity (Chats, Voice, API Statuses), and Database latency every 60 seconds.
+     * Saves the payload to the `bot_live_stats` collection in MongoDB for external dashboards to query.
+   * Commands: None
+   * Dependencies/Configs: `psutil`, `requests`, `motor`.
 
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.

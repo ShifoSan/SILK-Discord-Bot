@@ -39,6 +39,7 @@ async def setup_db():
     app.chat_configs = app.db.chat_configs
     app.bot_statuses = app.db.bot_statuses
     app.personalities = app.db.personalities
+    app.bot_live_stats = app.db.bot_live_stats
 
 @app.after_serving
 async def close_db():
@@ -46,6 +47,19 @@ async def close_db():
         app.db_client.close()
 
 # --- API Routes ---
+
+@app.route("/api/live_stats", methods=["GET"])
+async def get_live_stats():
+    if getattr(app, "bot_live_stats", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    stats = await app.bot_live_stats.find_one({"_id": "current_stats"})
+    if stats:
+        # Remove _id for JSON serialization
+        stats.pop("_id", None)
+        return jsonify(stats), 200
+    else:
+        return jsonify({"error": "No stats available yet"}), 404
 
 @app.route("/api/chat_configs/<int:guild_id>", methods=["GET"])
 async def get_chat_config(guild_id):
