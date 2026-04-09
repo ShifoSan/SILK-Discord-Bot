@@ -43,6 +43,7 @@ class Chat(commands.Cog):
         self.reply_history = deque()
         self.MAX_RPM = 30
         self.current_persona_name = "Standard"
+        self.chat_counter = 0
 
         # Database connection
         MONGO_URI = os.getenv("MONGO_URI")
@@ -290,6 +291,7 @@ class Chat(commands.Cog):
                     )
 
                     if response.text:
+                        self.chat_counter += 1
                         await asyncio.sleep(1.5)
                         # Voice Mode Check
                         if message.channel.id in self.voice_active_channels:
