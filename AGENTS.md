@@ -57,7 +57,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Files Included:
      * `cogs/creative.py`: Cog integrating text-to-speech and image generation.
    * Core Logic & Features:
-     * `imagine`: Uses Hugging Face router for Stable Diffusion XL. Returns images as byte streams (`io.BytesIO`) directly in embeds. Warns users on 503 Cold Starts.
+     * `imagine`: Uses the updated Hugging Face router endpoint (`router.huggingface.co`) for the `FLUX.1-schnell` model to avoid deprecation errors and speed up generation. Returns images as byte streams (`io.BytesIO`) directly in embeds. Warns users on 503 Cold Starts.
      * `voice`: Uses gTTS to create audio buffers in memory and uploads them as discord Files.
    * Commands: `/imagine [prompt]`, `/voice [text]`.
    * Dependencies/Configs: `requests` (Hugging Face), `gTTS`, `io`. Requires `HUGGINGFACE_TOKEN`.
@@ -194,10 +194,10 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
 15. Level System Module (Phase 15)
    * Primary Role: Advanced XP and leveling system tracking messages, reactions, and voice activity with a robust UI dashboard.
    * Files Included:
-     * `cogs/level_system/core.py`: Main cog loading the configurations and handling `on_message`, `on_raw_reaction_add`, `on_voice_state_update`, and join/leave logic.
+     * `cogs/level_system/core.py`: Main cog loading the configurations and handling `on_message`, `on_raw_reaction_add`, `on_voice_state_update`, and join/leave logic. Supports WebP image attachments for fast level-up notifications.
      * `cogs/level_system/database.py`: Asynchronous MongoDB connector for saving/retrieving user progress and server configs. (Uses `certifi` to force updated SSL certs on server hosts).
-     * `cogs/level_system/commands.py`: Houses the user-facing slash commands (`/rank`, `/leaderboard`, `/bot_config`). Passes avatar bytes to prevent blocking. 
-     * `cogs/level_system/image_gen.py`: Pillow-based generator drawing dynamic rank cards using `banner.png`. (Handles raw bytes instead of synchronous URL requests).
+     * `cogs/level_system/commands.py`: Houses the user-facing slash commands (`/rank`, `/leaderboard`, `/bot_config`). Offloads avatar resizing to Discord's CDN to prevent blocking and gracefully catches `discord.NotFound` errors if a user deletes the thinking message.
+     * `cogs/level_system/image_gen.py`: Pillow-based generator drawing dynamic rank cards. Implements RAM caching for `banner.png` and fonts to eliminate disk I/O bottlenecks. Optimizes generation using `BILINEAR` resampling and outputs as highly compressed `WebP` buffers.
      * `cogs/level_system/ai_responses.py`: Isolated GenAI connector generating personalized level-up messages via `gemma-3-27b-it`.
      * `cogs/level_system/bot_config/`: Sub-directory containing interactive configuration UI components (`main_menu.py`, `role_rewards.py`, `xp_management.py`, `vc_settings.py`, `spam_filters.py`, `cooldown_settings.py`). 
    * Core Logic & Features:
@@ -207,7 +207,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Dedicated AI Channel & Thread Routing: Administrators can designate a specific `level_up_channel` via a Channel Select menu and explicitly set a `level_up_thread_id`. S.I.L.K. will generate a public thread inside the channel to centralize automated messages to keep main chats uncluttered.
      * Level-Up Payloads: S.I.L.K. uses a strict prompt to generate exactly ONE AI hype message, and dynamically attaches the Pillow-generated rank card into the same message payload.
      * Administrative dashboard requiring a `CONFIG_PASS` to lock out unauthorized users. Stats embeds are strictly ephemeral.
-     * Performance Optimization: Uses `asyncio.to_thread` for PIL image generation, `await asset.read()` for avatars, and strict Defer Protocols (`await interaction.response.defer()`) *before* executing heavy DB tasks to completely prevent `10062` timeout errors.
+     * Performance Optimization: Uses `asyncio.to_thread` for PIL image generation, Discord CDN for pre-resizing avatars, outputs to WebP format to bypass heavy PNG compression, and uses strict Defer Protocols (`await interaction.response.defer()`) *before* executing heavy DB tasks to completely prevent `10062` timeout errors.
    * Commands:
      * `/rank [user]`: Generates a real-time Pillow image displaying the target's stats.
      * `/leaderboard [page] [voice-lb]`: Paginated view of the top server users calculated dynamically.
@@ -237,4 +237,4 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Commands/Routes: 
      * `/login`: Redirects user to Discord Authorization URL.
      * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
-     * `/dashboard`: Protected r
+     * `/dashboard`: Protected route for authenticated users to configure bot settings.
