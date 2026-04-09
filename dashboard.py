@@ -7,6 +7,8 @@ import certifi
 import urllib.request
 import urllib.parse
 import aiohttp
+from better_profanity import profanity
+
 print("MY RAW SERVER IP IS:", urllib.request.urlopen('https://api.ipify.org').read().decode('utf8'))
 
 
@@ -40,6 +42,9 @@ async def setup_db():
     app.bot_statuses = app.db.bot_statuses
     app.personalities = app.db.personalities
     app.bot_live_stats = app.db.bot_live_stats
+
+    app.level_db = app.db_client.silk_level_system
+    app.level_configs = app.level_db.guild_configs
 
 @app.after_serving
 async def close_db():
@@ -113,6 +118,66 @@ async def update_chat_config(guild_id):
     return jsonify({"message": "Configuration updated successfully", "updated": update_data}), 200
 
 
+
+@app.route("/api/level_configs/<int:guild_id>", methods=["GET"])
+async def get_level_config(guild_id):
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if getattr(app, "level_configs", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    config = await app.level_configs.find_one({"guild_id": guild_id}, {"_id": 0})
+    if config:
+        # Remove _id
+        config.pop("_id", None)
+        return jsonify(config), 200
+    else:
+        # Default config
+        default = {
+            "text_min_xp": 15,
+            "text_max_xp": 25,
+            "text_cooldown": 60,
+            "vc_xp_per_minute": 5,
+            "vc_xp_enabled": True
+        }
+        return jsonify(default), 200
+
+@app.route("/api/level_configs/<int:guild_id>", methods=["POST"])
+async def update_level_config(guild_id):
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if getattr(app, "level_configs", None) is None:
+        return jsonify({"error": "Database not connected"}), 500
+
+    data = await request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON payload"}), 400
+
+    update_data = {}
+
+    if "text_min_xp" in data:
+        update_data["text_min_xp"] = data["text_min_xp"]
+    if "text_max_xp" in data:
+        update_data["text_max_xp"] = data["text_max_xp"]
+    if "text_cooldown" in data:
+        update_data["text_cooldown"] = data["text_cooldown"]
+    if "vc_xp_per_minute" in data:
+        update_data["vc_xp_per_minute"] = data["vc_xp_per_minute"]
+    if "vc_xp_enabled" in data:
+        update_data["vc_xp_enabled"] = data["vc_xp_enabled"]
+
+    if update_data:
+        await app.level_configs.update_one(
+            {"guild_id": guild_id},
+            {"$set": update_data},
+            upsert=True
+        )
+
+    return jsonify({"message": "Leveling configuration updated successfully", "updated": update_data}), 200
+
+
 # --- OAuth Routes ---
 
 @app.route("/login")
@@ -164,11 +229,43 @@ async def callback():
                 return jsonify({"error": "Failed to authenticate with Discord"}), 500
             user_data = await resp.json()
 
+        # Fetch user guilds
+        async with http_session.get("https://discord.com/api/users/@me/guilds", headers=user_headers) as resp:
+            if resp.status != 200:
+                return jsonify({"error": "Failed to fetch user guilds"}), 500
+            user_guilds = await resp.json()
+
+    # Check permissions
+    # Fetch bot's connected guilds from db
+    stats = await app.bot_live_stats.find_one({"_id": "current_stats"})
+    bot_connected_guilds = []
+    if stats and "discord" in stats:
+        bot_connected_guilds = stats["discord"].get("connected_server_ids", [])
+
+    is_authorized = False
+    authorized_guilds = []
+    for g in user_guilds:
+        # Check if bot is in this guild and user has Admin (0x8) or Manage Server (0x20)
+        perms = int(g.get("permissions", 0))
+        if int(g["id"]) in bot_connected_guilds and (perms & 0x8 or perms & 0x20):
+            is_authorized = True
+            authorized_guilds.append({"id": g["id"], "name": g["name"]})
+
+    if not is_authorized:
+        return jsonify({"error": "Unauthorized. You must have Server Admin or Manage Server permissions in a server where S.I.L.K. is present."}), 403
+
     # Store user in session
     session["user_id"] = user_data.get("id")
     session["username"] = user_data.get("username")
+    session["authorized_guilds"] = authorized_guilds
 
     return redirect("/dashboard")
+
+@app.route("/api/user_guilds", methods=["GET"])
+async def get_user_guilds():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+    return jsonify(session.get("authorized_guilds", [])), 200
 
 @app.route("/api/statuses", methods=["GET"])
 async def get_statuses():
@@ -229,6 +326,10 @@ async def upsert_personality():
     data = await request.get_json()
     if not data or "name" not in data or "prompt" not in data:
         return jsonify({"error": "Missing 'name' or 'prompt'"}), 400
+
+    if profanity.contains_profanity(data["prompt"]):
+        return jsonify({"error": "Prompt contains explicit or inappropriate material and cannot be saved."}), 400
+
     await app.personalities.update_one(
         {"name": data["name"]},
         {"$set": {"name": data["name"], "prompt": data["prompt"]}},

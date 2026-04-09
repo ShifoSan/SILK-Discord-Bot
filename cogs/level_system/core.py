@@ -157,7 +157,12 @@ class LevelSystemCore(commands.Cog):
                 return
 
         # Grant XP
-        xp_gain = random.randint(15, 25)
+        min_xp = config.get("text_min_xp", 15)
+        max_xp = config.get("text_max_xp", 25)
+        # Ensure max_xp >= min_xp
+        if max_xp < min_xp:
+            max_xp = min_xp
+        xp_gain = random.randint(min_xp, max_xp)
         new_xp = user_data["xp"] + xp_gain
 
         await database.save_user_data(message.guild.id, message.author.id, {

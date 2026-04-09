@@ -210,6 +210,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `/rank [user]`: Generates a real-time Pillow image displaying the target's stats.
      * `/leaderboard [page] [voice-lb]`: Paginated view of the top server users calculated dynamically.
      * `/bot_config [show-stats]`: Dashboard trigger (ephemeral modal) or ephemeral text-based stats display.
+     * `GET/POST /api/level_configs/<guild_id>`: Web API routes for updating level constraints natively via dashboard.py.
    * Dependencies/Configs: `motor`, `Pillow`, `google-genai`, `certifi`. Requires `MONGO_URI` and `CONFIG_PASS` in `.env`. Database defaults defined in `database.py`.
 
 16. Button Module (Phase 16)
@@ -234,6 +235,8 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Secures endpoints using Quart's encrypted `session` cookies based on the `QUART_SECRET_KEY`.
      * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`), as well as global `bot_statuses` and `personalities`.
      * Provides UI to manage bot statuses and AI persona configurations dynamically without restarting the bot.
+     * Restricts dashboard access strictly to users who possess 'Server Admin' or 'Manage Server' permissions in at least one shared Discord server with S.I.L.K. (verified via Heartbeat stats).
+     * Integrates `better_profanity` to screen AI Personality prompts to prevent API key bans.
    * Commands/Routes: 
      * `/login`: Redirects user to Discord Authorization URL.
      * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
@@ -242,6 +245,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `GET/POST/DELETE /api/statuses`
      * `GET/POST/DELETE /api/personalities`
      * `GET /api/live_stats`
+     * `GET /api/user_guilds`
    * Dependencies/Configs: `quart`, `aiohttp`, `certifi`, `urllib.request`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
 
 18. Heartbeat Module (Phase 18)
