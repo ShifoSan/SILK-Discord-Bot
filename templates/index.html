@@ -193,6 +193,52 @@
             </div>
         </details>
 
+        <!-- Custom Commands Card -->
+        <details class="accordion-panel col-span-1 md:col-span-2 bg-discord-dark rounded-lg shadow-lg flex flex-col" >
+            <summary class="p-6 pb-4 cursor-pointer select-none border-b border-discord-darker">
+                <h2 class="text-xl font-bold text-white">Custom Commands</h2>
+            </summary>
+            <div class="p-6 pt-2">
+                <div class="mb-6 bg-discord-darker p-4 rounded-md">
+                    <h3 class="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1 mb-3">Server Selection</h3>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Select Server</label>
+                        <select id="cc-server-id" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-discord-blurple">
+                            <option value="">-- Select a Server --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <form id="cc-form" class="mb-6 bg-discord-darker p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h3 class="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1 mb-3 col-span-1 md:col-span-2">Create / Edit Command</h3>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Trigger Word (Exact match)</label>
+                        <input type="text" id="cc-trigger" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-discord-blurple" placeholder="e.g. hello" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Response</label>
+                        <input type="text" id="cc-response" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-discord-blurple" placeholder="e.g. Hello there!" required>
+                    </div>
+                    <div class="flex items-center col-span-1 md:col-span-2">
+                        <input type="checkbox" id="cc-reply-directly" class="w-4 h-4 text-discord-blurple bg-discord-dark border-gray-700 rounded focus:ring-discord-blurple focus:ring-offset-discord-darkest">
+                        <label for="cc-reply-directly" class="ml-2 text-sm font-medium text-gray-300">Reply directly to user</label>
+                    </div>
+                    <div class="col-span-1 md:col-span-2 flex justify-end">
+                        <button type="submit" class="bg-discord-blurple hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded transition-colors">
+                            Save Command
+                        </button>
+                    </div>
+                </form>
+
+                <div class="bg-discord-darker p-4 rounded-md">
+                    <h3 class="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1 mb-3">Existing Commands</h3>
+                    <div id="cc-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="text-center text-gray-500 italic text-sm col-span-full">Select a server to view custom commands.</div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
         <!-- Leveling Configuration Card -->
         <details class="accordion-panel col-span-1 md:col-span-2 bg-discord-dark rounded-lg shadow-lg flex flex-col" >
             <summary class="p-6 pb-4 cursor-pointer select-none border-b border-discord-darker">
@@ -577,22 +623,165 @@
             }
         });
 
+        // --- Custom Commands Manager ---
+        const API_CUSTOM_COMMANDS = '/api/custom_commands';
+
+        document.getElementById('cc-server-id').addEventListener('change', async (e) => {
+            const guildId = e.target.value;
+            if (!guildId) {
+                document.getElementById('cc-list').innerHTML = '<div class="text-center text-gray-500 italic text-sm col-span-full">Select a server to view custom commands.</div>';
+                return;
+            }
+            fetchCustomCommands(guildId);
+        });
+
+        async function fetchCustomCommands(guildId) {
+            try {
+                const res = await fetch(`${API_CUSTOM_COMMANDS}/${guildId}`);
+                if (!res.ok) throw new Error('Failed to fetch custom commands');
+                const commands = await res.json();
+                renderCustomCommands(commands);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('cc-list').innerHTML = `<div class="text-discord-danger text-sm text-center col-span-full">Error loading custom commands.</div>`;
+            }
+        }
+
+        function renderCustomCommands(commands) {
+            const list = document.getElementById('cc-list');
+            list.innerHTML = '';
+
+            if (commands.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-500 italic text-sm col-span-full">No custom commands found.</div>`;
+                return;
+            }
+
+            commands.forEach(c => {
+                const div = document.createElement('div');
+                div.className = "bg-discord-darkest p-3 rounded border border-gray-700 flex flex-col";
+
+                const headerDiv = document.createElement('div');
+                headerDiv.className = "flex justify-between items-start mb-2";
+
+                const triggerSpan = document.createElement('span');
+                triggerSpan.className = "font-bold text-discord-blurple";
+                triggerSpan.textContent = c.trigger;
+
+                const btnContainer = document.createElement('div');
+                btnContainer.className = "flex space-x-2";
+
+                const editBtn = document.createElement('button');
+                editBtn.className = "text-gray-400 hover:text-white transition-colors";
+                editBtn.title = "Edit";
+                editBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`;
+                editBtn.onclick = () => {
+                    document.getElementById('cc-trigger').value = c.trigger;
+                    document.getElementById('cc-response').value = c.response;
+                    document.getElementById('cc-reply-directly').checked = c.reply_directly || false;
+                };
+
+                const delBtn = document.createElement('button');
+                delBtn.className = "text-gray-400 hover:text-discord-danger transition-colors";
+                delBtn.title = "Delete";
+                delBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+                delBtn.onclick = () => deleteCustomCommand(c.trigger);
+
+                btnContainer.appendChild(editBtn);
+                btnContainer.appendChild(delBtn);
+                headerDiv.appendChild(triggerSpan);
+                headerDiv.appendChild(btnContainer);
+
+                const replyDiv = document.createElement('div');
+                replyDiv.className = "text-xs text-gray-400 mb-1";
+                replyDiv.textContent = `Reply Directly: ${c.reply_directly ? 'Yes' : 'No'}`;
+
+                const responseDiv = document.createElement('div');
+                responseDiv.className = "text-sm text-gray-300 line-clamp-2";
+                responseDiv.title = c.response;
+                responseDiv.textContent = c.response;
+
+                div.appendChild(headerDiv);
+                div.appendChild(replyDiv);
+                div.appendChild(responseDiv);
+
+                list.appendChild(div);
+            });
+        }
+
+        document.getElementById('cc-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const guildId = document.getElementById('cc-server-id').value;
+            if (!guildId) {
+                alert("Please select a server first.");
+                return;
+            }
+
+            const trigger = document.getElementById('cc-trigger').value;
+            const response = document.getElementById('cc-response').value;
+            const reply_directly = document.getElementById('cc-reply-directly').checked;
+
+            try {
+                const res = await fetch(`${API_CUSTOM_COMMANDS}/${guildId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trigger, response, reply_directly })
+                });
+                if (res.ok) {
+                    document.getElementById('cc-trigger').value = '';
+                    document.getElementById('cc-response').value = '';
+                    document.getElementById('cc-reply-directly').checked = false;
+                    fetchCustomCommands(guildId);
+                } else {
+                    alert("Failed to save custom command.");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        async function deleteCustomCommand(trigger) {
+            const guildId = document.getElementById('cc-server-id').value;
+            if (!guildId) return;
+
+            if (!confirm(`Delete custom command for trigger "${trigger}"?`)) return;
+            try {
+                const res = await fetch(`${API_CUSTOM_COMMANDS}/${guildId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trigger })
+                });
+                if (res.ok) fetchCustomCommands(guildId);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+
         async function fetchUserGuilds() {
             try {
                 const res = await fetch('/api/user_guilds');
                 if (res.ok) {
                     const guilds = await res.json();
-                    const select = document.getElementById('level-server-id');
-                    select.innerHTML = '<option value="">-- Select a Server --</option>';
+                    const selectLevel = document.getElementById('level-server-id');
+                    const selectCc = document.getElementById('cc-server-id');
+
+                    selectLevel.innerHTML = '<option value="">-- Select a Server --</option>';
+                    selectCc.innerHTML = '<option value="">-- Select a Server --</option>';
 
                     guilds.forEach(g => {
-                        const opt = document.createElement('option');
-                        opt.value = g.id;
-                        opt.textContent = g.name;
-                        select.appendChild(opt);
+                        const optLevel = document.createElement('option');
+                        optLevel.value = g.id;
+                        optLevel.textContent = g.name;
+                        selectLevel.appendChild(optLevel);
+
+                        const optCc = document.createElement('option');
+                        optCc.value = g.id;
+                        optCc.textContent = g.name;
+                        selectCc.appendChild(optCc);
                     });
                 } else {
                     document.getElementById('level-server-id').innerHTML = '<option value="">Error loading servers</option>';
+                    document.getElementById('cc-server-id').innerHTML = '<option value="">Error loading servers</option>';
                 }
             } catch (err) {
                 console.error("Failed to load user guilds:", err);

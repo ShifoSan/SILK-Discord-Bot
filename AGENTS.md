@@ -244,6 +244,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `GET/POST /api/chat_configs/<guild_id>`
      * `GET/POST/DELETE /api/statuses`
      * `GET/POST/DELETE /api/personalities`
+     * `GET/POST/DELETE /api/custom_commands/<guild_id>`
      * `GET /api/live_stats`
      * `GET /api/user_guilds`
    * Dependencies/Configs: `quart`, `aiohttp`, `certifi`, `urllib.request`. Requires `.env` vars: `QUART_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. Runs externally on port `2160`.
@@ -257,6 +258,17 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Saves the payload to the `bot_live_stats` collection in MongoDB for external dashboards to query.
    * Commands: None
    * Dependencies/Configs: `psutil`, `requests`, `motor`.
+
+19. Custom Commands Module (Phase 4 / 19)
+   * Primary Role: Database-driven custom text command system managed via the web dashboard.
+   * Files Included:
+     * `cogs/custom_commands.py`: Cog with an `on_message` listener that checks incoming text for exact trigger matches against the MongoDB `custom_commands` collection for the guild.
+   * Core Logic & Features:
+     * Allows custom commands setup per-server.
+     * Matches exact and case-sensitive trigger words in message content.
+     * Optionally replies directly to the user's message based on the `reply_directly` flag.
+   * Commands: None explicitly, triggers based on content.
+   * Dependencies/Configs: `motor`.
 
 ## 🔮 Future Roadmap (Context for Expansion)
 Currently Empty. S.I.L.K. is functionally complete.
