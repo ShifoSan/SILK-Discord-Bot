@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S.I.L.K. Bot Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        discord: {
+                            blurple: '#5865F2',
+                            dark: '#36393f',
+                            darker: '#2f3136',
+                            darkest: '#202225',
+                            text: '#dcddde',
+                            danger: '#ed4245',
+                            success: '#3ba55d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-discord-darkest text-discord-text font-sans antialiased min-h-screen">
+
+    <nav class="bg-discord-darker p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-white tracking-wide">S.I.L.K. Control Panel</h1>
+        {% if username %}
+            <div class="text-sm">Logged in as <span class="font-bold text-discord-blurple">{{ username }}</span></div>
+        {% endif %}
+    </nav>
+
+    <div class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        <!-- Status Manager Card -->
+        <div class="bg-discord-dark rounded-lg shadow-lg p-6 flex flex-col">
+            <h2 class="text-xl font-bold text-white mb-4 border-b border-discord-darker pb-2">Status Manager</h2>
+
+            <form id="status-form" class="mb-6 bg-discord-darker p-4 rounded-md">
+                <h3 class="text-sm font-semibold mb-3 text-gray-300">Add / Edit Status</h3>
+
+                <div class="mb-3">
+                    <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Activity Type</label>
+                    <select id="status-type" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                        <option value="playing">Playing</option>
+                        <option value="watching">Watching</option>
+                        <option value="listening">Listening</option>
+                        <option value="streaming">Streaming</option>
+                        <option value="competing">Competing</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Status Text</label>
+                    <input type="text" id="status-text" required placeholder="with knives 🔪" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                </div>
+
+                <div class="mb-4 flex items-center">
+                    <input type="checkbox" id="status-active" checked class="w-4 h-4 text-discord-blurple bg-discord-darkest rounded focus:ring-discord-blurple focus:ring-2">
+                    <label for="status-active" class="ml-2 text-sm font-medium text-gray-300">Active</label>
+                </div>
+
+                <button type="submit" class="w-full bg-discord-blurple hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded transition duration-200">
+                    Save Status
+                </button>
+            </form>
+
+            <div class="flex-grow">
+                <h3 class="text-sm font-semibold mb-3 text-gray-300">Current Statuses</h3>
+                <div id="status-list" class="space-y-2 overflow-y-auto max-h-64 pr-2">
+                    <!-- Status items will be injected here -->
+                    <div class="text-center text-gray-500 italic text-sm">Loading statuses...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personality Manager Card -->
+        <div class="bg-discord-dark rounded-lg shadow-lg p-6 flex flex-col">
+            <h2 class="text-xl font-bold text-white mb-4 border-b border-discord-darker pb-2">Personality Manager</h2>
+
+            <form id="personality-form" class="mb-6 bg-discord-darker p-4 rounded-md">
+                <h3 class="text-sm font-semibold mb-3 text-gray-300">Add / Edit Personality</h3>
+
+                <div class="mb-3">
+                    <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Name</label>
+                    <input type="text" id="personality-name" required placeholder="Standard" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs uppercase font-bold text-gray-400 mb-1">System Prompt</label>
+                    <textarea id="personality-prompt" required rows="5" placeholder="You are S.I.L.K., a helpful AI..." class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple font-mono text-sm"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-discord-blurple hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded transition duration-200">
+                    Save Personality
+                </button>
+            </form>
+
+            <div class="flex-grow">
+                <h3 class="text-sm font-semibold mb-3 text-gray-300">Current Personalities</h3>
+                <div id="personality-list" class="space-y-2 overflow-y-auto max-h-64 pr-2">
+                    <!-- Personality items will be injected here -->
+                    <div class="text-center text-gray-500 italic text-sm">Loading personalities...</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // API Base URLs
+        const API_STATUSES = '/api/statuses';
+        const API_PERSONALITIES = '/api/personalities';
+
+        // --- Status Manager ---
+
+        async function fetchStatuses() {
+            try {
+                const res = await fetch(API_STATUSES);
+                if (!res.ok) throw new Error('Failed to fetch statuses');
+                const statuses = await res.json();
+                renderStatuses(statuses);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status-list').innerHTML = `<div class="text-discord-danger text-sm text-center">Error loading statuses.</div>`;
+            }
+        }
+
+        function renderStatuses(statuses) {
+            const list = document.getElementById('status-list');
+            list.innerHTML = '';
+
+            if (statuses.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-500 italic text-sm">No statuses found.</div>`;
+                return;
+            }
+
+            statuses.forEach(status => {
+                const div = document.createElement('div');
+                div.className = "bg-discord-darkest p-3 rounded flex justify-between items-center border border-gray-700";
+
+                const activeDot = status.active
+                    ? '<span class="w-2 h-2 rounded-full bg-discord-success mr-2 inline-block" title="Active"></span>'
+                    : '<span class="w-2 h-2 rounded-full bg-gray-500 mr-2 inline-block" title="Inactive"></span>';
+
+                const textDiv = document.createElement('div');
+                textDiv.className = "flex-1 overflow-hidden";
+                textDiv.innerHTML = `
+                    <div class="flex items-center">
+                        ${activeDot}
+                        <span class="text-xs uppercase font-bold text-gray-400 mr-2">${status.type}</span>
+                    </div>
+                `;
+
+                const titleSpan = document.createElement('div');
+                titleSpan.className = "text-white truncate font-medium mt-1";
+                titleSpan.textContent = status.text;
+                titleSpan.title = status.text;
+                textDiv.appendChild(titleSpan);
+
+                const btn = document.createElement('button');
+                btn.className = "ml-3 text-gray-400 hover:text-discord-danger transition-colors";
+                btn.title = "Delete";
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+                btn.onclick = () => deleteStatus(status.text);
+
+                div.appendChild(textDiv);
+                div.appendChild(btn);
+                list.appendChild(div);
+            });
+        }
+        document.getElementById('status-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const type = document.getElementById('status-type').value;
+            const text = document.getElementById('status-text').value;
+            const active = document.getElementById('status-active').checked;
+
+            try {
+                const res = await fetch(API_STATUSES, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, text, active })
+                });
+                if (res.ok) {
+                    document.getElementById('status-text').value = '';
+                    fetchStatuses();
+                } else {
+                    alert("Failed to save status.");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        async function deleteStatus(text) {
+            if (!confirm(`Delete status "${text}"?`)) return;
+            try {
+                const res = await fetch(API_STATUSES, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                if (res.ok) fetchStatuses();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // --- Personality Manager ---
+
+        async function fetchPersonalities() {
+            try {
+                const res = await fetch(API_PERSONALITIES);
+                if (!res.ok) throw new Error('Failed to fetch personalities');
+                const personalities = await res.json();
+                renderPersonalities(personalities);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('personality-list').innerHTML = `<div class="text-discord-danger text-sm text-center">Error loading personalities.</div>`;
+            }
+        }
+
+        function renderPersonalities(personalities) {
+            const list = document.getElementById('personality-list');
+            list.innerHTML = '';
+
+            if (personalities.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-500 italic text-sm">No personalities found.</div>`;
+                return;
+            }
+
+            personalities.forEach(p => {
+                const div = document.createElement('div');
+                div.className = "bg-discord-darkest p-3 rounded border border-gray-700 flex flex-col";
+
+                const headerDiv = document.createElement('div');
+                headerDiv.className = "flex justify-between items-start mb-2";
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = "font-bold text-discord-blurple";
+                nameSpan.textContent = p.name;
+
+                const btnContainer = document.createElement('div');
+                btnContainer.className = "flex space-x-2";
+
+                const editBtn = document.createElement('button');
+                editBtn.className = "text-gray-400 hover:text-white transition-colors";
+                editBtn.title = "Edit";
+                editBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`;
+                editBtn.onclick = () => editPersonality(p.name, p.prompt);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = "text-gray-400 hover:text-discord-danger transition-colors";
+                delBtn.title = "Delete";
+                delBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+                delBtn.onclick = () => deletePersonality(p.name);
+
+                btnContainer.appendChild(editBtn);
+                btnContainer.appendChild(delBtn);
+                headerDiv.appendChild(nameSpan);
+                headerDiv.appendChild(btnContainer);
+
+                const promptDiv = document.createElement('div');
+                promptDiv.className = "text-xs text-gray-400 font-mono line-clamp-2";
+                promptDiv.title = p.prompt;
+                promptDiv.textContent = p.prompt;
+
+                div.appendChild(headerDiv);
+                div.appendChild(promptDiv);
+
+                list.appendChild(div);
+            });
+        }
+        document.getElementById('personality-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('personality-name').value;
+            const prompt = document.getElementById('personality-prompt').value;
+
+            try {
+                const res = await fetch(API_PERSONALITIES, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, prompt })
+                });
+                if (res.ok) {
+                    document.getElementById('personality-name').value = '';
+                    document.getElementById('personality-prompt').value = '';
+                    fetchPersonalities();
+                } else {
+                    alert("Failed to save personality.");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        async function deletePersonality(name) {
+            if (!confirm(`Delete personality "${name}"?`)) return;
+            try {
+                const res = await fetch(API_PERSONALITIES, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) fetchPersonalities();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function editPersonality(name, prompt) {
+            document.getElementById('personality-name').value = name;
+            document.getElementById('personality-prompt').value = prompt;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStatuses();
+            fetchPersonalities();
+        });
+
+    </script>
+</body>
+</html>

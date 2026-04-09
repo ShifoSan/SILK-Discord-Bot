@@ -1,27 +1,41 @@
 import discord
 from discord.ext import commands, tasks
-import itertools
+import random
+import os
+import motor.motor_asyncio
+import certifi
 
 class Presence(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Store statuses as a list of tuples: (ActivityType, String Template)
-        self.status_templates = [
-            (discord.ActivityType.watching, "for targets in #general"),
-            (discord.ActivityType.playing, "with knives 🔪"),
-            (discord.ActivityType.listening, "to your secrets"),
-            (discord.ActivityType.watching, "over {member_count} users"), # Dynamic
-            (discord.ActivityType.playing, "System: Optimal"),
-            (discord.ActivityType.playing, "Human Simulator 2026"),
-            (discord.ActivityType.listening, "/help for orders"),
-        ]
-        self.status_cycle = itertools.cycle(self.status_templates)
+
+        # Database connection
+        MONGO_URI = os.getenv("MONGO_URI")
+        if MONGO_URI:
+            self.db_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
+        else:
+            self.db_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017/")
+        self.bot_statuses = self.db_client.silk_bot.bot_statuses
 
     @tasks.loop(seconds=20)
     async def status_loop(self):
         try:
-            # Get the next status template
-            activity_type, name_template = next(self.status_cycle)
+            # Fetch active statuses from the database
+            active_statuses = []
+            async for status in self.bot_statuses.find({"active": True}):
+                active_statuses.append(status)
+
+            if not active_statuses:
+                return
+
+            # Randomly pick one
+            selected_status = random.choice(active_statuses)
+
+            # Map string type to discord.ActivityType
+            type_str = selected_status.get("type", "playing").lower()
+            activity_type = getattr(discord.ActivityType, type_str, discord.ActivityType.playing)
+
+            name_template = selected_status.get("text", "")
 
             # Handle dynamic formatting (Member Count)
             if "{member_count}" in name_template:

@@ -1,6 +1,6 @@
 import os
 import secrets
-from quart import Quart, request, jsonify, session, redirect
+from quart import Quart, request, jsonify, session, redirect, render_template
 from dotenv import load_dotenv
 import motor.motor_asyncio
 import certifi
@@ -28,15 +28,17 @@ DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 
+
 @app.before_serving
 async def setup_db():
     if MONGO_URI:
         app.db_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
-        app.db = app.db_client.silk_bot
-        app.chat_configs = app.db.chat_configs
     else:
-        app.db_client = None
-        app.chat_configs = None
+        app.db_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017/")
+    app.db = app.db_client.silk_bot
+    app.chat_configs = app.db.chat_configs
+    app.bot_statuses = app.db.bot_statuses
+    app.personalities = app.db.personalities
 
 @app.after_serving
 async def close_db():
@@ -47,7 +49,7 @@ async def close_db():
 
 @app.route("/api/chat_configs/<int:guild_id>", methods=["GET"])
 async def get_chat_config(guild_id):
-    if not app.chat_configs:
+    if app.chat_configs is None:
         return jsonify({"error": "Database not connected"}), 500
 
     config = await app.chat_configs.find_one({"channel_id": guild_id}, {"_id": 0})
@@ -59,7 +61,7 @@ async def get_chat_config(guild_id):
 
 @app.route("/api/chat_configs/<int:guild_id>", methods=["POST"])
 async def update_chat_config(guild_id):
-    if not app.chat_configs:
+    if app.chat_configs is None:
         return jsonify({"error": "Database not connected"}), 500
 
     data = await request.get_json()
@@ -154,13 +156,94 @@ async def callback():
 
     return redirect("/dashboard")
 
+@app.route("/api/statuses", methods=["GET"])
+async def get_statuses():
+    if app.bot_statuses is None:
+        return jsonify({"error": "Database not connected"}), 500
+    statuses = []
+    async for status in app.bot_statuses.find({}, {"_id": 0}):
+        statuses.append(status)
+    return jsonify(statuses), 200
+
+@app.route("/api/statuses", methods=["POST"])
+async def upsert_status():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if app.bot_statuses is None:
+        return jsonify({"error": "Database not connected"}), 500
+    data = await request.get_json()
+    if not data or "text" not in data or "type" not in data:
+        return jsonify({"error": "Missing 'text' or 'type'"}), 400
+    active = data.get("active", True)
+    await app.bot_statuses.update_one(
+        {"text": data["text"]},
+        {"$set": {"type": data["type"], "text": data["text"], "active": active}},
+        upsert=True
+    )
+    return jsonify({"message": "Status saved successfully"}), 200
+
+@app.route("/api/statuses", methods=["DELETE"])
+async def delete_status():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if app.bot_statuses is None:
+        return jsonify({"error": "Database not connected"}), 500
+    data = await request.get_json()
+    if not data or "text" not in data:
+        return jsonify({"error": "Missing 'text'"}), 400
+    await app.bot_statuses.delete_one({"text": data["text"]})
+    return jsonify({"message": "Status deleted successfully"}), 200
+
+@app.route("/api/personalities", methods=["GET"])
+async def get_personalities():
+    if app.personalities is None:
+        return jsonify({"error": "Database not connected"}), 500
+    personalities = []
+    async for personality in app.personalities.find({}, {"_id": 0}):
+        personalities.append(personality)
+    return jsonify(personalities), 200
+
+@app.route("/api/personalities", methods=["POST"])
+async def upsert_personality():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if app.personalities is None:
+        return jsonify({"error": "Database not connected"}), 500
+    data = await request.get_json()
+    if not data or "name" not in data or "prompt" not in data:
+        return jsonify({"error": "Missing 'name' or 'prompt'"}), 400
+    await app.personalities.update_one(
+        {"name": data["name"]},
+        {"$set": {"name": data["name"], "prompt": data["prompt"]}},
+        upsert=True
+    )
+    return jsonify({"message": "Personality saved successfully"}), 200
+
+@app.route("/api/personalities", methods=["DELETE"])
+async def delete_personality():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if app.personalities is None:
+        return jsonify({"error": "Database not connected"}), 500
+    data = await request.get_json()
+    if not data or "name" not in data:
+        return jsonify({"error": "Missing 'name'"}), 400
+    await app.personalities.delete_one({"name": data["name"]})
+    return jsonify({"message": "Personality deleted successfully"}), 200
+
+
+
 @app.route("/dashboard")
 async def dashboard():
     user_id = session.get("user_id")
     username = session.get("username")
 
     if user_id and username:
-        return jsonify({"message": f"Welcome, {username}!"}), 200
+        return await render_template("index.html", username=username)
     else:
         return jsonify({"error": "Unauthorized. Please visit /login."}), 401
 
