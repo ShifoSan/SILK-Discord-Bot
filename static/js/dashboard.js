@@ -97,7 +97,7 @@ function updateAuraGauge(percent) {
 
 async function fetchLiveStats() {
     // Only attempt if we are on a page that needs it, or at least check if one element exists
-    if (!document.getElementById('stat-ram') && !document.getElementById('stat-cpu')) return;
+    if (!document.getElementById('stat-ram') && !document.getElementById('aura-text')) return;
 
     try {
         const res = await fetch(API_LIVE_STATS);
@@ -132,7 +132,8 @@ async function fetchStatuses() {
         renderStatuses(statuses);
     } catch (err) {
         console.error(err);
-        document.getElementById('status-list').innerHTML = `<div class="text-error text-sm text-center">Error loading statuses.</div>`;
+        const list = document.getElementById('status-list');
+        if (list) list.innerHTML = `<div class="text-error text-sm text-center">Error loading statuses.</div>`;
     }
 }
 
@@ -191,7 +192,8 @@ if (statusForm) {
                 body: JSON.stringify({ type, text, active })
             });
             if (res.ok) {
-                document.getElementById('status-text').value = '';
+                const textInput = document.getElementById('status-text');
+                if (textInput) textInput.value = '';
                 fetchStatuses();
             } else {
                 alert("Failed to save status.");
@@ -228,7 +230,8 @@ async function fetchPersonalities() {
         renderPersonalities(personalities);
     } catch (err) {
         console.error(err);
-        document.getElementById('personality-list').innerHTML = `<div class="text-error text-sm text-center">Error loading personalities.</div>`;
+        const list = document.getElementById('personality-list');
+        if (list) list.innerHTML = `<div class="text-error text-sm text-center">Error loading personalities.</div>`;
     }
 }
 
@@ -299,8 +302,10 @@ if (personalityForm) {
                 body: JSON.stringify({ name, prompt })
             });
             if (res.ok) {
-                document.getElementById('personality-name').value = '';
-                document.getElementById('personality-prompt').value = '';
+                const nameInput = document.getElementById('personality-name');
+                const promptInput = document.getElementById('personality-prompt');
+                if (nameInput) nameInput.value = '';
+                if (promptInput) promptInput.value = '';
                 fetchPersonalities();
             } else {
                 const data = await res.json();
@@ -327,8 +332,10 @@ async function deletePersonality(name) {
 }
 
 function editPersonality(name, prompt) {
-    document.getElementById('personality-name').value = name;
-    document.getElementById('personality-prompt').value = prompt;
+    const nameInput = document.getElementById('personality-name');
+    const promptInput = document.getElementById('personality-prompt');
+    if (nameInput) nameInput.value = name;
+    if (promptInput) promptInput.value = prompt;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -403,11 +410,16 @@ async function loadLevelingConfig(guildId) {
         const res = await fetch(`${API_LEVEL_CONFIGS}/${guildId}`);
         if (res.ok) {
             const config = await res.json();
-            document.getElementById('level-min-xp').value = config.text_min_xp ?? 15;
-            document.getElementById('level-max-xp').value = config.text_max_xp ?? 25;
-            document.getElementById('level-text-cooldown').value = config.text_cooldown ?? 60;
-            document.getElementById('level-vc-xp-min').value = config.vc_xp_per_minute ?? 5;
-            document.getElementById('level-vc-enabled').checked = config.vc_xp_enabled ?? true;
+            const minXp = document.getElementById('level-min-xp');
+            const maxXp = document.getElementById('level-max-xp');
+            const cooldown = document.getElementById('level-text-cooldown');
+            const vcMin = document.getElementById('level-vc-xp-min');
+            const vcEnabled = document.getElementById('level-vc-enabled');
+            if (minXp) minXp.value = config.text_min_xp ?? 15;
+            if (maxXp) maxXp.value = config.text_max_xp ?? 25;
+            if (cooldown) cooldown.value = config.text_cooldown ?? 60;
+            if (vcMin) vcMin.value = config.vc_xp_per_minute ?? 5;
+            if (vcEnabled) vcEnabled.checked = config.vc_xp_enabled ?? true;
         }
     } catch (err) {
         console.error("Failed to load leveling config:", err);
@@ -463,7 +475,8 @@ async function loadCustomCommands(guildId) {
         renderCustomCommands(commands);
     } catch (err) {
         console.error(err);
-        document.getElementById('cc-list').innerHTML = `<div class="text-error text-sm text-center col-span-full">Error loading custom commands.</div>`;
+        const list = document.getElementById('cc-list');
+        if (list) list.innerHTML = `<div class="text-error text-sm text-center col-span-full">Error loading custom commands.</div>`;
     }
 }
 
@@ -496,10 +509,15 @@ function renderCustomCommands(commands) {
         editBtn.title = "Edit";
         editBtn.innerHTML = `<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>`;
         editBtn.onclick = () => {
-            document.getElementById('cc-trigger').value = c.trigger;
-            document.getElementById('cc-response').value = c.response;
-            document.getElementById('cc-reply-directly').checked = c.reply_directly || false;
-            document.getElementById('cc-trigger').focus();
+            const triggerInput = document.getElementById('cc-trigger');
+            const responseInput = document.getElementById('cc-response');
+            const replyCheckbox = document.getElementById('cc-reply-directly');
+            if (triggerInput) {
+                triggerInput.value = c.trigger;
+                triggerInput.focus();
+            }
+            if (responseInput) responseInput.value = c.response;
+            if (replyCheckbox) replyCheckbox.checked = c.reply_directly || false;
         };
 
         const delBtn = document.createElement('button');
@@ -551,9 +569,12 @@ if (ccForm) {
                 body: JSON.stringify({ trigger, response, reply_directly })
             });
             if (res.ok) {
-                document.getElementById('cc-trigger').value = '';
-                document.getElementById('cc-response').value = '';
-                document.getElementById('cc-reply-directly').checked = false;
+                const triggerInput = document.getElementById('cc-trigger');
+                const responseInput = document.getElementById('cc-response');
+                const replyCheckbox = document.getElementById('cc-reply-directly');
+                if (triggerInput) triggerInput.value = '';
+                if (responseInput) responseInput.value = '';
+                if (replyCheckbox) replyCheckbox.checked = false;
                 loadCustomCommands(guildId);
             } else {
                 alert("Failed to save custom command.");
@@ -590,8 +611,10 @@ async function loadChatConfig(guildId) {
         const res = await fetch(`${API_CHAT_CONFIGS}/${guildId}`);
         if (res.ok) {
             const config = await res.json();
-            document.getElementById('chat-enabled').checked = config.enabled || false;
-            document.getElementById('chat-language').value = config.language || "English";
+            const enabled = document.getElementById('chat-enabled');
+            const lang = document.getElementById('chat-language');
+            if (enabled) enabled.checked = config.enabled || false;
+            if (lang) lang.value = config.language || "English";
         }
     } catch (err) {
         console.error("Failed to load chat config:", err);
@@ -638,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initAnimation();
 
     fetchLiveStats();
-    if (document.getElementById('stat-ram') || document.getElementById('stat-cpu')) {
+    if (document.getElementById('stat-ram') || document.getElementById('aura-text')) {
         setInterval(fetchLiveStats, 60000); // Poll every 60 seconds on overview
     }
 
