@@ -1,0 +1,45 @@
+        <!-- Custom Commands Card -->
+        <details class="accordion-panel col-span-1 md:col-span-2 bg-discord-dark rounded-lg shadow-lg flex flex-col" >
+            <summary class="p-6 pb-4 cursor-pointer select-none border-b border-discord-darker">
+                <h2 class="text-xl font-bold text-white">Custom Commands</h2>
+            </summary>
+            <div class="p-6 pt-2">
+                <div class="mb-6 bg-discord-darker p-4 rounded-md">
+                    <h3 class="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1 mb-3">Server Selection</h3>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Select Server</label>
+                        <select id="cc-server-id" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-discord-blurple">
+                            <option value="">-- Select a Server --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <form id="cc-form" class="mb-6 bg-discord-darker p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h3 class="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1 mb-3 col-span-1 md:col-span-2">Create / Edit Command</h3>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Trigger Word (Exact match)</label>
+                        <input type="text" id="cc-trigger" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-discord-blurple" placeholder="e.g. hello" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Response</label>
+                        <input type="text" id="cc-response" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-discord-blurple" placeholder="e.g. Hello there!" required>
+                    </div>
+                    <div class="flex items-center col-span-1 md:col-span-2">
+                        <input type="checkbox" id="cc-reply-directly" class="w-4 h-4 text-discord-blurple bg-discord-dark border-gray-700 rounded focus:ring-discord-blurple focus:ring-offset-discord-darkest">
+                        <label for="cc-reply-directly" class="ml-2 text-sm font-medium text-gray-300">Reply directly to user</label>
+                    </div>
+                    <div class="col-span-1 md:col-span-2 flex justify-end">
+                        <button type="submit" class="bg-discord-blurple hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded transition-colors">
+                            Save Command
+                        </button>
+                    </div>
+                </form>
+
+                <div class="bg-discord-darker p-4 rounded-md">
+                    <h3 class="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1 mb-3">Existing Commands</h3>
+                    <div id="cc-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="text-center text-gray-500 italic text-sm col-span-full">Select a server to view custom commands.</div>
+                    </div>
+                </div>
+            </div>
+        </details>
