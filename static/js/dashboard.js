@@ -655,7 +655,6 @@ if (chatConfigForm) {
     });
 }
 
-
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
     initAnimation();
