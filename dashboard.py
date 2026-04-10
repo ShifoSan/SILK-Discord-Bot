@@ -436,11 +436,35 @@ async def delete_custom_command(guild_id):
 
 @app.route("/dashboard")
 async def dashboard():
+    return redirect("/dashboard/overview")
+
+@app.route("/dashboard/overview")
+async def dashboard_overview():
     user_id = session.get("user_id")
     username = session.get("username")
 
     if user_id and username:
-        return await render_template("index.html", username=username)
+        return await render_template("overview.html", username=username, active_page="overview")
+    else:
+        return jsonify({"error": "Unauthorized. Please visit /login."}), 401
+
+@app.route("/dashboard/modules")
+async def dashboard_modules():
+    user_id = session.get("user_id")
+    username = session.get("username")
+
+    if user_id and username:
+        return await render_template("modules.html", username=username, active_page="modules")
+    else:
+        return jsonify({"error": "Unauthorized. Please visit /login."}), 401
+
+@app.route("/dashboard/settings")
+async def dashboard_settings():
+    user_id = session.get("user_id")
+    username = session.get("username")
+
+    if user_id and username:
+        return await render_template("settings.html", username=username, active_page="settings")
     else:
         return jsonify({"error": "Unauthorized. Please visit /login."}), 401
 

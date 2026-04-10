@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="relative z-10 max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="mb-8 md:mb-12">
+        <h2 class="text-3xl md:text-[3.5rem] leading-none font-headline font-bold text-white tracking-tighter mb-2">System Settings</h2>
+        <p class="text-sm md:text-lg text-on-surface-variant max-w-2xl font-body">Calibrate server-specific operational parameters. Adjust progression algorithms and define custom sub-routines.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Leveling System Configuration -->
+        <div class="col-span-1 lg:col-span-5 bg-surface-container-low rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col group">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+
+            <div class="flex items-center justify-between mb-8 relative z-10">
+                <span class="material-symbols-outlined text-primary text-3xl" data-icon="trending_up">trending_up</span>
+                <div class="px-2 py-1 bg-primary/10 rounded text-[10px] font-bold text-primary tracking-widest uppercase border border-primary/20">Progression</div>
+            </div>
+
+            <h3 class="font-headline text-white text-2xl font-bold mb-6 relative z-10">Leveling Parameters</h3>
+
+            <form id="leveling-form" class="space-y-6 flex-grow relative z-10">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block">Text Min XP</label>
+                        <div class="bg-surface-container-lowest p-2 rounded-lg border border-[#353535] focus-within:border-primary/50 transition-colors">
+                            <input type="number" id="level-min-xp" class="w-full bg-transparent border-none text-white font-headline text-lg focus:ring-0 p-1 text-center" placeholder="15" required />
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block">Text Max XP</label>
+                        <div class="bg-surface-container-lowest p-2 rounded-lg border border-[#353535] focus-within:border-primary/50 transition-colors">
+                            <input type="number" id="level-max-xp" class="w-full bg-transparent border-none text-white font-headline text-lg focus:ring-0 p-1 text-center" placeholder="25" required />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block">Message Cooldown (Sec)</label>
+                    <div class="bg-surface-container-lowest p-2 rounded-lg border border-[#353535] focus-within:border-primary/50 flex items-center px-4 transition-colors">
+                        <span class="material-symbols-outlined text-[#888888] text-sm mr-2" data-icon="timer">timer</span>
+                        <input type="number" id="level-text-cooldown" class="w-full bg-transparent border-none text-white font-headline text-lg focus:ring-0 p-1" placeholder="60" required />
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block">Voice XP / Minute</label>
+                    <div class="bg-surface-container-lowest p-2 rounded-lg border border-[#353535] focus-within:border-primary/50 flex items-center px-4 transition-colors">
+                        <span class="material-symbols-outlined text-[#888888] text-sm mr-2" data-icon="mic">mic</span>
+                        <input type="number" id="level-vc-xp-min" class="w-full bg-transparent border-none text-white font-headline text-lg focus:ring-0 p-1" placeholder="5" required />
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-highest/40 hover:bg-surface-container-highest transition-colors border border-[#353535]">
+                    <div>
+                        <p class="text-white font-medium text-sm">Voice Channel XP</p>
+                        <p class="text-[10px] text-[#888888]">Grant XP for active voice time</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="level-vc-enabled" class="sr-only peer" />
+                        <div class="w-11 h-6 bg-[#1B1B1B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#888888] after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:bg-white border border-[#353535]"></div>
+                    </label>
+                </div>
+
+                <div class="pt-4 mt-auto">
+                    <button type="submit" class="w-full hollow-purple-gradient text-white font-bold py-3 rounded-lg text-sm shadow-[0_0_15px_rgba(235,178,255,0.2)] hover:shadow-[0_0_25px_rgba(235,178,255,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm" data-icon="save">save</span>
+                        Commit Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Custom Commands Configuration -->
+        <div class="col-span-1 lg:col-span-7 bg-surface-container-low rounded-xl p-6 md:p-8 flex flex-col relative overflow-hidden group">
+            <div class="flex justify-between items-end mb-6 border-b border-[#353535] pb-4">
+                <div>
+                    <h3 class="font-headline text-white text-xl font-bold">Custom Directives</h3>
+                    <p class="text-[10px] md:text-xs text-outline tracking-wider uppercase font-medium mt-1">Static Sub-Routines</p>
+                </div>
+                <span class="material-symbols-outlined text-on-surface-variant/40 group-hover:text-white transition-colors text-4xl" data-icon="terminal">terminal</span>
+            </div>
+
+            <form id="cc-form" class="space-y-4 mb-8 bg-surface-container-lowest p-4 rounded-xl border border-[#353535]">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-1">
+                        <label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block mb-1 ml-1">Trigger Word</label>
+                        <input type="text" id="cc-trigger" class="w-full bg-surface-container-low border border-[#353535] rounded-lg p-2.5 text-sm text-white focus:ring-1 focus:ring-white placeholder:text-[#444] font-mono" placeholder="!ping" required />
+                    </div>
+                    <div class="md:col-span-2 flex items-end">
+                        <div class="flex items-center gap-2 mb-2 ml-2">
+                            <input type="checkbox" id="cc-reply-directly" class="rounded bg-[#1B1B1B] border-[#353535] text-primary focus:ring-primary/30 w-4 h-4 cursor-pointer" />
+                            <label for="cc-reply-directly" class="text-xs text-on-surface-variant cursor-pointer select-none">Reply directly to trigger message</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block mb-1 ml-1">Bot Response</label>
+                    <textarea id="cc-response" class="w-full h-24 bg-surface-container-low border border-[#353535] rounded-lg p-3 text-sm text-white focus:ring-1 focus:ring-white placeholder:text-[#444] font-body resize-none" placeholder="Pong! System operational." required></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-surface-container-highest hover:bg-surface-bright text-white px-6 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 border border-[#353535] flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm" data-icon="add_circle">add_circle</span>
+                        Register Command
+                    </button>
+                </div>
+            </form>
+
+            <div class="flex-grow flex flex-col min-h-0">
+                <h4 class="text-xs font-bold text-outline uppercase tracking-wider mb-4">Active Directives</h4>
+                <div id="cc-list" class="flex-grow overflow-y-auto custom-scrollbar grid grid-cols-1 gap-3 pr-2 max-h-[300px]">
+                    <div class="text-center text-on-surface-variant italic text-sm py-4">Select a server to view custom commands.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
