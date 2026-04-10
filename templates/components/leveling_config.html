@@ -1,0 +1,47 @@
+        <!-- Leveling Configuration Card -->
+        <details class="accordion-panel col-span-1 md:col-span-2 bg-discord-dark rounded-lg shadow-lg flex flex-col" >
+            <summary class="p-6 pb-4 cursor-pointer select-none border-b border-discord-darker">
+                <h2 class="text-xl font-bold text-white">Leveling Configuration</h2>
+            </summary>
+            <div class="p-6 pt-2">
+                <form id="leveling-form" class="mb-6 bg-discord-darker p-4 rounded-md grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-1 md:col-span-2 mb-2">
+                        <h3 class="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1 mb-3">Server Selection</h3>
+                        <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Server ID</label>
+                        <select id="level-server-id" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                            <option value="">Loading servers...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Text Min XP</label>
+                        <input type="number" id="level-min-xp" required class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Text Max XP</label>
+                        <input type="number" id="level-max-xp" required class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Text Cooldown (Seconds)</label>
+                        <input type="number" id="level-text-cooldown" required class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-xs uppercase font-bold text-gray-400 mb-1">VC XP Per Minute</label>
+                        <input type="number" id="level-vc-xp-min" required class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
+                    </div>
+
+                    <div class="mb-4 flex items-center col-span-1 md:col-span-2">
+                        <input type="checkbox" id="level-vc-enabled" class="w-4 h-4 text-discord-blurple bg-discord-darkest rounded focus:ring-discord-blurple focus:ring-2">
+                        <label for="level-vc-enabled" class="ml-2 text-sm font-medium text-gray-300">Enable Voice Channel XP</label>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <button type="submit" class="w-full bg-discord-blurple hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded transition duration-200">
+                            Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
