@@ -1,63 +1,86 @@
         <!-- Master Information Panel (Full Width) -->
-        <details class="accordion-panel col-span-1 md:col-span-2 bg-discord-darker rounded-lg shadow-lg border border-gray-700 overflow-hidden flex flex-col" >
-            <summary class="bg-discord-dark p-4 border-b border-gray-700 flex justify-between items-center cursor-pointer select-none">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <svg class="w-6 h-6 mr-2 text-discord-blurple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    Master Information Panel
+        <details class="accordion-panel col-span-1 md:col-span-2 bg-cyber-panel border border-cyber-cyan/40 shadow-[0_0_15px_rgba(0,240,255,0.05)] overflow-hidden flex flex-col relative animate-fade-in-up delay-100" >
+            <!-- Decorative corners -->
+            <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-cyber-cyan z-10 pointer-events-none"></div>
+            <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-cyber-cyan z-10 pointer-events-none"></div>
+            <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-cyber-cyan z-10 pointer-events-none"></div>
+            <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-cyber-cyan z-10 pointer-events-none"></div>
+
+            <summary class="bg-cyber-gunmetal/80 p-4 border-b border-cyber-cyan/30 flex justify-between items-center cursor-pointer select-none hover:bg-cyber-cyan/10 transition-colors">
+                <h2 class="text-xl font-bold text-white flex items-center font-sans tracking-wide">
+                    <svg class="w-6 h-6 mr-3 text-cyber-cyan filter drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    MASTER_DIAGNOSTICS
                 </h2>
-                <span class="text-xs text-gray-400">Updates every 60s (Click to toggle)</span>
+                <span class="text-xs text-cyber-cyan/60 font-mono border border-cyber-cyan/20 px-2 py-1 bg-cyber-cyan/5 uppercase">Sync: 60s [ TOGGLE ]</span>
             </summary>
-            <div class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+
+            <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-6 bg-cyber-void/80 relative">
+                <!-- Grid background for content -->
+                <div class="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.03)_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none z-0"></div>
 
                 <!-- Hardware -->
-                <div class="bg-discord-darkest p-4 rounded-lg border border-gray-700">
-                    <h3 class="text-xs font-bold uppercase text-gray-400 mb-2 border-b border-gray-700 pb-1">Hardware</h3>
-                    <div class="space-y-1 text-sm">
-                        <div class="flex justify-between"><span class="text-gray-300">RAM:</span> <span id="stat-ram" class="font-mono text-white">-- MB</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">CPU:</span> <span id="stat-cpu" class="font-mono text-white">-- %</span></div>
+                <div class="bg-cyber-gunmetal/90 p-4 border border-cyber-dim/30 relative z-10 hover:border-cyber-cyan/50 transition-colors group">
+                    <div class="absolute -top-3 left-2 bg-cyber-void px-2">
+                        <h3 class="text-[10px] font-bold uppercase text-cyber-cyan tracking-widest group-hover:text-cyber-green transition-colors">SYS.HARDWARE</h3>
+                    </div>
+                    <div class="space-y-2 mt-2 text-sm font-mono">
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">RAM_ALLOC</span> <span id="stat-ram" class="text-white font-bold text-shadow-sm shadow-cyber-cyan">-- MB</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">CPU_LOAD</span> <span id="stat-cpu" class="text-white font-bold">-- %</span></div>
                     </div>
                 </div>
 
                 <!-- Discord -->
-                <div class="bg-discord-darkest p-4 rounded-lg border border-gray-700">
-                    <h3 class="text-xs font-bold uppercase text-gray-400 mb-2 border-b border-gray-700 pb-1">Discord Status</h3>
-                    <div class="space-y-1 text-sm">
-                        <div class="flex justify-between"><span class="text-gray-300">Ping:</span> <span id="stat-ping" class="font-mono text-white">-- ms</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">Uptime:</span> <span id="stat-uptime" class="font-mono text-white">--</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">Servers:</span> <span id="stat-servers" class="font-mono text-white">--</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">Members:</span> <span id="stat-members" class="font-mono text-white">--</span></div>
+                <div class="bg-cyber-gunmetal/90 p-4 border border-cyber-dim/30 relative z-10 hover:border-cyber-cyan/50 transition-colors group">
+                    <div class="absolute -top-3 left-2 bg-cyber-void px-2">
+                        <h3 class="text-[10px] font-bold uppercase text-cyber-cyan tracking-widest group-hover:text-cyber-green transition-colors">NET.LINK</h3>
+                    </div>
+                    <div class="space-y-2 mt-2 text-sm font-mono">
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">PING</span> <span id="stat-ping" class="text-white font-bold">-- ms</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">UPTIME</span> <span id="stat-uptime" class="text-cyber-cyan">--</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">NODES</span> <span id="stat-servers" class="text-white">--</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">ENTITIES</span> <span id="stat-members" class="text-white">--</span></div>
                     </div>
                 </div>
 
                 <!-- AI/API -->
-                <div class="bg-discord-darkest p-4 rounded-lg border border-gray-700">
-                    <h3 class="text-xs font-bold uppercase text-gray-400 mb-2 border-b border-gray-700 pb-1">AI & API</h3>
-                    <div class="space-y-1 text-sm">
-                        <div class="flex justify-between"><span class="text-gray-300">Total Chats:</span> <span id="stat-chats" class="font-mono text-white">--</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">Voice Channels:</span> <span id="stat-voice" class="font-mono text-white">--</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">Gemini:</span> <span id="stat-gemini" class="font-mono text-white">--</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">HuggingFace:</span> <span id="stat-hf" class="font-mono text-white">--</span></div>
+                <div class="bg-cyber-gunmetal/90 p-4 border border-cyber-dim/30 relative z-10 hover:border-cyber-cyan/50 transition-colors group">
+                    <div class="absolute -top-3 left-2 bg-cyber-void px-2">
+                        <h3 class="text-[10px] font-bold uppercase text-cyber-cyan tracking-widest group-hover:text-cyber-green transition-colors">AI.NEURAL</h3>
+                    </div>
+                    <div class="space-y-2 mt-2 text-sm font-mono">
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">QUERIES</span> <span id="stat-chats" class="text-white font-bold">--</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">AUDIO_STREAMS</span> <span id="stat-voice" class="text-white font-bold">--</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">API_GEMINI</span> <span id="stat-gemini" class="text-white">--</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">API_HUGGING</span> <span id="stat-hf" class="text-white">--</span></div>
                     </div>
                 </div>
 
                 <!-- Database -->
-                <div class="bg-discord-darkest p-4 rounded-lg border border-gray-700">
-                    <h3 class="text-xs font-bold uppercase text-gray-400 mb-2 border-b border-gray-700 pb-1">Database & Persona</h3>
-                    <div class="space-y-1 text-sm">
-                        <div class="flex justify-between"><span class="text-gray-300">Latency:</span> <span id="stat-db-ping" class="font-mono text-white">-- ms</span></div>
-                        <div class="flex justify-between"><span class="text-gray-300">Leveling Users:</span> <span id="stat-db-users" class="font-mono text-white">--</span></div>
-                        <div class="flex justify-between mt-2 pt-2 border-t border-gray-700">
-                            <span class="text-discord-blurple font-bold">Active Persona:</span>
+                <div class="bg-cyber-gunmetal/90 p-4 border border-cyber-dim/30 relative z-10 hover:border-cyber-cyan/50 transition-colors group">
+                    <div class="absolute -top-3 left-2 bg-cyber-void px-2">
+                        <h3 class="text-[10px] font-bold uppercase text-cyber-cyan tracking-widest group-hover:text-cyber-green transition-colors">DATA.STORE</h3>
+                    </div>
+                    <div class="space-y-2 mt-2 text-sm font-mono">
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">DB_LATENCY</span> <span id="stat-db-ping" class="text-white">-- ms</span></div>
+                        <div class="flex justify-between items-end border-b border-cyber-dim/20 pb-1"><span class="text-cyber-dim">USER_INDEX</span> <span id="stat-db-users" class="text-white">--</span></div>
+
+                        <div class="mt-4 pt-2 border-t border-cyber-dim/40 relative">
+                            <span class="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-cyber-gunmetal px-2 text-[10px] text-cyber-magenta font-bold">ACTIVE_PERSONA</span>
+                            <div class="text-center mt-3 bg-cyber-void/50 border border-cyber-magenta/30 py-1">
+                                <span id="stat-persona" class="font-bold text-cyber-magenta text-sm tracking-wider uppercase animate-pulse">--</span>
+                            </div>
                         </div>
-                        <div class="text-center"><span id="stat-persona" class="font-bold text-white text-md">--</span></div>
                     </div>
                 </div>
             </div>
+
             <!-- Server Names Collapse -->
-            <div class="bg-discord-dark p-2 border-t border-gray-700 text-xs">
+            <div class="bg-cyber-gunmetal/50 border-t border-cyber-cyan/20 p-2 font-mono text-xs z-10">
                  <details>
-                    <summary class="cursor-pointer text-gray-400 hover:text-white select-none">View Connected Server Names</summary>
-                    <div id="stat-server-names" class="mt-2 text-gray-300 font-mono overflow-auto max-h-24">--</div>
+                    <summary class="cursor-pointer text-cyber-dim hover:text-cyber-cyan transition-colors select-none uppercase tracking-wider flex items-center gap-2">
+                        <span class="text-cyber-cyan opacity-50">></span> VIEW_NODE_REGISTRY
+                    </summary>
+                    <div id="stat-server-names" class="mt-2 text-cyber-text bg-cyber-void p-3 border border-cyber-dim/20 overflow-auto max-h-32 text-[11px] leading-relaxed">--</div>
                  </details>
             </div>
         </details>

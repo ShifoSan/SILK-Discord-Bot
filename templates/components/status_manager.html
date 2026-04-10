@@ -1,45 +1,59 @@
         <!-- Status Manager Card -->
-        <details class="accordion-panel bg-discord-dark rounded-lg shadow-lg flex flex-col" >
-            <summary class="p-6 pb-4 cursor-pointer select-none border-b border-discord-darker">
-                <h2 class="text-xl font-bold text-white">Status Manager</h2>
+        <details class="accordion-panel bg-cyber-panel border border-cyber-cyan/30 flex flex-col relative group animate-fade-in-up delay-200" >
+            <!-- Decorative elements -->
+            <div class="absolute -left-[1px] top-10 w-[3px] h-10 bg-cyber-cyan z-10"></div>
+            <div class="absolute top-0 right-0 border-t-4 border-r-4 border-cyber-cyan w-4 h-4 z-10 pointer-events-none"></div>
+
+            <summary class="p-5 cursor-pointer select-none border-b border-cyber-dim/20 hover:bg-cyber-cyan/5 transition-colors bg-cyber-gunmetal/60 flex items-center gap-3">
+                <h2 class="text-lg font-bold text-white uppercase tracking-widest font-sans flex items-center">
+                    <span class="text-cyber-cyan mr-2 opacity-50">></span> STATUS_CONFIG
+                </h2>
             </summary>
-            <div class="p-6 pt-2">
 
-            <form id="status-form" class="mb-6 bg-discord-darker p-4 rounded-md">
-                <h3 class="text-sm font-semibold mb-3 text-gray-300">Add / Edit Status</h3>
+            <div class="p-6 bg-cyber-void/60 relative">
+                <div class="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none z-0"></div>
 
-                <div class="mb-3">
-                    <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Activity Type</label>
-                    <select id="status-type" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
-                        <option value="playing">Playing</option>
-                        <option value="watching">Watching</option>
-                        <option value="listening">Listening</option>
-                        <option value="streaming">Streaming</option>
-                        <option value="competing">Competing</option>
-                    </select>
+                <form id="status-form" class="mb-8 bg-cyber-gunmetal/80 border border-cyber-dim/30 p-5 relative z-10 group-focus-within:border-cyber-cyan/50 transition-colors">
+                    <h3 class="text-xs font-bold mb-4 text-cyber-cyan tracking-widest uppercase border-b border-cyber-dim/20 pb-2 flex items-center gap-2">
+                        <span class="w-1 h-1 bg-cyber-cyan"></span> INJECT_NEW_STATE
+                    </h3>
+
+                    <div class="mb-4">
+                        <label class="block text-[10px] uppercase font-bold text-cyber-dim tracking-wider mb-1">Activity Class</label>
+                        <select id="status-type" class="w-full bg-cyber-void border border-cyber-dim/40 text-cyber-text rounded-none p-2 font-mono text-sm focus:outline-none focus:border-cyber-cyan focus:shadow-[0_0_10px_rgba(0,240,255,0.2)] transition-all appearance-none cursor-pointer">
+                            <option value="playing">PLAYING</option>
+                            <option value="watching">WATCHING</option>
+                            <option value="listening">LISTENING</option>
+                            <option value="streaming">STREAMING</option>
+                            <option value="competing">COMPETING</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-[10px] uppercase font-bold text-cyber-dim tracking-wider mb-1">State Definition Text</label>
+                        <input type="text" id="status-text" required placeholder="with knives 🔪" class="w-full bg-cyber-void border border-cyber-dim/40 text-cyber-text rounded-none p-2 font-mono text-sm focus:outline-none focus:border-cyber-cyan focus:shadow-[0_0_10px_rgba(0,240,255,0.2)] transition-all placeholder-cyber-dim/30">
+                    </div>
+
+                    <div class="mb-5 flex items-center bg-cyber-void/50 p-2 border border-cyber-dim/20">
+                        <input type="checkbox" id="status-active" checked class="w-4 h-4 appearance-none border border-cyber-dim/50 bg-cyber-void checked:bg-cyber-green checked:border-cyber-green checked:shadow-neon-green transition-all cursor-pointer relative after:content-[''] after:absolute after:hidden checked:after:block after:left-[4px] after:top-[1px] after:w-[6px] after:h-[10px] after:border-r-2 after:border-b-2 after:border-cyber-void after:rotate-45">
+                        <label for="status-active" class="ml-3 text-[11px] font-bold tracking-widest text-cyber-green uppercase cursor-pointer select-none">STATE_ACTIVE_OVERRIDE</label>
+                    </div>
+
+                    <button type="submit" class="w-full bg-cyber-void border border-cyber-cyan text-cyber-cyan font-bold font-mono text-sm py-3 px-4 uppercase tracking-widest transition-all duration-200 hover:bg-cyber-cyan hover:text-cyber-void hover:shadow-neon-cyan active:scale-[0.98] group/btn flex justify-center items-center gap-2">
+                        <span>[</span> EXECUTE_INJECTION <span>]</span>
+                    </button>
+                </form>
+
+                <div class="flex-grow relative z-10 border border-cyber-dim/20 bg-cyber-gunmetal/40 p-4">
+                    <h3 class="text-xs font-bold mb-3 text-cyber-cyan tracking-widest uppercase border-b border-cyber-dim/20 pb-2 flex items-center gap-2">
+                        <span class="w-1 h-1 bg-cyber-cyan"></span> ACTIVE_MEMORY_STATES
+                    </h3>
+                    <div id="status-list" class="space-y-2 overflow-y-auto max-h-64 pr-2 font-mono text-sm">
+                        <!-- Status items will be injected here -->
+                        <div class="text-center text-cyber-dim italic text-xs py-4 flex items-center justify-center gap-2">
+                            <span class="w-2 h-2 bg-cyber-cyan animate-ping"></span> FETCHING_DATA...
+                        </div>
+                    </div>
                 </div>
-
-                <div class="mb-3">
-                    <label class="block text-xs uppercase font-bold text-gray-400 mb-1">Status Text</label>
-                    <input type="text" id="status-text" required placeholder="with knives 🔪" class="w-full bg-discord-darkest text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blurple">
-                </div>
-
-                <div class="mb-4 flex items-center">
-                    <input type="checkbox" id="status-active" checked class="w-4 h-4 text-discord-blurple bg-discord-darkest rounded focus:ring-discord-blurple focus:ring-2">
-                    <label for="status-active" class="ml-2 text-sm font-medium text-gray-300">Active</label>
-                </div>
-
-                <button type="submit" class="w-full bg-discord-blurple hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded transition duration-200">
-                    Save Status
-                </button>
-            </form>
-
-            <div class="flex-grow">
-                <h3 class="text-sm font-semibold mb-3 text-gray-300">Current Statuses</h3>
-                <div id="status-list" class="space-y-2 overflow-y-auto max-h-64 pr-2">
-                    <!-- Status items will be injected here -->
-                    <div class="text-center text-gray-500 italic text-sm">Loading statuses...</div>
-                </div>
-            </div>
             </div>
         </details>
