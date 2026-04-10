@@ -227,23 +227,24 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Files Included:
      * `launcher.py`: Subprocess orchestrator that concurrently boots `main.py` and `dashboard.py` and handles crash restarts.
      * `dashboard.py`: Lightweight asynchronous web server running Quart.
-     * `templates/index.html`: Main web dashboard UI wrapper built with Tailwind CSS, including a canvas element for background animations.
-     * `templates/components/*.html`: Modularized UI components for individual dashboard cards.
-     * `static/js/dashboard.js`: Extracted JavaScript handling API polling and dynamic DOM updates.
+     * `templates/base.html`: Master Jinja2 layout containing the sidebar, top navbar, and canvas background.
+     * `templates/overview.html`: Multi-page view for Live Stats and heartbeat metrics.
+     * `templates/modules.html`: Multi-page view for managing Personalities, Statuses, and Auto-Chat routing.
+     * `templates/settings.html`: Multi-page view for Server Settings (Leveling and Custom Commands).
+     * `static/js/dashboard.js`: Extracted JavaScript handling API polling, dynamic DOM updates, and the background canvas animation.
    * Core Logic & Features: 
      * Runs completely parallel to the bot process to separate web traffic from Discord Gateway logic. 
      * Uses `motor.motor_asyncio` to connect directly to the bot's shared MongoDB.
      * Implements full Discord OAuth2 login flow using `aiohttp` to exchange codes for tokens and fetch user profiles.
      * Secures endpoints using Quart's encrypted `session` cookies based on the `QUART_SECRET_KEY`.
      * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`), as well as global `bot_statuses` and `personalities`.
-     * Provides UI to manage bot statuses and AI persona configurations dynamically without restarting the bot.
      * Restricts dashboard access strictly to users who possess 'Server Admin' or 'Manage Server' permissions in at least one shared Discord server with S.I.L.K. (verified via Heartbeat stats).
      * Integrates `better_profanity` to screen AI Personality prompts to prevent API key bans.
-     * Refactored the dashboard code to improve modularity and prepare for future animations. Extracted the JavaScript code from the template and moved the cards into separate components. Included a new canvas element.
+     * Implements a fully responsive, multi-page "Matte Obsidian Bento Box" UI with a global server selector and persistent canvas background animations.
    * Commands/Routes: 
      * `/login`: Redirects user to Discord Authorization URL.
      * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
-     * `/dashboard`: Protected route for authenticated users to configure bot settings.
+     * `/dashboard/overview`, `/dashboard/modules`, `/dashboard/settings`: Protected UI routes.
      * `GET/POST /api/chat_configs/<guild_id>`
      * `GET/POST/DELETE /api/statuses`
      * `GET/POST/DELETE /api/personalities`
