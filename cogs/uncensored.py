@@ -4,76 +4,106 @@ from discord.ext import commands
 import os
 import io
 import requests
+import asyncio
 
 
 class Uncensored(commands.Cog):
-    """Dedicated cog for uncensored image generation.
-    Uses the same proven FLUX.1-schnell router endpoint as your /imagine command
-    (highly permissive with explicit/NSFW prompts).
+    """True uncensored FLUX cog using Replicate.com
+    Model: aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3 (explicitly NSFW/uncensored)
     """
 
     def __init__(self, bot):
         self.bot = bot
-        
-        # Load token exactly like creative.py
-        self.hf_token = os.getenv("HUGGINGFACE_TOKEN")
+        self.replicate_token = os.getenv("REPLICATE_API_TOKEN")
+        if not self.replicate_token:
+            print("⚠️ WARNING: REPLICATE_API_TOKEN not found in .env")
 
-        # Same working router URL your /imagine already uses
-        self.HF_API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
+        # This is the exact uncensored FLUX variant
+        self.model_version = "aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3:..."  # ← Replace with current version ID from https://replicate.com/aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3 (copy the long version hash)
 
     @app_commands.command(
         name="uncensored",
-        description="Generate uncensored images using FLUX (NSFW / explicit content allowed)"
+        description="Generate truly uncensored images (NSFW / explicit fully allowed)"
     )
     @app_commands.describe(
-        prompt="Your detailed prompt (be as explicit as you want — no restrictions)"
+        prompt="Your detailed prompt (no restrictions — be as explicit as you want)"
     )
     async def uncensored_imagine(self, interaction: discord.Interaction, prompt: str):
-        """Slash command: /uncensored <prompt>"""
-        
-        # CRITICAL Defer Protocol for HeavenCloud
         await interaction.response.defer(thinking=True)
 
-        if not self.hf_token:
-            await interaction.followup.send("❌ Hugging Face Token is not configured.")
+        if not self.replicate_token:
+            await interaction.followup.send("❌ Replicate API token is not configured.")
             return
 
-        headers = {"Authorization": f"Bearer {self.hf_token}"}
-        payload = {"inputs": prompt}   # Exact same minimal payload as your /imagine
+        headers = {
+            "Authorization": f"Token {self.replicate_token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "version": self.model_version,
+            "input": {
+                "prompt": prompt,
+                "width": 1024,
+                "height": 1024,
+                "num_inference_steps": 20,
+                "guidance_scale": 3.5
+            }
+        }
 
         try:
-            response = requests.post(self.HF_API_URL, headers=headers, json=payload)
-            
-            if response.status_code == 200:
-                image_bytes = response.content
-                fp = io.BytesIO(image_bytes)
-                file = discord.File(fp, filename="uncensored_flux.png")
-                
+            # 1. Create prediction
+            create_resp = requests.post(
+                "https://api.replicate.com/v1/predictions",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
+            if create_resp.status_code != 201:
+                await interaction.followup.send(f"❌ API Error: {create_resp.text[:300]}")
+                return
+
+            prediction = create_resp.json()
+            prediction_id = prediction["id"]
+
+            # 2. Poll until ready (Replicate is async)
+            for _ in range(60):  # max \~60 seconds
+                poll_resp = requests.get(
+                    f"https://api.replicate.com/v1/predictions/{prediction_id}",
+                    headers=headers,
+                    timeout=30
+                )
+                data = poll_resp.json()
+
+                if data["status"] == "succeeded":
+                    image_url = data["output"][0]  # direct image URL
+                    break
+                elif data["status"] in ["failed", "canceled"]:
+                    await interaction.followup.send("❌ Generation failed on Replicate.")
+                    return
+
+                await asyncio.sleep(1.5)  # polite polling
+
+            else:
+                await interaction.followup.send("❌ Timeout — try again.")
+                return
+
+            # 3. Download the image bytes
+            img_resp = requests.get(image_url, timeout=30)
+            image_bytes = img_resp.content
+
+            with io.BytesIO(image_bytes) as buf:
+                buf.seek(0)
+                file = discord.File(buf, filename="uncensored_flux.png")
+
                 embed = discord.Embed(
-                    title="🖼️ Uncensored FLUX Image",
+                    title="🖼️ Truly Uncensored FLUX Image",
                     description=f"**Prompt:** {prompt[:1900]}..." if len(prompt) > 1900 else f"**Prompt:** {prompt}",
                     color=0xFF00FF
                 )
-                embed.set_footer(text="black-forest-labs/FLUX.1-schnell • Fully permissive")
+                embed.set_footer(text="Replicate • aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3")
                 await interaction.followup.send(embed=embed, file=file)
-            
-            elif response.status_code == 503:
-                await interaction.followup.send(
-                    "⏳ The model is currently loading (Cold Start). Please try again in 30 seconds."
-                )
-            
-            elif 400 <= response.status_code < 500:
-                try:
-                    error_json = response.json()
-                    error_msg = error_json.get("error", response.text)
-                except ValueError:
-                    error_msg = response.text
-                await interaction.followup.send(f"❌ API Error: {error_msg}")
-            
-            else:
-                await interaction.followup.send(
-                    f"❌ An unexpected error occurred. Status Code: {response.status_code}"
-                )
 
         except Exception as e:
             await interaction.followup.send(f"❌ An error occurred: {e}")
