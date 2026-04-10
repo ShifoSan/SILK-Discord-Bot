@@ -1,0 +1,328 @@
+<html class="dark"><head>
+<meta charset="utf-8"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#474646",
+                    "primary-container": "#8026a7",
+                    "tertiary-fixed": "#e5e2e1",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "on-secondary-fixed": "#410003",
+                    "on-primary-container": "#ecb4ff",
+                    "background": "#131313",
+                    "on-primary-fixed-variant": "#721199",
+                    "on-error-container": "#ffdad6",
+                    "on-surface-variant": "#cbc3d9",
+                    "tertiary-container": "#545353",
+                    "surface-container-high": "#2a2a2a",
+                    "primary-fixed-dim": "#ebb2ff",
+                    "on-error": "#690005",
+                    "on-secondary-container": "#ffaea6",
+                    "surface-variant": "#353535",
+                    "on-secondary-fixed-variant": "#930010",
+                    "secondary-fixed": "#ffdad6",
+                    "secondary-fixed-dim": "#ffb3ac",
+                    "inverse-primary": "#8c33b3",
+                    "primary-fixed": "#f8d8ff",
+                    "on-tertiary": "#313030",
+                    "tertiary": "#c8c6c5",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "primary": "#ebb2ff",
+                    "inverse-on-surface": "#303030",
+                    "on-tertiary-container": "#c9c7c6",
+                    "on-primary-fixed": "#320047",
+                    "surface-container-lowest": "#0e0e0e",
+                    "secondary": "#ffb3ac",
+                    "surface-bright": "#393939",
+                    "on-background": "#e2e2e2",
+                    "surface-dim": "#131313",
+                    "surface-container-low": "#1b1b1b",
+                    "on-primary": "#520071",
+                    "secondary-container": "#a40213",
+                    "error": "#ffb4ab",
+                    "on-surface": "#e2e2e2",
+                    "outline": "#948da2",
+                    "surface": "#131313",
+                    "surface-container": "#1f1f1f",
+                    "error-container": "#93000a",
+                    "on-secondary": "#680008",
+                    "outline-variant": "#494456",
+                    "surface-container-highest": "#353535",
+                    "inverse-surface": "#e2e2e2",
+                    "surface-tint": "#ebb2ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "1rem",
+                    "xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #000000; color: #e2e2e2; }
+        h1, h2, h3, .font-headline { font-family: 'Space Grotesk', sans-serif; }
+        .liquid-aura-bg {
+            background: radial-gradient(circle at 50% 50%, rgba(235, 178, 255, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+        }
+        .hollow-purple-gradient {
+            background: linear-gradient(135deg, #ebb2ff 0%, #8026a7 50%, #a40213 100%);
+        }
+        .mechanical-press:active { transform: scale(0.98); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #131313; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-[#000000] text-on-surface selection:bg-primary/30 min-h-screen">
+<!-- SideNavBar Anchor -->
+<aside class="flex flex-col h-full py-8 px-4 border-r border-[#1B1B1B] bg-[#131313] dark:bg-[#131313] h-screen w-64 fixed left-0 top-0 z-50">
+<div class="mb-10 px-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl hollow-purple-gradient flex items-center justify-center">
+<span class="material-symbols-outlined text-black font-bold" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-2xl font-bold tracking-tighter text-white">S.I.L.K.</h1>
+<p class="text-[10px] text-primary font-medium tracking-[0.2em] uppercase">AI Core Online</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-medium tracking-wide">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#EBB2FF] font-bold border-r-2 border-[#EBB2FF] bg-[#1B1B1B] transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="extension">extension</span>
+<span class="font-medium tracking-wide">Modules</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="font-medium tracking-wide">Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-medium tracking-wide">Logs</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium tracking-wide">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-[#1B1B1B]">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-medium tracking-wide">Help</span>
+</a>
+<div class="mt-4 px-4">
+<button class="w-full py-3 rounded-xl hollow-purple-gradient text-black font-bold text-sm mechanical-press transition-all">
+                    Upgrade to Pro
+                </button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen relative overflow-hidden">
+<!-- TopAppBar Anchor -->
+<header class="flex justify-between items-center px-8 z-40 fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-[#000000]/80 backdrop-blur-md">
+<div class="flex items-center gap-6">
+<h2 class="text-white font-bold text-sm tracking-widest uppercase">S.I.L.K. Dashboard</h2>
+<div class="flex items-center gap-4 text-[10px] font-mono">
+<span class="text-primary flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> Status: Active</span>
+<span class="text-[#888888]">Latency: 24ms</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined text-[#888888] hover:text-[#EBB2FF] cursor-pointer transition-colors" data-icon="notifications">notifications</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-secondary rounded-full"></span>
+</div>
+<div class="flex items-center gap-3 cursor-pointer group">
+<span class="text-[0.875rem] text-[#888888] group-hover:text-white transition-colors">Admin_Void</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/20">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="close-up portrait of a digital artist with cool lighting and tech background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCROEu4OeOM33lo27wHSnWZ2jTGndOmxWg_9s3iL8YoR_rqww6WyEtrvceGfSxTD0GUPhcHLXccslJ-dxFGQBMvyjdszezk7s60Ya7X9rLQ8bVdgUS12D1-lZJyuhboVa30uz34WO7kzXRGmlKRgM0ERLotW7TspER22xuUAf60Uz1sQwapms7omqWxHpq99pgjXyO4DiuAkXhktGgg1qwOrXsbnOBnwi3z0NwkU_VHDHNLCUs4N1BXragAYLJJssGZcFAwZ-xNuXf"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Configuration Canvas -->
+<div class="pt-24 pb-12 px-10 max-w-7xl mx-auto">
+<div class="mb-12">
+<h3 class="text-[3.5rem] font-headline font-bold text-white leading-none tracking-tighter mb-4">Configuration Panel</h3>
+<p class="text-on-surface-variant max-w-2xl text-lg">Calibrate the S.I.L.K. neural interface. Adjust logging priorities, leveling algorithms, and core command structures.</p>
+</div>
+<!-- Bento Grid -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Command Prefix - Oversized Input (Spans 8) -->
+<div class="col-span-12 md:col-span-8 bg-surface-container-low rounded-xl p-8 flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+<div>
+<label class="text-xs font-bold tracking-[0.2em] text-[#888888] uppercase mb-6 block">Core Command Structure</label>
+<h4 class="text-2xl font-headline text-white mb-2">Command Prefix</h4>
+<p class="text-on-surface-variant text-sm mb-8">Set the trigger for all AI sub-routines.</p>
+</div>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none rounded-xl text-7xl font-headline font-bold text-primary p-8 focus:ring-2 focus:ring-primary/20 transition-all text-center tracking-tighter" placeholder="!" type="text" value="!"/>
+<div class="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-outline-variant font-mono">
+<span class="material-symbols-outlined text-[14px]" data-icon="info">info</span>
+                            AFFECTS 142 COMMANDS
+                        </div>
+</div>
+</div>
+<!-- Leveling System - Minimalist Inputs (Spans 4) -->
+<div class="col-span-12 md:col-span-4 bg-surface-container-low rounded-xl p-8 border-l-4 border-secondary/20">
+<div class="flex items-center justify-between mb-8">
+<span class="material-symbols-outlined text-secondary" data-icon="trending_up">trending_up</span>
+<div class="px-2 py-1 bg-secondary/10 rounded text-[10px] font-bold text-secondary tracking-widest uppercase">Leveling v2.4</div>
+</div>
+<h4 class="text-2xl font-headline text-white mb-6">Leveling Manager</h4>
+<div class="space-y-6">
+<div class="space-y-2">
+<label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block">XP Multiplier</label>
+<div class="flex items-center gap-4 bg-surface-container-lowest p-3 rounded-lg">
+<button class="w-8 h-8 rounded-md bg-surface-container-high flex items-center justify-center mechanical-press text-[#888888] hover:text-white">
+<span class="material-symbols-outlined text-sm" data-icon="remove">remove</span>
+</button>
+<input class="flex-1 bg-transparent border-none text-center text-white font-headline text-xl focus:ring-0" step="0.1" type="number" value="1.5"/>
+<button class="w-8 h-8 rounded-md bg-surface-container-high flex items-center justify-center mechanical-press text-[#888888] hover:text-white">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+</button>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block">Role Rewards</label>
+<div class="flex items-center gap-4 bg-surface-container-lowest p-3 rounded-lg">
+<span class="material-symbols-outlined text-sm text-[#888888]" data-icon="military_tech">military_tech</span>
+<input class="flex-1 bg-transparent border-none text-white font-headline text-xl focus:ring-0" type="number" value="12"/>
+<span class="text-[10px] text-[#888888] font-mono">ACTIVE ROLES</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Logging Modules - Tactile Toggles (Spans 6) -->
+<div class="col-span-12 md:col-span-6 bg-surface-container-low rounded-xl p-8 relative overflow-hidden">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-2 h-8 bg-primary rounded-full"></div>
+<h4 class="text-2xl font-headline text-white">Logging Modules</h4>
+</div>
+<div class="space-y-4">
+<!-- Audit Logs Toggle -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-[#888888] group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+</div>
+<div>
+<p class="text-white font-medium">Audit Logs</p>
+<p class="text-[11px] text-[#888888]">Monitor moderator actions</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-lowest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#888888] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container peer-checked:after:bg-white"></div>
+</label>
+</div>
+<!-- Message Edits Toggle -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-[#888888] group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+</div>
+<div>
+<p class="text-white font-medium">Message Edits</p>
+<p class="text-[11px] text-[#888888]">Track content alterations</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-lowest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#888888] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container peer-checked:after:bg-white"></div>
+</label>
+</div>
+<!-- Voice States Toggle -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-[#888888] group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="mic_external_on">mic_external_on</span>
+</div>
+<div>
+<p class="text-white font-medium">Voice States</p>
+<p class="text-[11px] text-[#888888]">Log channel joins &amp; leaves</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-lowest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#888888] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container peer-checked:after:bg-white"></div>
+</label>
+</div>
+</div>
+</div>
+<!-- Status Card (Spans 6) -->
+<div class="col-span-12 md:col-span-6 bg-surface-container-low rounded-xl p-8 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-6">
+<h4 class="text-2xl font-headline text-white">System Integrity</h4>
+<span class="text-[10px] font-mono px-2 py-1 bg-green-500/10 text-green-400 rounded">OPTIMIZED</span>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-[10px] font-bold text-[#888888] mb-2 uppercase tracking-widest">
+<span>AI Neural Load</span>
+<span class="text-primary">42%</span>
+</div>
+<div class="h-1 w-full bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 42%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold text-[#888888] mb-2 uppercase tracking-widest">
+<span>Database Latency</span>
+<span class="text-secondary">12ms</span>
+</div>
+<div class="h-1 w-full bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 15%"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 grid grid-cols-2 gap-4">
+<div class="p-4 bg-surface-container-lowest rounded-xl">
+<p class="text-[10px] text-[#888888] uppercase mb-1">Commands Served</p>
+<p class="text-2xl font-headline text-white">12.4k</p>
+</div>
+<div class="p-4 bg-surface-container-lowest rounded-xl">
+<p class="text-[10px] text-[#888888] uppercase mb-1">Active Users</p>
+<p class="text-2xl font-headline text-white">1,892</p>
+</div>
+</div>
+</div>
+<!-- Footer Action Bar -->
+<div class="col-span-12 mt-6 flex justify-end gap-4">
+<button class="px-8 py-4 rounded-xl bg-surface-container-highest text-white font-bold mechanical-press transition-all hover:bg-surface-bright">
+                        Discard Changes
+                    </button>
+<button class="px-12 py-4 rounded-xl hollow-purple-gradient text-black font-extrabold text-lg mechanical-press transition-all shadow-[0_0_40px_-10px_rgba(235,178,255,0.4)] flex items-center gap-3">
+<span class="material-symbols-outlined font-bold" data-icon="save">save</span>
+                        Save Changes
+                    </button>
+</div>
+</div>
+</div>
+<!-- Decorative Glow -->
+<div class="fixed bottom-0 right-0 w-1/2 h-1/2 liquid-aura-bg pointer-events-none z-0"></div>
+</main>
+</body></html>

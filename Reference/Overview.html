@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>S.I.L.K. AI Dashboard - Overview</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#474646",
+                        "primary-container": "#8026a7",
+                        "tertiary-fixed": "#e5e2e1",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "on-secondary-fixed": "#410003",
+                        "on-primary-container": "#ecb4ff",
+                        "background": "#131313",
+                        "on-primary-fixed-variant": "#721199",
+                        "on-error-container": "#ffdad6",
+                        "on-surface-variant": "#cbc3d9",
+                        "tertiary-container": "#545353",
+                        "surface-container-high": "#2a2a2a",
+                        "primary-fixed-dim": "#ebb2ff",
+                        "on-error": "#690005",
+                        "on-secondary-container": "#ffaea6",
+                        "surface-variant": "#353535",
+                        "on-secondary-fixed-variant": "#930010",
+                        "secondary-fixed": "#ffdad6",
+                        "secondary-fixed-dim": "#ffb3ac",
+                        "inverse-primary": "#8c33b3",
+                        "primary-fixed": "#f8d8ff",
+                        "on-tertiary": "#313030",
+                        "tertiary": "#c8c6c5",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "primary": "#ebb2ff",
+                        "inverse-on-surface": "#303030",
+                        "on-tertiary-container": "#c9c7c6",
+                        "on-primary-fixed": "#320047",
+                        "surface-container-lowest": "#0e0e0e",
+                        "secondary": "#ffb3ac",
+                        "surface-bright": "#393939",
+                        "on-background": "#e2e2e2",
+                        "surface-dim": "#131313",
+                        "surface-container-low": "#1b1b1b",
+                        "on-primary": "#520071",
+                        "secondary-container": "#a40213",
+                        "error": "#ffb4ab",
+                        "on-surface": "#e2e2e2",
+                        "outline": "#948da2",
+                        "surface": "#131313",
+                        "surface-container": "#1f1f1f",
+                        "error-container": "#93000a",
+                        "on-secondary": "#680008",
+                        "outline-variant": "#494456",
+                        "surface-container-highest": "#353535",
+                        "inverse-surface": "#e2e2e2",
+                        "surface-tint": "#ebb2ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+            color: #888888;
+            font-family: 'Manrope', sans-serif;
+            overflow-x: hidden;
+        }
+        .liquid-aura {
+            background: radial-gradient(circle at 50% 50%, rgba(235, 178, 255, 0.08) 0%, rgba(164, 2, 19, 0.03) 50%, transparent 100%);
+            pointer-events: none;
+        }
+        .bento-card {
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+        .bento-card:hover {
+            background-color: #2a2a2a;
+        }
+        .text-glow {
+            text-shadow: 0 0 20px rgba(235, 178, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-[#000000] text-[#888888]">
+<!-- SideNavBar Shell -->
+<nav class="h-screen w-64 fixed left-0 top-0 flex flex-col h-full py-8 px-4 border-r border-[#1B1B1B] bg-[#131313] dark:bg-[#131313] z-50">
+<div class="mb-12 px-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-black font-bold" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-2xl font-bold tracking-tighter text-white font-headline">S.I.L.K.</h1>
+<p class="text-[10px] font-medium tracking-widest text-primary uppercase">AI Core Online</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#EBB2FF] font-bold border-r-2 border-[#EBB2FF] bg-[#1B1B1B] transition-all duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-medium tracking-wide">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="extension">extension</span>
+<span class="font-medium tracking-wide">Modules</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="font-medium tracking-wide">Analytics</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-medium tracking-wide">Logs</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-[#888888] hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium tracking-wide">Settings</span>
+</a>
+</div>
+<div class="mt-auto pt-8 border-t border-[#1B1B1B]">
+<div class="bg-gradient-to-br from-primary/10 to-primary-container/10 p-4 rounded-xl mb-6">
+<p class="text-xs text-on-surface-variant mb-2">Power up your core</p>
+<button class="w-full py-2 bg-primary text-on-primary font-bold rounded-lg text-sm hover:scale-95 transition-transform duration-150">Upgrade to Pro</button>
+</div>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-4 px-4 py-2 text-[#888888] hover:text-white text-sm" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="help">help</span>
+<span>Help</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-2 text-[#888888] hover:text-white text-sm" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="support_agent">support_agent</span>
+<span>Support</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 flex justify-between items-center px-8 z-40 bg-[#000000]/80 backdrop-blur-md">
+<div class="flex items-center gap-6">
+<h2 class="hidden font-headline">S.I.L.K. Dashboard</h2> <!-- Hidden per JSON instruction style_brand_logo: hidden -->
+<div class="flex items-center gap-4 text-xs font-medium tracking-wider">
+<span class="flex items-center gap-2 text-white"><span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_#ebb2ff]"></span> Status: Active</span>
+<span class="text-[#888888]">Latency: 24ms</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#888888] text-sm" data-icon="search">search</span>
+<input class="bg-[#1B1B1B] border-none rounded-full py-1.5 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary/30 w-64 placeholder-[#494456]" placeholder="Search commands..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-[#888888] hover:text-[#EBB2FF] transition-colors"><span class="material-symbols-outlined" data-icon="notifications">notifications</span></button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-[#1B1B1B]">
+<img class="w-full h-full object-cover" data-alt="close-up portrait of a digital artist in a dark studio lit by neon purple lights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhzYHFyssD6G_5c9zxlT5cidiyCItSJ7vcxVqSyPF_4f_eac9QXFyJacxAL1Ic9Mv8Oie30x5DT6z7ZZF0Ucjn7_De7svEYjXs7GIXgY-t9PA75T_pbuhBYz9p5uUPs94CFIDuALnG7Aj8kqEt45E3w1eB4e-zJLfoZm1uBTuguc5Zv94Q_Yjux8yZCdzbtXc8hCUV9ohdz4iIMf06w7kczZCq73NJc7GnSMlAgZkh9szCEhX9w04wb9Y9Hs1Fqr4Qlr1vkDP_05w4"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 p-8 min-h-screen relative">
+<div class="liquid-aura fixed inset-0 z-0"></div>
+<div class="relative z-10">
+<!-- Header Section -->
+<header class="mb-12">
+<h1 class="text-[3.5rem] font-bold text-white font-headline leading-none tracking-tighter mb-2">Core Overview</h1>
+<p class="text-lg text-on-surface-variant max-w-2xl">Visualizing neural pathway activations and cluster health for the S.I.L.K. network.</p>
+</header>
+<!-- Bento Grid -->
+<div class="grid grid-cols-12 gap-6 auto-rows-[160px]">
+<!-- Large Metric: Commands -->
+<div class="col-span-12 md:col-span-8 row-span-2 rounded-xl bg-surface-container-low p-8 flex flex-col justify-between bento-card relative overflow-hidden group">
+<div class="absolute -right-12 -top-12 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+<div class="flex justify-between items-start relative">
+<span class="text-xs font-bold tracking-[0.2em] text-primary uppercase">Total Throughput</span>
+<span class="material-symbols-outlined text-primary" data-icon="bolt">bolt</span>
+</div>
+<div class="relative">
+<h3 class="text-7xl font-bold text-white font-headline tracking-tighter text-glow">1.2M</h3>
+<p class="text-xl font-medium text-white/60">Commands Executed</p>
+</div>
+<div class="flex gap-2 items-center text-xs relative">
+<span class="text-primary font-bold">+12%</span>
+<span class="text-on-surface-variant">vs last 24h</span>
+</div>
+</div>
+<!-- Status Card: MongoDB -->
+<div class="col-span-12 md:col-span-4 row-span-1 rounded-xl bg-surface-container-low p-6 flex flex-col justify-between bento-card">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase">Database Link</span>
+<div class="w-2 h-2 rounded-full bg-[#00FF94] shadow-[0_0_10px_#00FF94] animate-pulse"></div>
+</div>
+<div>
+<h4 class="text-xl font-bold text-white font-headline">MongoDB: Connected</h4>
+<p class="text-xs text-on-surface-variant mt-1">Primary Cluster: us-east-1</p>
+</div>
+</div>
+<!-- Small Metric: Servers -->
+<div class="col-span-12 md:col-span-4 row-span-1 rounded-xl bg-surface-container-low p-6 flex flex-col justify-between bento-card">
+<span class="text-[10px] font-bold tracking-[0.2em] text-on-surface-variant uppercase">Deployment</span>
+<div class="flex items-baseline gap-2">
+<h3 class="text-4xl font-bold text-white font-headline tracking-tight">42</h3>
+<p class="text-sm font-medium text-on-surface-variant">Active Servers</p>
+</div>
+</div>
+<!-- Small Metric: Ping -->
+<div class="col-span-12 md:col-span-4 row-span-1 rounded-xl bg-surface-container-low p-6 flex flex-col justify-between bento-card border border-primary/10">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-bold tracking-[0.2em] text-primary uppercase">Heartbeat</span>
+<span class="material-symbols-outlined text-primary text-sm" data-icon="speed">speed</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="text-4xl font-bold text-white font-headline tracking-tight">12ms</h3>
+<p class="text-sm font-medium text-on-surface-variant">Avg. Latency</p>
+</div>
+</div>
+<!-- Recent Activity Card -->
+<div class="col-span-12 md:col-span-8 row-span-3 rounded-xl bg-surface-container-low p-8 bento-card">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-2xl font-bold text-white font-headline">Neural Stream</h3>
+<button class="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+                            View Logs <span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<div class="space-y-6">
+<div class="flex items-center gap-4 group">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-white" data-icon="terminal">terminal</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<p class="text-sm font-bold text-white">/generate_aura</p>
+<span class="text-[10px] text-on-surface-variant">2m ago</span>
+</div>
+<p class="text-xs text-on-surface-variant">Executed successfully in <span class="text-primary">Cyber-Shinto Guild</span></p>
+</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-white" data-icon="shield">shield</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<p class="text-sm font-bold text-white">Security Patch Applied</p>
+<span class="text-[10px] text-on-surface-variant">14m ago</span>
+</div>
+<p class="text-xs text-on-surface-variant">Automated firewall update completed</p>
+</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-white" data-icon="group_add">group_add</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<p class="text-sm font-bold text-white">New Cluster Join</p>
+<span class="text-[10px] text-on-surface-variant">48m ago</span>
+</div>
+<p class="text-xs text-on-surface-variant"><span class="text-white">Neo-Tokyo Hub</span> integrated into the network</p>
+</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-white" data-icon="monitoring">monitoring</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<p class="text-sm font-bold text-white">Usage Spike</p>
+<span class="text-[10px] text-on-surface-variant">1h ago</span>
+</div>
+<p class="text-xs text-on-surface-variant">Resource allocation increased by 15%</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Aura Gauge Custom Component -->
+<div class="col-span-12 md:col-span-4 row-span-2 rounded-xl bg-surface-container-low p-8 bento-card flex flex-col items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent"></div>
+<div class="relative w-40 h-40 flex items-center justify-center">
+<!-- Simulated Progress Ring -->
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-high" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" stroke-width="8"></circle>
+<circle cx="80" cy="80" fill="transparent" r="70" stroke="url(#auraGradient)" stroke-dasharray="440" stroke-dashoffset="110" stroke-linecap="round" stroke-width="8"></circle>
+<defs>
+<lineargradient id="auraGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#EBB2FF"></stop>
+<stop offset="100%" style="stop-color:#8026A7"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="text-4xl font-bold text-white font-headline">75%</span>
+<span class="text-[10px] font-bold text-primary uppercase tracking-widest">CPU Load</span>
+</div>
+</div>
+<div class="mt-8 grid grid-cols-2 gap-8 w-full">
+<div class="text-center">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider mb-1">RAM</p>
+<p class="text-lg font-bold text-white font-headline">4.2 GB</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider mb-1">UPTIME</p>
+<p class="text-lg font-bold text-white font-headline">99.9%</p>
+</div>
+</div>
+</div>
+<!-- Small Secondary Action -->
+<div class="col-span-12 md:col-span-4 row-span-1 rounded-xl bg-secondary-container p-6 flex flex-col justify-between group hover:scale-[1.02] transition-transform cursor-pointer">
+<span class="material-symbols-outlined text-white" data-icon="campaign">campaign</span>
+<div>
+<h4 class="text-lg font-bold text-white leading-tight font-headline">Emergency Broadcast</h4>
+<p class="text-xs text-white/80">Force update all server instances</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB for Overview Screen -->
+<button class="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-container text-black shadow-[0_0_20px_rgba(235,178,255,0.4)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-3xl font-bold" data-icon="add">add</span>
+</button>
+</body></html>

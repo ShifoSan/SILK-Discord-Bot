@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>S.I.L.K. Personality Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#474646",
+                    "primary-container": "#8026a7",
+                    "tertiary-fixed": "#e5e2e1",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "on-secondary-fixed": "#410003",
+                    "on-primary-container": "#ecb4ff",
+                    "background": "#131313",
+                    "on-primary-fixed-variant": "#721199",
+                    "on-error-container": "#ffdad6",
+                    "on-surface-variant": "#cbc3d9",
+                    "tertiary-container": "#545353",
+                    "surface-container-high": "#2a2a2a",
+                    "primary-fixed-dim": "#ebb2ff",
+                    "on-error": "#690005",
+                    "on-secondary-container": "#ffaea6",
+                    "surface-variant": "#353535",
+                    "on-secondary-fixed-variant": "#930010",
+                    "secondary-fixed": "#ffdad6",
+                    "secondary-fixed-dim": "#ffb3ac",
+                    "inverse-primary": "#8c33b3",
+                    "primary-fixed": "#f8d8ff",
+                    "on-tertiary": "#313030",
+                    "tertiary": "#c8c6c5",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "primary": "#ebb2ff",
+                    "inverse-on-surface": "#303030",
+                    "on-tertiary-container": "#c9c7c6",
+                    "on-primary-fixed": "#320047",
+                    "surface-container-lowest": "#0e0e0e",
+                    "secondary": "#ffb3ac",
+                    "surface-bright": "#393939",
+                    "on-background": "#e2e2e2",
+                    "surface-dim": "#131313",
+                    "surface-container-low": "#1b1b1b",
+                    "on-primary": "#520071",
+                    "secondary-container": "#a40213",
+                    "error": "#ffb4ab",
+                    "on-surface": "#e2e2e2",
+                    "outline": "#948da2",
+                    "surface": "#131313",
+                    "surface-container": "#1f1f1f",
+                    "error-container": "#93000a",
+                    "on-secondary": "#680008",
+                    "outline-variant": "#494456",
+                    "surface-container-highest": "#353535",
+                    "inverse-surface": "#e2e2e2",
+                    "surface-tint": "#ebb2ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "1rem",
+                    "xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #000000; color: #888888; }
+        .headline-font { font-family: 'Space Grotesk', sans-serif; }
+        .liquid-aura-bg {
+            background: radial-gradient(circle at 50% 50%, rgba(128, 38, 167, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+        }
+        .aura-accent {
+            background: linear-gradient(135deg, #EBB2FF 0%, #8026A7 100%);
+        }
+        .glass-panel {
+            background: rgba(27, 27, 27, 0.6);
+            backdrop-filter: blur(12px);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            background: #2a2a2a;
+            height: 6px;
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #EBB2FF;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(235, 178, 255, 0.5);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-black overflow-hidden selection:bg-primary-container selection:text-white">
+<!-- SideNavBar (Shared Component) -->
+<nav class="flex flex-col h-full py-8 px-4 border-r border-[#1B1B1B] h-screen w-64 fixed left-0 top-0 bg-[#131313] dark:bg-[#131313] z-50">
+<div class="mb-12 px-2">
+<h1 class="text-2xl font-bold tracking-tighter text-white headline-font">S.I.L.K.</h1>
+<p class="text-[0.65rem] uppercase tracking-[0.2em] text-[#EBB2FF] font-medium">AI Core Online</p>
+</div>
+<div class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200 text-[#888888] scale-95 duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-sm font-medium tracking-wide">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#EBB2FF] font-bold border-r-2 border-[#EBB2FF] hover:bg-[#1B1B1B] transition-colors duration-200 scale-95 duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="extension">extension</span>
+<span class="text-sm font-medium tracking-wide">Modules</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200 text-[#888888] scale-95 duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="text-sm font-medium tracking-wide">Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200 text-[#888888] scale-95 duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="text-sm font-medium tracking-wide">Logs</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[#1B1B1B] hover:text-white transition-colors duration-200 text-[#888888] scale-95 duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-sm font-medium tracking-wide">Settings</span>
+</a>
+</div>
+<div class="mt-auto pt-8 border-t border-[#1B1B1B] space-y-2">
+<button class="w-full py-3 px-4 rounded-xl aura-accent text-on-primary font-bold text-sm mb-4 active:scale-[0.98] transition-all">
+                Upgrade to Pro
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 hover:text-white transition-colors text-[#888888]" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="text-xs font-medium">Help</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 hover:text-white transition-colors text-[#888888]" href="#">
+<span class="material-symbols-outlined" data-icon="support_agent">support_agent</span>
+<span class="text-xs font-medium">Support</span>
+</a>
+</div>
+</nav>
+<!-- TopAppBar (Shared Component) -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-[#000000]/80 backdrop-blur-md flex justify-between items-center px-8 z-40">
+<div class="flex items-center gap-6">
+<span class="text-[#EBB2FF] font-bold headline-font text-xl">S.I.L.K. Dashboard</span>
+<nav class="hidden md:flex gap-4 text-[0.75rem] font-medium tracking-widest uppercase">
+<span class="text-white font-bold px-2 py-1 rounded">Status: Active</span>
+<span class="text-[#888888] px-2 py-1">Latency: 24ms</span>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-[#888888]" data-icon="search">search</span>
+<input class="bg-surface-container-low border-none rounded-full py-1.5 pl-10 pr-4 text-xs focus:ring-1 focus:ring-primary w-48" placeholder="Search modules..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-[#888888] hover:text-[#EBB2FF] transition-colors" data-icon="notifications">notifications</button>
+<div class="h-8 w-8 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant/20">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="minimalist user avatar silhouette on a dark purple geometric background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiYli-WlO7UUDxEPQ1crlJB_8wJ9iBjeCEmku_PKvOR_P8-GLtk_akehQa_RNlRlb-AvtYV5KHkBbpMoxHawlk-Tprqh9Hgu1JEZdS2ZCChcHKtzYZ4E_XTVw-0szuXGodJEntMrdWaFrmlhBC5-5DO9FSqz2qW6sjecih7aUf_xr5fGKLsHThI3r-MyhkEn94aEP7bUXY5FYNCb4v_zIJqZyZPJB-TY5-lwI0zMGzaJssqLUyxmPramnI13aeysV54Vr3yRPs0Vfl"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-20 p-8 h-screen overflow-y-auto bg-black relative">
+<!-- Background Aura -->
+<div class="fixed top-0 right-0 w-[80vw] h-[819px] liquid-aura-bg pointer-events-none -z-10"></div>
+<!-- Header Section -->
+<div class="mb-12 max-w-6xl mx-auto">
+<h2 class="text-[3.5rem] leading-none headline-font font-bold text-white tracking-tighter mb-2">Personality Manager</h2>
+<p class="text-on-surface-variant max-w-2xl font-body">Refine the cognitive essence of your S.I.L.K. instance. Adjust the linguistic temperature and behavioral harmonics to match your Discord environment.</p>
+</div>
+<!-- Bento Grid -->
+<div class="grid grid-cols-12 gap-6 max-w-6xl mx-auto pb-20">
+<!-- Custom System Prompt (Large Bento Card) -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-low rounded-xl p-8 flex flex-col gap-4 relative overflow-hidden group">
+<div class="flex justify-between items-end mb-4">
+<div>
+<h3 class="headline-font text-white text-xl font-bold">Custom System Prompt</h3>
+<p class="text-xs text-outline tracking-wider uppercase font-medium">Core Instruction Architecture</p>
+</div>
+<span class="material-symbols-outlined text-primary-container/40 group-hover:text-primary transition-colors text-4xl" data-icon="psychology">psychology</span>
+</div>
+<textarea class="w-full flex-1 min-h-[300px] bg-surface-container-lowest border-none rounded-lg p-6 text-on-surface text-sm leading-relaxed focus:ring-2 focus:ring-primary/30 font-body placeholder:text-outline/40 resize-none" placeholder="Example: You are S.I.L.K., a sophisticated yet dryly humorous AI assistant. You specialize in technical support for high-end server architectures but always maintain a playful disdain for basic user errors..."></textarea>
+<div class="flex justify-end pt-4">
+<button class="bg-surface-container-highest hover:bg-surface-bright text-white px-6 py-2 rounded-lg text-sm font-bold transition-all active:scale-95">
+                        Save Prompt
+                    </button>
+</div>
+</div>
+<!-- Parameters Card (Right Column) -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Temperature Slider -->
+<div class="bg-surface-container-low rounded-xl p-6">
+<div class="flex justify-between items-center mb-6">
+<label class="text-[0.65rem] uppercase tracking-widest font-bold text-outline">Temperature</label>
+<span class="text-primary font-headline font-bold text-lg">0.82</span>
+</div>
+<input class="w-full appearance-none cursor-pointer" max="100" min="0" type="range" value="82"/>
+<div class="flex justify-between mt-3">
+<span class="text-[10px] text-outline font-medium uppercase">Analytical</span>
+<span class="text-[10px] text-outline font-medium uppercase">Creative</span>
+</div>
+</div>
+<!-- Top P Slider -->
+<div class="bg-surface-container-low rounded-xl p-6">
+<div class="flex justify-between items-center mb-6">
+<label class="text-[0.65rem] uppercase tracking-widest font-bold text-outline">Top P</label>
+<span class="text-secondary font-headline font-bold text-lg">0.95</span>
+</div>
+<input class="w-full appearance-none cursor-pointer" max="100" min="0" type="range" value="95"/>
+<div class="flex justify-between mt-3">
+<span class="text-[10px] text-outline font-medium uppercase">Focused</span>
+<span class="text-[10px] text-outline font-medium uppercase">Diverse</span>
+</div>
+</div>
+<!-- Status Snapshot (Mini Bento) -->
+<div class="bg-surface-container-high rounded-xl p-6 border border-primary/10 relative overflow-hidden">
+<div class="absolute -right-4 -bottom-4 opacity-5">
+<span class="material-symbols-outlined text-8xl" data-icon="neurology">neurology</span>
+</div>
+<p class="text-[10px] uppercase font-bold text-primary mb-2">Neural Status</p>
+<div class="flex items-center gap-2 mb-4">
+<div class="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
+<span class="text-white headline-font text-lg">Harmonized</span>
+</div>
+<p class="text-xs text-outline leading-relaxed">System instructions are currently consistent with selected vibe harmonics. No conflicts detected.</p>
+</div>
+</div>
+<!-- Vibes Segmented Control (Wide Bottom) -->
+<div class="col-span-12 lg:col-span-7 bg-surface-container-low rounded-xl p-8 relative overflow-hidden">
+<h3 class="headline-font text-white text-xl font-bold mb-6">Bot Vibes</h3>
+<div class="grid grid-cols-4 gap-4 p-1 bg-surface-container-lowest rounded-xl">
+<button class="py-4 rounded-lg bg-surface-container-high text-primary font-bold text-xs uppercase tracking-tighter flex flex-col items-center gap-2 border border-primary/20">
+<span class="material-symbols-outlined" data-icon="balance">balance</span>
+                        Stoic
+                    </button>
+<button class="py-4 rounded-lg hover:bg-surface-bright text-outline font-medium text-xs uppercase tracking-tighter flex flex-col items-center gap-2 transition-all">
+<span class="material-symbols-outlined" data-icon="celebration">celebration</span>
+                        Playful
+                    </button>
+<button class="py-4 rounded-lg hover:bg-surface-bright text-outline font-medium text-xs uppercase tracking-tighter flex flex-col items-center gap-2 transition-all">
+<span class="material-symbols-outlined" data-icon="cyclone">cyclone</span>
+                        Chaotic
+                    </button>
+<button class="py-4 rounded-lg hover:bg-surface-bright text-outline font-medium text-xs uppercase tracking-tighter flex flex-col items-center gap-2 transition-all">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+                        Formal
+                    </button>
+</div>
+<div class="mt-6 flex items-start gap-4">
+<span class="material-symbols-outlined text-primary" data-icon="info">info</span>
+<p class="text-xs text-outline leading-relaxed">"Stoic" adds a layer of reserved, logical, and slightly detached phrasing to all responses, prioritizing efficiency over emotional resonance.</p>
+</div>
+</div>
+<!-- Context/Impact Card -->
+<div class="col-span-12 lg:col-span-5 bg-secondary-container rounded-xl p-8 relative group overflow-hidden">
+<div class="absolute inset-0 bg-[#000000]/10 group-hover:bg-transparent transition-colors pointer-events-none"></div>
+<div class="relative z-10">
+<h3 class="headline-font text-white text-xl font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+                        Behavioral Impact
+                    </h3>
+<div class="space-y-4">
+<div class="flex gap-4">
+<div class="w-1 bg-white/20 rounded-full h-auto"></div>
+<div>
+<p class="text-white text-sm font-bold">Creativity &amp; Drift</p>
+<p class="text-white/70 text-xs mt-1">High temperature (0.8+) increases the chance of "hallucinations" but makes the bot significantly more engaging for roleplay.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="w-1 bg-white/20 rounded-full h-auto"></div>
+<div>
+<p class="text-white text-sm font-bold">Instruction Following</p>
+<p class="text-white/70 text-xs mt-1">Detailed system prompts override Vibe presets. Ensure your prompt does not contradict the "Stoic" or "Formal" settings.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Visual Decoration -->
+<div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button (FAB - Contextual Suppression Check) -->
+<!-- Suppressed on "Manager" detail pages as per mandate -->
+</body></html>
