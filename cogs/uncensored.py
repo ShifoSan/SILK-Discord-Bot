@@ -7,31 +7,31 @@ import requests
 
 
 class Uncensored(commands.Cog):
-    """Dedicated cog for uncensored FLUX image generation.
-    Uses enhanceaiteam/Flux-uncensored (LoRA-based) via standard HF Inference API.
+    """Dedicated cog for uncensored image generation.
+    Uses the same proven FLUX.1-schnell router endpoint as your /imagine command
+    (highly permissive with explicit/NSFW prompts).
     """
 
     def __init__(self, bot):
         self.bot = bot
         
-        # Load API key exactly like creative.py
+        # Load token exactly like creative.py
         self.hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
-        # Standard HF Inference API (works for community/LoRA models)
-        self.model_id = "enhanceaiteam/Flux-uncensored"
-        self.HF_API_URL = f"https://api-inference.huggingface.co/models/{self.model_id}"
+        # Same working router URL your /imagine already uses
+        self.HF_API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
 
     @app_commands.command(
         name="uncensored",
-        description="Generate fully uncensored images using FLUX (NSFW / explicit allowed)"
+        description="Generate uncensored images using FLUX (NSFW / explicit content allowed)"
     )
     @app_commands.describe(
-        prompt="Your detailed prompt (no restrictions — be as explicit as you want)"
+        prompt="Your detailed prompt (be as explicit as you want — no restrictions)"
     )
     async def uncensored_imagine(self, interaction: discord.Interaction, prompt: str):
         """Slash command: /uncensored <prompt>"""
         
-        # CRITICAL Defer Protocol for HeavenCloud free tier
+        # CRITICAL Defer Protocol for HeavenCloud
         await interaction.response.defer(thinking=True)
 
         if not self.hf_token:
@@ -39,7 +39,7 @@ class Uncensored(commands.Cog):
             return
 
         headers = {"Authorization": f"Bearer {self.hf_token}"}
-        payload = {"inputs": prompt}   # Same minimal payload as your /imagine command
+        payload = {"inputs": prompt}   # Exact same minimal payload as your /imagine
 
         try:
             response = requests.post(self.HF_API_URL, headers=headers, json=payload)
@@ -54,7 +54,7 @@ class Uncensored(commands.Cog):
                     description=f"**Prompt:** {prompt[:1900]}..." if len(prompt) > 1900 else f"**Prompt:** {prompt}",
                     color=0xFF00FF
                 )
-                embed.set_footer(text="enhanceaiteam/Flux-uncensored • Fully uncensored")
+                embed.set_footer(text="black-forest-labs/FLUX.1-schnell • Fully permissive")
                 await interaction.followup.send(embed=embed, file=file)
             
             elif response.status_code == 503:
