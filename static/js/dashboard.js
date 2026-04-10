@@ -166,7 +166,8 @@ function renderStatuses(statuses) {
         `;
 
         const btn = document.createElement('button');
-        btn.className = "ml-4 text-[#888888] hover:text-error transition-colors";
+        btn.className = "ml-4 text-[#888888] hover:text-error transition-colors focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded";
+        btn.setAttribute("aria-label", "Delete status");
         btn.title = "Delete";
         btn.innerHTML = `<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>`;
         btn.onclick = () => deleteStatus(status.text);
@@ -260,13 +261,15 @@ function renderPersonalities(personalities) {
         btnContainer.className = "flex space-x-3";
 
         const editBtn = document.createElement('button');
-        editBtn.className = "text-[#888888] hover:text-white transition-colors";
+        editBtn.className = "text-[#888888] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded";
+        editBtn.setAttribute("aria-label", "Edit");
         editBtn.title = "Edit";
         editBtn.innerHTML = `<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>`;
         editBtn.onclick = () => editPersonality(p.name, p.prompt);
 
         const delBtn = document.createElement('button');
-        delBtn.className = "text-[#888888] hover:text-error transition-colors";
+        delBtn.className = "text-[#888888] hover:text-error transition-colors focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded";
+        delBtn.setAttribute("aria-label", "Delete");
         delBtn.title = "Delete";
         delBtn.innerHTML = `<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>`;
         delBtn.onclick = () => deletePersonality(p.name);
@@ -505,7 +508,8 @@ function renderCustomCommands(commands) {
         btnContainer.className = "flex space-x-2";
 
         const editBtn = document.createElement('button');
-        editBtn.className = "text-[#888888] hover:text-white transition-colors";
+        editBtn.className = "text-[#888888] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded";
+        editBtn.setAttribute("aria-label", "Edit");
         editBtn.title = "Edit";
         editBtn.innerHTML = `<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>`;
         editBtn.onclick = () => {
@@ -521,7 +525,8 @@ function renderCustomCommands(commands) {
         };
 
         const delBtn = document.createElement('button');
-        delBtn.className = "text-[#888888] hover:text-error transition-colors";
+        delBtn.className = "text-[#888888] hover:text-error transition-colors focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded";
+        delBtn.setAttribute("aria-label", "Delete");
         delBtn.title = "Delete";
         delBtn.innerHTML = `<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>`;
         delBtn.onclick = () => deleteCustomCommand(c.trigger);
