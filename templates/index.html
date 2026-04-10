@@ -120,9 +120,9 @@
 <body class="text-cyber-text font-mono antialiased min-h-screen">
     <canvas id="bg-canvas" class="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none"></canvas>
 
-    <nav class="bg-cyber-gunmetal/90 backdrop-blur-sm p-4 border-b border-cyber-cyan/30 shadow-[0_4px_20px_rgba(0,240,255,0.1)] flex justify-between items-center sticky top-0 z-50">
+    <nav class="bg-cyber-gunmetal/90 backdrop-blur-sm p-4 border-b border-cyber-cyan/30 shadow-[0_4px_20px_rgba(0,240,255,0.1)] flex flex-wrap justify-between items-center gap-y-4 sticky top-0 z-50">
         <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold text-white tracking-widest uppercase font-sans hover-glitch transition-colors duration-200 cursor-default">S.I.L.K. <span class="text-cyber-cyan opacity-80 text-sm tracking-normal">SYS.CORE.VER 2.0</span></h1>
+            <h1 class="text-xl md:text-2xl font-bold text-white tracking-widest uppercase font-sans hover-glitch transition-colors duration-200 cursor-default">S.I.L.K. <span class="text-cyber-cyan opacity-80 text-sm tracking-normal block md:inline">SYS.CORE.VER 2.0</span></h1>
         </div>
         <div class="flex items-center gap-6">
             <span class="hidden md:inline-flex items-center gap-2 text-xs font-mono text-cyber-green opacity-80 border border-cyber-green/30 px-2 py-1 bg-cyber-green/5">
@@ -130,12 +130,12 @@
                 // SYSTEM STATUS: ONLINE
             </span>
             {% if username %}
-                <div class="text-sm font-mono border-l border-cyber-dim/30 pl-4">AUTH: <span class="font-bold text-cyber-cyan">{{ username }}</span></div>
+                <div class="text-sm font-mono md:border-l md:border-cyber-dim/30 md:pl-4">AUTH: <span class="font-bold text-cyber-cyan">{{ username }}</span></div>
             {% endif %}
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-6 pt-6 flex justify-between items-end">
+    <div class="max-w-7xl mx-auto px-6 pt-6 flex flex-col md:flex-row items-start md:items-end gap-4 justify-between">
         <div class="font-mono text-xs text-cyber-dim tracking-widest uppercase">
             [AWAITING_INPUT] ...
         </div>
