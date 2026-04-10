@@ -10,6 +10,7 @@ import asyncio
 class Uncensored(commands.Cog):
     """True uncensored FLUX cog using Replicate.com
     Model: aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3 (explicitly NSFW/uncensored)
+    Costs \~$0.022 per image (new accounts get free starting credits).
     """
 
     def __init__(self, bot):
@@ -18,8 +19,8 @@ class Uncensored(commands.Cog):
         if not self.replicate_token:
             print("⚠️ WARNING: REPLICATE_API_TOKEN not found in .env")
 
-        # This is the exact uncensored FLUX variant
-        self.model_version = "aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3:..."  # ← Replace with current version ID from https://replicate.com/aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3 (copy the long version hash)
+        # CORRECT full model + version (this is what was causing the 422 error)
+        self.model_version = "aisha-ai-official/flux.1dev-uncensored-msfluxnsfw-v3:b477d8fc3a62e591c6224e10020538c4a9c340fb1f494891aff60019ffd5bc48"
 
     @app_commands.command(
         name="uncensored",
@@ -32,7 +33,7 @@ class Uncensored(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         if not self.replicate_token:
-            await interaction.followup.send("❌ Replicate API token is not configured.")
+            await interaction.followup.send("❌ Replicate API token is not configured in .env")
             return
 
         headers = {
@@ -52,7 +53,7 @@ class Uncensored(commands.Cog):
         }
 
         try:
-            # 1. Create prediction
+            # Create prediction
             create_resp = requests.post(
                 "https://api.replicate.com/v1/predictions",
                 headers=headers,
@@ -61,14 +62,14 @@ class Uncensored(commands.Cog):
             )
 
             if create_resp.status_code != 201:
-                await interaction.followup.send(f"❌ API Error: {create_resp.text[:300]}")
+                await interaction.followup.send(f"❌ API Error: {create_resp.text[:400]}")
                 return
 
             prediction = create_resp.json()
             prediction_id = prediction["id"]
 
-            # 2. Poll until ready (Replicate is async)
-            for _ in range(60):  # max \~60 seconds
+            # Poll until ready
+            for _ in range(60):  # \~90 seconds max
                 poll_resp = requests.get(
                     f"https://api.replicate.com/v1/predictions/{prediction_id}",
                     headers=headers,
@@ -76,20 +77,20 @@ class Uncensored(commands.Cog):
                 )
                 data = poll_resp.json()
 
-                if data["status"] == "succeeded":
-                    image_url = data["output"][0]  # direct image URL
+                if data.get("status") == "succeeded":
+                    image_url = data["output"][0]
                     break
-                elif data["status"] in ["failed", "canceled"]:
+                elif data.get("status") in ["failed", "canceled"]:
                     await interaction.followup.send("❌ Generation failed on Replicate.")
                     return
 
-                await asyncio.sleep(1.5)  # polite polling
+                await asyncio.sleep(1.5)
 
             else:
-                await interaction.followup.send("❌ Timeout — try again.")
+                await interaction.followup.send("❌ Timeout — model is slow right now, try again.")
                 return
 
-            # 3. Download the image bytes
+            # Download image
             img_resp = requests.get(image_url, timeout=30)
             image_bytes = img_resp.content
 
