@@ -227,7 +227,9 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Files Included:
      * `launcher.py`: Subprocess orchestrator that concurrently boots `main.py` and `dashboard.py` and handles crash restarts.
      * `dashboard.py`: Lightweight asynchronous web server running Quart.
-     * `templates/index.html`: Dynamic web dashboard UI built with Tailwind CSS.
+     * `templates/index.html`: Main web dashboard UI wrapper built with Tailwind CSS, including a canvas element for background animations.
+     * `templates/components/*.html`: Modularized UI components for individual dashboard cards.
+     * `static/js/dashboard.js`: Extracted JavaScript handling API polling and dynamic DOM updates.
    * Core Logic & Features: 
      * Runs completely parallel to the bot process to separate web traffic from Discord Gateway logic. 
      * Uses `motor.motor_asyncio` to connect directly to the bot's shared MongoDB.
@@ -237,6 +239,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Provides UI to manage bot statuses and AI persona configurations dynamically without restarting the bot.
      * Restricts dashboard access strictly to users who possess 'Server Admin' or 'Manage Server' permissions in at least one shared Discord server with S.I.L.K. (verified via Heartbeat stats).
      * Integrates `better_profanity` to screen AI Personality prompts to prevent API key bans.
+     * Refactored the dashboard code to improve modularity and prepare for future animations. Extracted the JavaScript code from the template and moved the cards into separate components. Included a new canvas element.
    * Commands/Routes: 
      * `/login`: Redirects user to Discord Authorization URL.
      * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
