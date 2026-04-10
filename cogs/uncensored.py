@@ -3,19 +3,23 @@ from discord import app_commands
 from discord.ext import commands
 import requests
 import io
-import asyncio  # For any potential sleeps if needed (though not required here)
+import os  # ← Added: This is how your other cogs safely read .env variables
 
 
 class Uncensored(commands.Cog):
     """Dedicated cog for fully uncensored FLUX image generation.
     
     Uses the enhanceaiteam/Flux-uncensored LoRA (based on FLUX.1-dev).
-    Fully respects your bot's free-tier constraints and Defer Protocol.
+    Fully respects your bot's free-tier constraints, Defer Protocol, and HeavenCloud hosting.
     """
 
     def __init__(self, bot):
         self.bot = bot
-        # Model is hosted on Hugging Face and accessible via the same router you already use in creative.py
+        # Load token the same safe way your creative.py and other cogs do it
+        self.hf_token = os.getenv("HUGGINGFACE_TOKEN")
+        if not self.hf_token:
+            print("⚠️ WARNING: HUGGINGFACE_TOKEN not found in .env (uncensored cog)")
+        
         self.model_id = "enhanceaiteam/Flux-uncensored"
         self.api_url = f"https://router.huggingface.co/models/{self.model_id}"
 
@@ -34,19 +38,18 @@ class Uncensored(commands.Cog):
 
         try:
             headers = {
-                "Authorization": f"Bearer {self.bot.HUGGINGFACE_TOKEN}",
+                "Authorization": f"Bearer {self.hf_token}",
                 "Content-Type": "application/json"
             }
 
-            # Payload matches your existing FLUX.1-schnell style in creative.py
-            # This LoRA is based on FLUX.1-dev, so we use reasonable defaults for quality/speed
+            # Payload tuned for the uncensored FLUX-Dev LoRA
             payload = {
                 "inputs": prompt,
                 "parameters": {
                     "width": 1024,
                     "height": 1024,
-                    "num_inference_steps": 20,      # Good balance for dev-based LoRA
-                    "guidance_scale": 3.5,          # Typical for FLUX uncensored
+                    "num_inference_steps": 20,
+                    "guidance_scale": 3.5,
                     "max_sequence_length": 512
                 }
             }
@@ -55,10 +58,9 @@ class Uncensored(commands.Cog):
                 self.api_url,
                 headers=headers,
                 json=payload,
-                timeout=120  # Generous timeout for free-tier inference
+                timeout=120
             )
 
-            # Handle common HF errors gracefully (same as your existing /imagine)
             if response.status_code == 503:
                 await interaction.followup.send(
                     "⚠️ Hugging Face is experiencing a cold start or high load.\n"
@@ -73,21 +75,19 @@ class Uncensored(commands.Cog):
                 )
                 return
 
-            # The router returns raw image bytes (PNG) for FLUX models
+            # Raw PNG bytes from the router (exactly like your existing /imagine)
             image_bytes = response.content
 
-            # Convert to Discord file using in-memory buffer (exactly like your creative.py)
             with io.BytesIO(image_bytes) as buf:
                 buf.seek(0)
                 file = discord.File(buf, filename="uncensored_flux.png")
 
-                # Nice embed (consistent with your bot's style)
                 embed = discord.Embed(
                     title="🖼️ Uncensored FLUX Image",
                     description=f"**Prompt:** {prompt[:1900]}..." if len(prompt) > 1900 else f"**Prompt:** {prompt}",
-                    color=0xFF00FF  # Magenta/purple to stand out as "uncensored"
+                    color=0xFF00FF
                 )
-                embed.set_footer(text="enhanceaiteam/Flux-uncensored • Fully uncensored LoRA")
+                embed.set_footer(text="enhanceaiteam/Flux-uncensored • Fully uncensored")
 
                 await interaction.followup.send(embed=embed, file=file)
 
@@ -96,8 +96,6 @@ class Uncensored(commands.Cog):
         except Exception as e:
             error_msg = str(e)[:500]
             await interaction.followup.send(f"❌ Unexpected error: {error_msg}")
-
-    # Optional: You can add more parameters later (negative prompt, seed, etc.) if you want
 
 
 async def setup(bot):
