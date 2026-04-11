@@ -1,0 +1,3 @@
+## 2024-05-14 - Icon-only Buttons ARIA Labels
+**Learning:** Found several icon-only buttons (like menu toggle and notifications) in `templates/base.html` that are missing `aria-label` attributes. This is a common accessibility issue that prevents screen readers from understanding the button's purpose. Furthermore, dynamic DOM generated buttons in `static/js/dashboard.js` (like "Edit" and "Delete" for Statuses, Personalities, and Custom Commands) are also missing `aria-label` attributes.
+**Action:** Adding `aria-label` attributes to these buttons ensures they are accessible to users with screen readers.
