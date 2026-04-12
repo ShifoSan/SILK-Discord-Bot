@@ -1,0 +1,3 @@
+## 2024-04-12 - Accessibility patterns for dynamically generated buttons
+**Learning:** In the S.I.L.K. web dashboard, interactive UI elements (especially dynamically generated icon-only buttons via JS) must include explicit `aria-label` attributes for screen readers and visible focus states using the exact Tailwind classes `focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded` to maintain consistent Cyber-Industrial keyboard accessibility visuals.
+**Action:** Always verify that dynamically created buttons using `document.createElement("button")` in JavaScript are given an `aria-label` via `setAttribute()` and include the specific focus state classes required by the design system.
