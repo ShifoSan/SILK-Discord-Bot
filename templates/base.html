@@ -149,7 +149,7 @@
                     <p class="text-[10px] font-medium tracking-widest text-primary uppercase">AI Core Online</p>
                 </div>
             </div>
-            <button class="md:hidden text-[#888888]" onclick="toggleMobileMenu()">
+            <button class="md:hidden text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded" aria-label="Close mobile menu" onclick="toggleMobileMenu()">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -176,7 +176,7 @@
     <!-- TopAppBar -->
     <header class="fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] h-16 flex justify-between items-center px-4 md:px-8 z-30 bg-[#000000]/80 backdrop-blur-md border-b md:border-none border-[#1B1B1B]">
         <div class="flex items-center gap-4">
-            <button class="md:hidden text-[#888888] hover:text-white transition-colors" onclick="toggleMobileMenu()">
+            <button class="md:hidden text-[#888888] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded" aria-label="Open mobile menu" onclick="toggleMobileMenu()">
                 <span class="material-symbols-outlined text-2xl">menu</span>
             </button>
             <div class="flex items-center gap-4 text-xs font-medium tracking-wider hidden sm:flex">
@@ -194,7 +194,7 @@
             </div>
 
             <div class="flex items-center gap-4">
-                <button class="text-[#888888] hover:text-[#EBB2FF] transition-colors hidden sm:block"><span class="material-symbols-outlined" data-icon="notifications">notifications</span></button>
+                <button class="text-[#888888] hover:text-[#EBB2FF] transition-colors hidden sm:block focus:outline-none focus:ring-2 focus:ring-[#EBB2FF] rounded" aria-label="View notifications"><span class="material-symbols-outlined" data-icon="notifications">notifications</span></button>
                 <div class="flex items-center gap-3">
                     <span class="text-[0.875rem] text-[#888888] hover:text-white transition-colors hidden sm:block">{{ username }}</span>
                     <div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-[#1B1B1B]">
