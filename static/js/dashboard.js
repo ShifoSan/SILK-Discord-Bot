@@ -659,6 +659,22 @@ if (chatConfigForm) {
 document.addEventListener('DOMContentLoaded', () => {
     initAnimation();
 
+    const userProfileBtn = document.getElementById('user-profile-btn');
+    const userPopover = document.getElementById('user-popover');
+
+    if (userProfileBtn && userPopover) {
+        userProfileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userPopover.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!userPopover.contains(e.target) && !userProfileBtn.contains(e.target)) {
+                userPopover.classList.add('hidden');
+            }
+        });
+    }
+
     fetchLiveStats();
     if (document.getElementById('stat-ram') || document.getElementById('aura-text')) {
         setInterval(fetchLiveStats, 60000); // Poll every 60 seconds on overview
