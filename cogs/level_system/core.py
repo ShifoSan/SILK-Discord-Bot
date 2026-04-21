@@ -36,8 +36,8 @@ class LevelSystemCore(commands.Cog):
         return level
 
     async def handle_level_up(self, message: discord.Message, user_data: dict, config: dict):
-        current_xp = user_data["xp"]
-        current_level = user_data["level"]
+        current_xp = user_data.get("xp", 0)
+        current_level = user_data.get("level", 0)
 
         # Calculate new level
         new_level = self.calculate_level_from_xp(current_xp)
@@ -163,7 +163,7 @@ class LevelSystemCore(commands.Cog):
         if max_xp < min_xp:
             max_xp = min_xp
         xp_gain = random.randint(min_xp, max_xp)
-        new_xp = user_data["xp"] + xp_gain
+        new_xp = user_data.get("xp", 0) + xp_gain
 
         await database.save_user_data(message.guild.id, message.author.id, {
             "xp": new_xp,
@@ -201,7 +201,7 @@ class LevelSystemCore(commands.Cog):
 
         # Grant Reaction XP
         xp_gain = random.randint(5, 10)
-        new_xp = user_data["xp"] + xp_gain
+        new_xp = user_data.get("xp", 0) + xp_gain
 
         await database.save_user_data(payload.guild_id, payload.user_id, {
             "xp": new_xp,
