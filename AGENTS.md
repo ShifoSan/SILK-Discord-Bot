@@ -118,7 +118,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Dynamically fetches the active system prompt from the `personalities` MongoDB collection based on the selected persona.
      * Multi-Language Routing: If 'Hindi' is selected, automatically shifts to `gemini-3.1-flash-lite-preview` using a dedicated Hinglish casual persona prompt. English defaults to `gemma-3-27b-it`.
    * Commands:
-     * `/chat_toggle [state] [language]`: Enable/Disable auto-chat in the current channel and optionally set the language (English/Hindi).
+     * `/chat_toggle [state] [language]`: Configures Server-Wide routing (enables/disables Auto-Chat globally for the selected server using the `guild_id`).
      * `/voice_mode [state]`: Enable/Disable Hybrid Voice responses in the current channel.
      * `/persona [name]`: Switch between personalities (uses an autocomplete dropdown querying the database).
    * Dependencies/Configs: `google-genai` (New SDK), `gTTS`, `io`, `collections.deque`, `re`, `motor`.
@@ -175,7 +175,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Overrides safety protocols via `CREATOR_ID` matching.
      * Enforces the "Helpful" personality for all AI outputs by dynamically fetching its prompt from the MongoDB `personalities` collection, and maintains a separate 20-message `deque` history limit for each user.
    * Commands:
-     * `/dm-list`: Displays ephemeral embed listing Approved, Pending, and Blocked users (Creator Only).
+     * `/dm-list`: Displays ephemeral embed listing Approved, Pending, and Blocked users (Creator Only). It now utilizes an interactive UI (dropdown and buttons) for dynamic access control management.
    * Dependencies/Configs: Requires `dm_config.json` for persistence, `google-genai`, `motor`.
 
 14. Task Agent Module (Phase 14)
@@ -199,7 +199,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `cogs/level_system/ai_responses.py`: Isolated GenAI connector generating personalized level-up messages via `gemma-3-27b-it`.
      * `cogs/level_system/bot_config/`: Sub-directory containing interactive configuration UI components (`main_menu.py`, `role_rewards.py`, `xp_management.py`, `vc_settings.py`, `spam_filters.py`, `cooldown_settings.py`). 
    * Core Logic & Features:
-     * Dynamic math using a quadratic curve `5*(level^2) + 50*level + 100` for leveling. Tracks exact true level dynamically based on total XP.
+     * Dynamic math using a quadratic curve `5*(level^2) + 50*level + 100` for leveling. Tracks exact true level dynamically based on total XP. Dictionary lookups utilize safe `.get()` methods defaulting to `0` to handle uninitialized database entries gracefully without crashing.
      * Soft data retention tracking `in_server` status to preserve leaving users' progress without cluttering leaderboards.
      * Dynamic Configuration UI: Utilizes `discord.ui.Button` triggers launching `discord.ui.Modal` with text inputs to allow for arbitrary integer configurations (custom XP values, custom cooldowns, mapped role rewards, deletion of role rewards). Views use an extended 10-minute timeout. UI components strictly manage row widths to avoid Discord limits.
      * Dedicated AI Channel & Thread Routing: Administrators can designate a specific `level_up_channel` via a Channel Select menu and explicitly set a `level_up_thread_id`. S.I.L.K. will generate a public thread inside the channel to centralize automated messages to keep main chats uncluttered.
@@ -240,9 +240,10 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Exposes RESTful API endpoints to read/write specific server configurations (e.g., `chat_configs`), as well as global `bot_statuses` and `personalities`.
      * Restricts dashboard access strictly to users who possess 'Server Admin' or 'Manage Server' permissions in at least one shared Discord server with S.I.L.K. (verified via Heartbeat stats).
      * Integrates `better_profanity` to screen AI Personality prompts to prevent API key bans.
-     * Implements a fully responsive, multi-page "Matte Obsidian Bento Box" UI with a global server selector and persistent canvas background animations.
+     * Implements a fully responsive, multi-page "Matte Obsidian Bento Box" UI with a global server selector and persistent canvas background animations. Features an interactive User Icon popover in the UI for logging out.
    * Commands/Routes: 
      * `/login`: Redirects user to Discord Authorization URL.
+     * `/logout`: Endpoint to securely clear the session cookie and de-authenticate the user.
      * `/callback`: Exchanges code for access token, fetches profile, and saves user context to session.
      * `/dashboard/overview`, `/dashboard/modules`, `/dashboard/settings`: Protected UI routes.
      * `GET/POST /api/chat_configs/<guild_id>`
