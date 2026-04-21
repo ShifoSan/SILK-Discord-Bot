@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="relative z-10 max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="mb-8 md:mb-12">
+        <h2 class="text-3xl md:text-[3.5rem] leading-none font-headline font-bold text-white tracking-tighter mb-2">Module Manager</h2>
+        <p class="text-sm md:text-lg text-on-surface-variant max-w-2xl font-body">Refine the cognitive essence of your S.I.L.K. instance. Adjust personalities, presence statuses, and automated chat behavior.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Personality Manager -->
+        <div class="col-span-1 lg:col-span-8 bg-surface-container-low rounded-xl p-6 md:p-8 flex flex-col gap-4 relative overflow-hidden group">
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <h3 class="font-headline text-white text-xl font-bold">Custom Personalities</h3>
+                    <p class="text-[10px] md:text-xs text-outline tracking-wider uppercase font-medium mt-1">Core Instruction Architecture</p>
+                </div>
+                <span class="material-symbols-outlined text-primary-container/40 group-hover:text-primary transition-colors text-4xl" data-icon="psychology">psychology</span>
+            </div>
+
+            <form id="personality-form" class="space-y-4">
+                <input type="text" id="personality-name" class="w-full bg-surface-container-lowest border-none rounded-lg p-3 text-white focus:ring-2 focus:ring-primary/30 font-headline text-sm" placeholder="Personality Name (e.g. Assassin)" required />
+                <textarea id="personality-prompt" class="w-full min-h-[150px] bg-surface-container-lowest border-none rounded-lg p-4 text-on-surface text-sm leading-relaxed focus:ring-2 focus:ring-primary/30 font-body placeholder:text-outline/40 resize-none" placeholder="Enter system prompt here..." required></textarea>
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="bg-primary/20 hover:bg-primary/30 text-primary px-6 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 border border-primary/20">
+                        Save Prompt
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-6 border-t border-[#353535] pt-6">
+                <h4 class="text-xs font-bold text-outline uppercase tracking-wider mb-4">Saved Personalities</h4>
+                <div id="personality-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Status & Auto-Chat -->
+        <div class="col-span-1 lg:col-span-4 space-y-6 flex flex-col">
+
+            <!-- Status Manager -->
+            <div class="bg-surface-container-low rounded-xl p-6 relative overflow-hidden flex-grow flex flex-col">
+                <h3 class="font-headline text-white text-lg font-bold mb-1">Presence Status</h3>
+                <p class="text-[10px] text-outline tracking-wider uppercase font-medium mb-4">Bot Activity Rotation</p>
+
+                <form id="status-form" class="space-y-4 mb-6">
+                    <select id="status-type" class="w-full bg-surface-container-lowest border-none rounded-lg p-2 text-sm text-white focus:ring-2 focus:ring-primary/30" required>
+                        <option value="playing">Playing</option>
+                        <option value="watching">Watching</option>
+                        <option value="listening">Listening</option>
+                        <option value="competing">Competing</option>
+                    </select>
+                    <input type="text" id="status-text" class="w-full bg-surface-container-lowest border-none rounded-lg p-2 text-sm text-white focus:ring-2 focus:ring-primary/30" placeholder="e.g. the mainframe" required />
+                    <div class="flex items-center justify-between bg-surface-container-lowest p-2 rounded-lg px-3">
+                        <label class="text-xs text-on-surface-variant cursor-pointer" for="status-active">Active</label>
+                        <input type="checkbox" id="status-active" class="rounded bg-[#1B1B1B] border-[#353535] text-primary focus:ring-primary/30" checked />
+                    </div>
+                    <button type="submit" class="w-full bg-surface-container-high hover:bg-surface-bright text-white py-2 rounded-lg text-sm font-bold transition-all active:scale-95 border border-[#353535]">
+                        Add Status
+                    </button>
+                </form>
+
+                <div class="border-t border-[#353535] pt-4 flex-grow flex flex-col min-h-0">
+                    <div id="status-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-2 pr-2 max-h-[250px]">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-Chat Configurator -->
+            <div class="bg-surface-container-low rounded-xl p-6 border-l-4 border-secondary/50 flex-shrink-0">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="material-symbols-outlined text-secondary" data-icon="forum">forum</span>
+                    <div class="px-2 py-1 bg-secondary/10 rounded text-[10px] font-bold text-secondary tracking-widest uppercase">Auto-Chat</div>
+                </div>
+                <h3 class="font-headline text-white text-lg font-bold mb-4">Server Routing</h3>
+
+                <form id="chat-config-form" class="space-y-4">
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container-high transition-colors group">
+                        <div>
+                            <p class="text-white text-sm font-medium">Enable AI Chat</p>
+                            <p class="text-[10px] text-[#888888]">Allow S.I.L.K. to respond globally in this server</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="chat-enabled" class="sr-only peer" />
+                            <div class="w-9 h-5 bg-[#1B1B1B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#888888] after:border-gray-600 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-secondary peer-checked:after:bg-white border border-[#353535]"></div>
+                        </label>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] text-[#888888] font-bold uppercase tracking-widest block">Language Matrix</label>
+                        <select id="chat-language" class="w-full bg-surface-container-lowest border border-[#353535] rounded-lg p-2 text-sm text-white focus:ring-1 focus:ring-secondary/50">
+                            <option value="English">English</option>
+                            <option value="Hindi">Hindi</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-secondary/20 hover:bg-secondary/30 text-secondary border border-secondary/20 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 mt-2">
+                        Update Routing
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
