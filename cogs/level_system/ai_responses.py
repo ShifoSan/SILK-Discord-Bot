@@ -2,7 +2,7 @@ import os
 from google import genai
 from google.genai import types
 
-def generate_level_up_message(user_name: str, new_level: int, persona_instruction: str = "You are a helpful and encouraging AI assistant.") -> str:
+async def generate_level_up_message(user_name: str, new_level: int, persona_instruction: str = "You are a helpful and encouraging AI assistant.") -> str:
     """
     Generates a personalized, engaging level-up message using google-genai.
     """
@@ -13,16 +13,21 @@ def generate_level_up_message(user_name: str, new_level: int, persona_instructio
     try:
         client = genai.Client(api_key=api_key)
 
+        system_instruction = (
+            f"{persona_instruction} You are to generate EXACTLY ONE short, hype-filled congratulatory message. "
+            "DO NOT provide multiple options. DO NOT provide choices. Output ONLY the final message text and nothing else."
+        )
+
         prompt = (
-            f"System Instruction: {persona_instruction} You are to generate EXACTLY ONE short, hype-filled congratulatory message. DO NOT provide multiple options. DO NOT provide choices. Output ONLY the final message text and nothing else.\n\n"
             f"User '{user_name}' just leveled up to Level {new_level}! "
             "Write a short, engaging, 1-2 sentence congratulatory message. "
             "Do not use emojis if the persona is serious, but do if it's casual."
         )
 
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model='gemma-3-27b-it',
             contents=prompt,
+            config=types.GenerateContentConfig(system_instruction=system_instruction)
         )
 
         if response.text:

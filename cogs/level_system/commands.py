@@ -71,8 +71,8 @@ class LeaderboardPaginationView(discord.ui.View):
     async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         # FIXED: Defer immediately before querying the DB for user counts
         await interaction.response.defer()
-        users_count = await database.users_collection.count_documents({"guild_id": self.guild_id, "in_server": True})
-        if (self.current_page + 1) * self.limit < users_count:
+        users = await database.get_top_users(self.guild_id, self.limit, self.current_page * self.limit, self.sort_by_vc)
+        if len(users) == self.limit:
             self.current_page += 1
             embed = await self.generate_embed(interaction.guild)
             await interaction.message.edit(embed=embed, view=self)
@@ -148,7 +148,10 @@ class LevelSystemCommands(commands.Cog):
         view.current_page = page_index
         
         embed = await view.generate_embed(interaction.guild)
-        await interaction.followup.send(embed=embed, view=view)
+        try:
+            await interaction.followup.send(embed=embed, view=view)
+        except discord.NotFound:
+            pass
 
 
 async def setup(bot):
