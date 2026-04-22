@@ -17,12 +17,13 @@ class CooldownModal(discord.ui.Modal):
         self.add_item(self.cd_input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         try:
             cd = int(self.cd_input.value)
             if cd < 0:
                 raise ValueError
         except ValueError:
-            await interaction.response.send_message("❌ Please enter a valid non-negative integer.", ephemeral=True)
+            await interaction.followup.send("❌ Please enter a valid non-negative integer.", ephemeral=True)
             return
 
         if self.action == "text":
@@ -38,7 +39,7 @@ class CooldownModal(discord.ui.Modal):
             await database.update_guild_config(self.guild.id, {"vc_cooldown": cd})
             msg = f"✅ VC Cooldown set to **{cd} seconds**."
 
-        await interaction.response.send_message(msg, ephemeral=True)
+        await interaction.followup.send(msg, ephemeral=True)
 
 class CooldownSettingsView(discord.ui.View):
     def __init__(self, bot, guild, config, parent_view):

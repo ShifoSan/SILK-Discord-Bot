@@ -58,8 +58,7 @@ class LevelSystemCore(commands.Cog):
                 if thread:
                     target_channel = thread
 
-            ai_msg = await asyncio.to_thread(
-                ai_responses.generate_level_up_message,
+            ai_msg = await ai_responses.generate_level_up_message(
                 message.author.display_name,
                 new_level
             )

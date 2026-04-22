@@ -12,10 +12,11 @@ class DashboardView(discord.ui.View):
 
     @discord.ui.select(cls=discord.ui.ChannelSelect, channel_types=[discord.ChannelType.text], placeholder="Select Level-Up Channel...", row=2)
     async def select_level_channel(self, interaction: discord.Interaction, select: discord.ui.ChannelSelect):
+        await interaction.response.defer(ephemeral=True)
         channel = select.values[0]
         self.config["level_up_channel"] = channel.id
         await database.update_guild_config(self.guild.id, {"level_up_channel": channel.id})
-        await interaction.response.send_message(f"✅ Level-up messages will now be sent to {channel.mention}.", ephemeral=True)
+        await interaction.followup.send(f"✅ Level-up messages will now be sent to {channel.mention}.", ephemeral=True)
 
     # FIXED: Moved button to row=3 to avoid the 5-width limit crash
     @discord.ui.button(label="Set Thread Name", style=discord.ButtonStyle.secondary, row=3)
@@ -106,7 +107,11 @@ class ConfigPasswordModal(discord.ui.Modal, title="Admin Authentication"):
         await interaction.response.defer(ephemeral=True)
         
         import os
-        correct_pass = os.getenv("CONFIG_PASS", "admin")
+        import secrets
+
+        correct_pass = os.getenv("CONFIG_PASS")
+        if not correct_pass:
+            correct_pass = secrets.token_hex(16)
         
         if self.password.value != correct_pass:
             # 2. Use followup since we already deferred
