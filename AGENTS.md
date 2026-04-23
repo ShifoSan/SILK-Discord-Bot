@@ -279,13 +279,3 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
 
 20. **Economy System Module (Phase 20)**
     * Primary Role: Server-specific or global economy system tracking virtual user finances and currencies.
-    * Files Included:
-      * `cogs/economy.py`: A newly established Cog strictly encapsulating the new financial features.
-    * Core Logic & Features:
-      * Database Expansion: Utilizes an `economy_data` collection in MongoDB tracking specific document structures, including `user_id`, `guild_id`, `wallet_balance`, and a `last_daily_claim` timestamp.
-      * System Integration: Will seamlessly connect to the Phase 15 Level System by updating `cogs/level_system/core.py` to deposit virtual currency into a user's wallet every time the `on_message` logic grants them XP.
-      * Strict Defer Protocols: Since HeavenCloud's free tier handles slow waking to execute database logic, any command querying the bank database MUST instantly start with `await interaction.response.defer(thinking=True)` prior to utilizing `await interaction.followup.send(...)` to circumvent 10062 API timeouts.
-    * Commands:
-      * `/balance [user]`: Checks how much currency a target user holds.
-      * `/daily`: Distributes a set amount of free currency once every 24 hours.
-      * `/pay [user] [amount]`: Permits users to transfer their currency to others.
