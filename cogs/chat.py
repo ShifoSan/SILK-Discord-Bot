@@ -281,7 +281,7 @@ class Chat(commands.Cog):
                         system_prompt = persona_doc["prompt"]
                     else:
                         system_prompt = DEFAULT_SYSTEM_PROMPT
-                    target_model = 'gemma-3-27b-it'
+                    target_model = 'gemma-4-31b-it'
 
                 full_prompt = (
                     f"{system_prompt}\n"
