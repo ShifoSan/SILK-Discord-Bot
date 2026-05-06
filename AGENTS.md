@@ -50,7 +50,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `cogs/brain.py`: The main Cog containing general AI text commands.
    * Core Logic & Features: Sends prompts to the GenAI model with manual system prompting to simulate the S.I.L.K. persona. Enforces defer protocols and handles safety filters.
    * Commands: `/roast [user]`, `/translate [language] [text]`.
-   * Dependencies/Configs: `google-genai` (New SDK), model `gemma-3-27b-it`. Requires `GEMINI_API_KEY`.
+   * Dependencies/Configs: `google-genai` (New SDK), model `gemma-4-31b-it`. Requires `GEMINI_API_KEY`.
 
 3. **Creative Module (Phase 3)**
    * Primary Role: Handles external API calls for media generation and information fetching.
@@ -102,7 +102,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
    * Commands:
      * `/architect [instruction]`: Creation Mode (No Deletes).
      * `/demolish [instruction]`: Destruction Mode (No Creates).
-   * Dependencies/Configs: `google-genai` (New SDK), `gemma-3-27b-it`.
+   * Dependencies/Configs: `google-genai` (New SDK), `gemma-4-31b-it`.
 
 8. **Chat Module (Phase 8)**
    * Primary Role: Advanced, context-aware automatic chat handler with hot-swappable personalities, multi-language support, and global reach.
@@ -116,7 +116,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * Identifies Creator explicitly using the `(CREATOR_VERIFIED)` tag for security overrides.
      * Stores persistent auto-chat configurations (enabled state and language) in a MongoDB `chat_configs` collection.
      * Dynamically fetches the active system prompt from the `personalities` MongoDB collection based on the selected persona.
-     * Multi-Language Routing: If 'Hindi' is selected, automatically shifts to `gemini-3.1-flash-lite-preview` using a dedicated Hinglish casual persona prompt. English defaults to `gemma-3-27b-it`.
+     * Multi-Language Routing: If 'Hindi' is selected, automatically shifts to `gemini-3.1-flash-lite-preview` using a dedicated Hinglish casual persona prompt. English defaults to `gemma-4-31b-it`.
    * Commands:
      * `/chat_toggle [state] [language]`: Configures Server-Wide routing (enables/disables Auto-Chat globally for the selected server using the `guild_id`).
      * `/voice_mode [state]`: Enable/Disable Hybrid Voice responses in the current channel.
@@ -196,7 +196,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
       * `cogs/level_system/database.py`: Asynchronous MongoDB connector for saving/retrieving user progress and server configs. (Uses `certifi` to force updated SSL certs on server hosts).
       * `cogs/level_system/commands.py`: Houses the user-facing slash commands (`/rank`, `/leaderboard`, `/bot_config`). Offloads avatar resizing to Discord's CDN to prevent blocking and gracefully catches `discord.NotFound` errors if a user deletes the thinking message.
       * `cogs/level_system/image_gen.py`: Pillow-based generator drawing dynamic rank cards. Implements RAM caching for `banner.png` and fonts to eliminate disk I/O bottlenecks. Optimizes generation using `BILINEAR` resampling and outputs as highly compressed `WebP` buffers.
-      * `cogs/level_system/ai_responses.py`: Isolated GenAI connector generating personalized level-up messages via `gemma-3-27b-it` natively asynchronously using `client.aio.models.generate_content`.
+      * `cogs/level_system/ai_responses.py`: Isolated GenAI connector generating personalized level-up messages via `gemma-4-31b-it` natively asynchronously using `client.aio.models.generate_content`.
       * `cogs/level_system/bot_config/`: Sub-directory containing interactive configuration UI components (`main_menu.py`, `role_rewards.py`, `xp_management.py`, `vc_settings.py`, `spam_filters.py`, `cooldown_settings.py`).
     * Core Logic & Features:
       * Dynamic math using a quadratic curve `5*(level^2) + 50*level + 100` for leveling. Tracks exact true level dynamically based on total XP. Dictionary lookups utilize safe `.get()` methods defaulting to `0` to handle uninitialized database entries gracefully without crashing.
