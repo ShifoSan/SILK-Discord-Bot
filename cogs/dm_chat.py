@@ -312,7 +312,7 @@ class DMChat(commands.Cog):
             try:
                 response = await asyncio.to_thread(
                     self.client.models.generate_content,
-                    model='gemma-3-27b-it',
+                    model='gemma-4-31b-it',
                     contents=full_prompt,
                     config=types.GenerateContentConfig(safety_settings=DEFAULT_SAFETY_SETTINGS)
                 )
