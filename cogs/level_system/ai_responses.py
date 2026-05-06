@@ -25,7 +25,7 @@ async def generate_level_up_message(user_name: str, new_level: int, persona_inst
         )
 
         response = await client.aio.models.generate_content(
-            model='gemma-3-27b-it',
+            model='gemma-4-31b-it',
             contents=prompt,
             config=types.GenerateContentConfig(system_instruction=system_instruction)
         )
