@@ -9,7 +9,7 @@ class Brain(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model_id = "gemma-3-27b-it"
+        self.model_id = "gemma-4-31b-it"
 
         if self.api_key:
             self.client = genai.Client(api_key=self.api_key)
