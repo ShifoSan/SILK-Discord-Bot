@@ -78,7 +78,7 @@ class TaskAgent(commands.Cog):
         try:
             response = await asyncio.to_thread(
                 self.client.models.generate_content,
-                model='gemma-3-27b-it',
+                model='gemma-4-31b-it',
                 contents=f"{system_prompt}\n\nUser message: {message.content}",
                 # Gemma-3 doesn't support system_instruction parameter properly, must prepend.
                 config=types.GenerateContentConfig(temperature=0.0)
@@ -130,7 +130,7 @@ class TaskAgent(commands.Cog):
         try:
             response = await asyncio.to_thread(
                 self.client.models.generate_content,
-                model='gemma-3-27b-it',
+                model='gemma-4-31b-it',
                 contents=f"{system_prompt}\n\nUser Task: {original_message.content}"
             )
 
