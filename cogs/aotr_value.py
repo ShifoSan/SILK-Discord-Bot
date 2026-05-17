@@ -41,7 +41,7 @@ class AoTRValue(commands.Cog):
         # 1. Critical Defer Protocol
         await interaction.response.defer()
 
-                if self.client is None or self.collection is None:
+        if self.client is None or self.collection is None:
             return await interaction.followup.send("System configuration missing (API Key or MongoDB URI).")
 
         try:
@@ -151,3 +151,4 @@ class AoTRValue(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(AoTRValue(bot))
+    
