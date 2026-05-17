@@ -100,6 +100,11 @@ class AoTRValue(commands.Cog):
             # 4. JSON Parsing
             try:
                 data = json.loads(response.text)
+                
+                # If Gemma wrapped the object in a list, just grab the first item
+                if isinstance(data, list):
+                    data = data[0] if len(data) > 0 else {}
+                    
             except json.JSONDecodeError:
                 return await interaction.followup.send("The AI failed to format the data properly. Please try again.")
 
