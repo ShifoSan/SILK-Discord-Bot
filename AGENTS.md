@@ -94,7 +94,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `/slowmode [seconds]`
    * Dependencies/Configs: None.
 
-7. **Architect Module (Phase 7)**
+7. **Architect Module (Phase 7) (SUSPENDED until further notice⚠️)**
    * Primary Role: "Natural Language to Infrastructure" engine using AI.
    * Files Included:
      * `cogs/architect.py`: Interprets natural language and translates it into Discord guild structure actions.
@@ -142,7 +142,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
     * Commands: None.
     * Dependencies/Configs: `discord.ext.tasks`, `motor`.
 
-11. **Logging Module (Phase 11)**
+11. **Logging Module (Phase 11) (SUSPENDED until further notice⚠️)**
     * Primary Role: Comprehensive, event-driven server surveillance and audit logging system.
     * Files Included:
       * `cogs/logger.py`: The orchestrator handling event listeners and the `setup_logs` command.
@@ -156,7 +156,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
       * `/setup_logs`: Master Admin command to generate the `『LOGS』` category and channels.
     * Dependencies/Configs: Dynamically generated `log_config_{guild_id}.json` files for persistent state mapping channel IDs.
 
-12. **Roleplay Module (Phase 12)**
+12. **Roleplay Module (Phase 12) (SUSPENDED until further notice⚠️)**
     * Primary Role: "Anime Roleplay" engine that sends animated reaction GIFs via Embeds.
     * Files Included:
       * `cogs/roleplay_commands.py`: A unified cog for expressive interactions.
