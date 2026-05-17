@@ -281,14 +281,16 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
       * `cogs/aotr_value.py`: The main cog containing the slash command, database vector search, and GenAI extraction logic.
     * Core Logic & Features:
       * Vectorizes user input using the `gemini-embedding-2` model and queries the MongoDB `aotr_knowledge` collection using an Atlas `$vectorSearch` pipeline.
-      * Retrieves the top 2 closest text chunks and feeds them into the lightning-fast `gemini-3.1-flash-lite-preview` model.
+      * Widen search scope (`numCandidates: 50`, `limit: 5`) to retrieve a broader set of database chunks, effectively catching misspelled item names.
+      * Feeds the retrieved chunks *alongside the user's exact query* into the `gemini-3.1-flash-lite-preview` model at a low temperature (`0.1`) for strict, analytical parsing.
       * Forces the AI to use Structured Output (`response_mime_type="application/json"`) to perfectly extract specific data points (rarity, demand, rate, keys, scrolls, vizard, tax) while filtering out conversational text.
+      * Features a dedicated "Bail Out" state: If the AI determines the requested item does not exist in the retrieved text, it outputs a strict `{"error": "not_found"}` JSON payload to gracefully inform the user rather than hallucinating or crashing.
       * Safely handles `JSONDecodeError` and list-wrapping edge cases natively.
       * Maps the extracted JSON into a highly formatted, red-orange (`0xFF4500`) Discord embed featuring custom server emojis and the command invoker's avatar.
       * Strictly implements the Defer Protocol to prevent 10062 timeout errors during the multi-step API process.
     * Commands:
       * `/value [item]`: Looks up the trade value and demand of an item using AI vector matching.
-    * Dependencies/Configs: `google-genai`, `motor`, `certifi`, `json`. Requires `GEMINI_API_KEY` and `MONGO_URI`. Requires a configured Atlas Vector Search index named `vector_index`.      
+    * Dependencies/Configs: `google-genai`, `motor`, `certifi`, `json`. Requires `GEMINI_API_KEY` and `MONGO_URI`. Requires a configured Atlas Vector Search index named `vector_index`.
 
 ## 🔮 Future Roadmap (Context for Expansion)
 No future plans.
