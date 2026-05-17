@@ -41,7 +41,7 @@ class AoTRValue(commands.Cog):
         # 1. Critical Defer Protocol
         await interaction.response.defer()
 
-        if not self.client or not self.collection:
+                if self.client is None or self.collection is None:
             return await interaction.followup.send("System configuration missing (API Key or MongoDB URI).")
 
         try:
