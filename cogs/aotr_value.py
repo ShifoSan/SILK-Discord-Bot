@@ -45,7 +45,7 @@ class AoTRValue(commands.Cog):
             return await interaction.followup.send("System configuration missing (API Key or MongoDB URI).")
 
         try:
-            # 2. Vector Search (gemini-embedding-2)
+            # 2. Vector Search - Widened the net to catch typos better
             embedding_response = await self.client.aio.models.embed_content(
                 model="gemini-embedding-2",
                 contents=item
@@ -58,8 +58,8 @@ class AoTRValue(commands.Cog):
                         "index": "vector_index",
                         "path": "embedding",
                         "queryVector": vector,
-                        "numCandidates": 10,
-                        "limit": 2
+                        "numCandidates": 50, # Widen search scope
+                        "limit": 5           # Grab top 5 instead of 2
                     }
                 },
                 {
@@ -71,29 +71,34 @@ class AoTRValue(commands.Cog):
             ]
 
             cursor = self.collection.aggregate(pipeline)
-            results = await cursor.to_list(length=2)
+            results = await cursor.to_list(length=5)
 
             if not results:
                 return await interaction.followup.send("No value data found for that item.")
 
             chunks = "\n\n".join([doc.get("content", "") for doc in results])
 
-            # 3. Data Extraction via AI (Swapped to Flash Lite for blazing speed)
+            # 3. Data Extraction - Bulletproofed Prompt
             system_prompt = (
-                "You are a strict data extraction tool. Given the provided text about item values, "
-                "extract the data into a JSON object with EXACTLY these keys: "
-                "name, rarity, demand, rate, keys, scrolls, vizard, tax. "
-                "If a specific currency (Keys, Scrolls, or Vizard) is missing from the item's value, "
-                "explicitly set its JSON value to 'Undefined'. "
-                "Do NOT include markdown formatting like ```json. Output ONLY raw, valid JSON."
+                "You are a strict data extraction tool. You will receive a user's search query (which may contain typos) "
+                "and a set of database texts.\n\n"
+                "Task 1: Identify which item from the database text best matches the user's query.\n"
+                "Task 2: Extract the data for THAT specific item into a JSON object with EXACTLY these keys: "
+                "name, rarity, demand, rate, keys, scrolls, vizard, tax.\n\n"
+                "Rules:\n"
+                "- If a currency is missing, set it to 'Undefined'.\n"
+                "- If the user's requested item is completely missing from the provided text, output EXACTLY this JSON: {\"error\": \"not_found\"}\n"
+                "- Output ONLY raw, valid JSON. No markdown tags."
             )
 
+            # We now explicitly pass the user's `item` query to the AI so it knows what to look for
             response = await self.client.aio.models.generate_content(
                 model='gemini-3.1-flash-lite-preview',
-                contents=chunks,
+                contents=f"User's Query: {item}\n\nDatabase Text:\n{chunks}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    system_instruction=system_prompt
+                    system_instruction=system_prompt,
+                    temperature=0.1 # Lower temperature makes the AI more rigid and analytical
                 )
             )
 
@@ -101,12 +106,15 @@ class AoTRValue(commands.Cog):
             try:
                 data = json.loads(response.text)
                 
-                # If the AI wrapped the object in a list, just grab the first item
                 if isinstance(data, list):
                     data = data[0] if len(data) > 0 else {}
                     
             except json.JSONDecodeError:
-                return await interaction.followup.send("The AI failed to format the data properly. Please try again.")
+                return await interaction.followup.send("⚠️ The AI failed to format the data properly. Please try again.")
+
+            # Bail out cleanly if the AI couldn't find a match in the chunks
+            if data.get("error") == "not_found":
+                return await interaction.followup.send(f"❌ I searched my database, but couldn't find any values for `{item}`. Are you sure it's spelled correctly?")
 
             name = data.get("name", "Unknown Item")
             rarity = data.get("rarity", "Unknown")
@@ -117,31 +125,27 @@ class AoTRValue(commands.Cog):
             vizard = data.get("vizard", "Undefined")
             tax = data.get("tax", "Unknown")
 
-            # 5. Embed Design - Now with a fiery red-orange color!
+            # 5. Embed Design
             embed = discord.Embed(title=name, color=0xFF4500)
             
-            # Dynamic author matching the command user
             avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
             embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
 
             if interaction.guild and interaction.guild.icon:
                 embed.set_thumbnail(url=interaction.guild.icon.url)
 
-            # Field 1
             embed.add_field(
                 name="📊 Market Stats",
                 value=f"**Rarity:** {rarity}\n**Demand:** {demand}/10\n**Rate:** {rate}",
                 inline=True
             )
 
-            # Field 2
             embed.add_field(
                 name="💰 Current Valuation",
                 value=f"{self.emperor_key} **Keys:** {keys}\n{self.scroll} **Scrolls:** {scrolls}\n{self.vizard_mask} **Vizard:** {vizard}",
                 inline=True
             )
 
-            # Field 3
             embed.add_field(
                 name="⚖️ Trade Tax",
                 value=str(tax),
@@ -153,10 +157,10 @@ class AoTRValue(commands.Cog):
             await interaction.followup.send(embed=embed)
 
         except discord.NotFound:
-            pass # Handle case where user deleted the thinking message
+            pass 
         except Exception as e:
             await interaction.followup.send(f"An error occurred: {str(e)}")
 
 async def setup(bot):
     await bot.add_cog(AoTRValue(bot))
-    
+            
