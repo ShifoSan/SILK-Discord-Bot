@@ -273,9 +273,22 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
       * Matches exact and case-sensitive trigger words in message content.
       * Optionally replies directly to the user's message based on the `reply_directly` flag.
     * Commands: None explicitly, triggers based on content.
-    * Dependencies/Configs: `motor`.
+    * Dependencies/Configs: `motor`
+
+20. **AoTR Value Module (Phase 20)**
+    * Primary Role: RAG (Retrieval-Augmented Generation) based search engine to fetch, parse, and format official Attack on Titan: Revolution item values.
+    * Files Included:
+      * `cogs/aotr_value.py`: The main cog containing the slash command, database vector search, and GenAI extraction logic.
+    * Core Logic & Features:
+      * Vectorizes user input using the `gemini-embedding-2` model and queries the MongoDB `aotr_knowledge` collection using an Atlas `$vectorSearch` pipeline.
+      * Retrieves the top 2 closest text chunks and feeds them into the lightning-fast `gemini-3.1-flash-lite-preview` model.
+      * Forces the AI to use Structured Output (`response_mime_type="application/json"`) to perfectly extract specific data points (rarity, demand, rate, keys, scrolls, vizard, tax) while filtering out conversational text.
+      * Safely handles `JSONDecodeError` and list-wrapping edge cases natively.
+      * Maps the extracted JSON into a highly formatted, red-orange (`0xFF4500`) Discord embed featuring custom server emojis and the command invoker's avatar.
+      * Strictly implements the Defer Protocol to prevent 10062 timeout errors during the multi-step API process.
+    * Commands:
+      * `/value [item]`: Looks up the trade value and demand of an item using AI vector matching.
+    * Dependencies/Configs: `google-genai`, `motor`, `certifi`, `json`. Requires `GEMINI_API_KEY` and `MONGO_URI`. Requires a configured Atlas Vector Search index named `vector_index`.      
 
 ## 🔮 Future Roadmap (Context for Expansion)
-
-20. **Economy System Module (Phase 20)**
-    * Primary Role: Server-specific or global economy system tracking virtual user finances and currencies.
+No future plans.
