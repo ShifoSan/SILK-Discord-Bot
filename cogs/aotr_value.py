@@ -78,7 +78,7 @@ class AoTRValue(commands.Cog):
 
             chunks = "\n\n".join([doc.get("content", "") for doc in results])
 
-            # 3. Data Extraction via AI
+            # 3. Data Extraction via AI (Swapped to Flash Lite for blazing speed)
             system_prompt = (
                 "You are a strict data extraction tool. Given the provided text about item values, "
                 "extract the data into a JSON object with EXACTLY these keys: "
@@ -89,7 +89,7 @@ class AoTRValue(commands.Cog):
             )
 
             response = await self.client.aio.models.generate_content(
-                model='gemma-4-31b-it',
+                model='gemini-3.1-flash-lite-preview',
                 contents=chunks,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
@@ -101,7 +101,7 @@ class AoTRValue(commands.Cog):
             try:
                 data = json.loads(response.text)
                 
-                # If Gemma wrapped the object in a list, just grab the first item
+                # If the AI wrapped the object in a list, just grab the first item
                 if isinstance(data, list):
                     data = data[0] if len(data) > 0 else {}
                     
@@ -117,9 +117,12 @@ class AoTRValue(commands.Cog):
             vizard = data.get("vizard", "Undefined")
             tax = data.get("tax", "Unknown")
 
-            # 5. Embed Design
-            embed = discord.Embed(title=name, color=0x2b2d31)
-            embed.set_author(name="shifosan")
+            # 5. Embed Design - Now with a fiery red-orange color!
+            embed = discord.Embed(title=name, color=0xFF4500)
+            
+            # Dynamic author matching the command user
+            avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
+            embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
 
             if interaction.guild and interaction.guild.icon:
                 embed.set_thumbnail(url=interaction.guild.icon.url)
