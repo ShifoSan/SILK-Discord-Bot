@@ -123,7 +123,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
      * `/persona [name]`: Switch between personalities (uses an autocomplete dropdown querying the database).
    * Dependencies/Configs: `google-genai` (New SDK), `gTTS`, `io`, `collections.deque`, `re`, `motor`.
 
-9. **Help Module (Phase 9)**
+9. **Help Module (Phase 9) (SUSPENDED until further notice⚠️)**
    * Primary Role: Comprehensive, interactive dashboard system for bot documentation.
    * Files Included:
      * `cogs/help.py`: Core dashboard utilizing `discord.ui.View` for a 3-row button grid interface.
@@ -189,7 +189,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
     * Commands: None explicitly, triggers automatically on mentions based on context.
     * Dependencies/Configs: `google-genai`.
 
-15. **Level System Module (Phase 15)**
+15. **Level System Module (Phase 15) (SUSPENDED until further notice⚠️)**
     * Primary Role: Advanced XP and leveling system tracking messages, reactions, and voice activity with a robust UI dashboard.
     * Files Included:
       * `cogs/level_system/core.py`: Main cog loading the configurations and handling `on_message`, `on_raw_reaction_add`, `on_voice_state_update`, and join/leave logic. Supports WebP image attachments for fast level-up notifications.
@@ -222,7 +222,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
       * `/button [title] [text] [style] [timeout] [visibility] [anonymous] [file]`
     * Dependencies/Configs: `io`.
 
-17. **Web Dashboard Module (Phase 17)**
+17. **Web Dashboard Module (Phase 17) (SUSPENDED until further notice⚠️)**
     * Primary Role: External web interface and API routing for configuring S.I.L.K.'s database settings securely via browser using Discord OAuth2.
     * Files Included:
       * `launcher.py`: Subprocess orchestrator that concurrently boots `main.py` and `dashboard.py` and handles crash restarts.
