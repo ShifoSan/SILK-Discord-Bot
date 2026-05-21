@@ -275,7 +275,7 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
     * Commands: None explicitly, triggers based on content.
     * Dependencies/Configs: `motor`
 
-20. **AoTR Value Module (Phase 20)**
+20. **AoTR Value Module (Phase 20) (SUSPENDED until further notice⚠️)**
     * Primary Role: RAG (Retrieval-Augmented Generation) based search engine to fetch, parse, and format official Attack on Titan: Revolution item values.
     * Files Included:
       * `cogs/aotr_value.py`: The main cog containing the slash command, database vector search, and GenAI extraction logic.
