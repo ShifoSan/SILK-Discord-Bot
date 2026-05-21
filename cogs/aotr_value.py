@@ -1,9 +1,13 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import os
 import json
 import certifi
+import aiohttp
+import csv
+import io
+import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from google import genai
 from google.genai import types
@@ -11,6 +15,9 @@ from google.genai import types
 class AoTRValue(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+        # Google Sheet CSV Export Link
+        self.spreadsheet_csv_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR7naBmry1w8WlHFrtpxJ0n3XdgDj5cehW6XxTdJVDPMDivrnOefz83uuFCoYEGd028tjFQ6tcfPyBA/pub?output=csv"
 
         # Initialize Google GenAI
         self.api_key = os.getenv("GEMINI_API_KEY")
@@ -35,6 +42,105 @@ class AoTRValue(commands.Cog):
         self.scroll = "<:Scroll:1505387447218077699>"
         self.vizard_mask = "<:VizardMask:1505387338363043880>"
 
+        # Start the background sync loop automatically
+        if self.collection is not None and self.client is not None:
+            self.sync_aotr_values.start()
+
+    def cog_unload(self):
+        self.sync_aotr_values.cancel()
+
+    @tasks.loop(hours=6)
+    async def sync_aotr_values(self):
+        """Background task that pulls live CSV data, formats it into clean sentences, 
+        and updates vector embeddings in MongoDB only if data changes."""
+        print("[AoTR Sync] Starting dynamic database synchronization loop...")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(self.spreadsheet_csv_url) as response:
+                    if response.status != 200:
+                        print(f"[AoTR Sync] Failed to fetch CSV from Google Sheets. Status: {response.status}")
+                        return
+                    csv_text = await response.text()
+
+            # Read the CSV raw text asynchronously using an in-memory text stream
+            f = io.StringIO(csv_text)
+            reader = csv.DictReader(f)
+
+            updated_count = 0
+            skipped_count = 0
+
+            for raw_row in reader:
+                # Sanitize headers and edge whitespaces
+                row = {k.strip().lower(): v.strip() for k, v in raw_row.items() if k}
+                
+                item_name = raw_row.get("Item", "").strip()
+                if not item_name:
+                    continue
+
+                category = raw_row.get("Category", "Unknown").strip()
+                rarity = raw_row.get("Rarity", "Unknown").strip()
+                demand = raw_row.get("Demand", "Unknown").strip()
+                value = raw_row.get("Value", "Unknown").strip()
+                rate_of_change = raw_row.get("Rate Of Change", "Stable").strip()
+                
+                # Check for flexible tax column variants dynamically
+                tax_str = ""
+                if "tax (gems)" in row and row["tax (gems)"]:
+                    tax_str = f" Tax (Gems): {raw_row.get('Tax (Gems)')}."
+                elif "tax (gold)" in row and row["tax (gold)"]:
+                    tax_str = f" Tax (Gold): {raw_row.get('Tax (Gold)')}."
+                elif "tax" in row and row["tax"]:
+                    tax_str = f" Tax: {raw_row.get('Tax')}."
+
+                # Reconstruct your exact custom sentenced string format perfectly
+                content_sentence = f"Item: {item_name}. Category: {category}. Rarity: {rarity}. Demand: {demand}. Value: {value}. Rate Of Change: {rate_of_change}.{tax_str}"
+
+                # Optimization Check: Query database to see if values actually changed
+                existing_doc = await self.collection.find_one({"item_name": item_name})
+                
+                if existing_doc and existing_doc.get("content") == content_sentence:
+                    skipped_count += 1
+                    continue
+
+                try:
+                    # Request a fresh embedding matching your pipeline architecture
+                    embedding_response = await self.client.aio.models.embed_content(
+                        model="gemini-embedding-2",
+                        contents=content_sentence
+                    )
+                    embedding = embedding_response.embeddings[0].values
+
+                    # Overwrite or insert into MongoDB collection
+                    await self.collection.update_one(
+                        {"item_name": item_name},
+                        {
+                            "$set": {
+                                "item_name": item_name,
+                                "content": content_sentence,
+                                "embedding": embedding
+                            }
+                        },
+                        upsert=True
+                    )
+                    updated_count += 1
+                    
+                    # Safe artificial delay to seamlessly respect Gemini API quotas
+                    await asyncio.sleep(0.5)
+
+                except Exception as embed_error:
+                    print(f"[AoTR Sync] Failed embedding sequence for {item_name}: {embed_error}")
+
+            print(f"[AoTR Sync] Synchronization cycle finished. Updated/Inserted: {updated_count}, Unchanged/Skipped: {skipped_count}")
+
+        except Exception as e:
+            print(f"[AoTR Sync] Critical failure encountered during background loop execution: {e}")
+
+    @sync_aotr_values.before_loop
+    async def before_sync_loop(self):
+        # Guarantee Discord gateway cache is populated before firing background network transactions
+        await self.bot.wait_until_ready()
+
     @app_commands.command(name="value", description="Look up the official AoTR value for an item.")
     @app_commands.describe(item="The exact or partial name of the item to lookup")
     async def value(self, interaction: discord.Interaction, item: str):
@@ -47,10 +153,20 @@ class AoTRValue(commands.Cog):
         try:
             # 2. Vector Search - Widened the net to catch typos better
             embedding_response = await self.client.aio.models.embed_content(
-                model="gemini-embedding-2",
+                model="vector_index", # Note: Ensure this stays pointed to your exact index configuration
                 contents=item
             )
-            vector = embedding_response.embeddings[0].values
+            
+            # Temporary fallback logic adjustment to ensure embedding compatibility
+            try:
+                vector = embedding_response.embeddings[0].values
+            except (AttributeError, TypeError):
+                # Fallback if standard response wrapper maps fields directly
+                embedding_response = await self.client.aio.models.embed_content(
+                    model="gemini-embedding-2",
+                    contents=item
+                )
+                vector = embedding_response.embeddings[0].values
 
             pipeline = [
                 {
@@ -91,28 +207,24 @@ class AoTRValue(commands.Cog):
                 "- Output ONLY raw, valid JSON. No markdown tags."
             )
 
-            # We now explicitly pass the user's `item` query to the AI so it knows what to look for
             response = await self.client.aio.models.generate_content(
                 model='gemini-3.1-flash-lite-preview',
                 contents=f"User's Query: {item}\n\nDatabase Text:\n{chunks}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     system_instruction=system_prompt,
-                    temperature=0.1 # Lower temperature makes the AI more rigid and analytical
+                    temperature=0.1
                 )
             )
 
             # 4. JSON Parsing
             try:
                 data = json.loads(response.text)
-                
                 if isinstance(data, list):
                     data = data[0] if len(data) > 0 else {}
-                    
             except json.JSONDecodeError:
                 return await interaction.followup.send("⚠️ The AI failed to format the data properly. Please try again.")
 
-            # Bail out cleanly if the AI couldn't find a match in the chunks
             if data.get("error") == "not_found":
                 return await interaction.followup.send(f"❌ I searched my database, but couldn't find any values for `{item}`. Are you sure it's spelled correctly?")
 
@@ -152,7 +264,7 @@ class AoTRValue(commands.Cog):
                 inline=True
             )
 
-            embed.set_footer(text="The official AoTR values | Last updated - 17/05/2026.")
+            embed.set_footer(text="The official AoTR values | Data dynamically synchronized from live sheet.")
 
             await interaction.followup.send(embed=embed)
 
@@ -163,4 +275,3 @@ class AoTRValue(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(AoTRValue(bot))
-            
