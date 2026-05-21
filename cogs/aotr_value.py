@@ -151,31 +151,21 @@ class AoTRValue(commands.Cog):
             return await interaction.followup.send("System configuration missing (API Key or MongoDB URI).")
 
         try:
-            # 2. Vector Search - Widened the net to catch typos better
+            # 2. Vector Search - Corrected model target parameter to fix the 404 error
             embedding_response = await self.client.aio.models.embed_content(
-                model="vector_index", # Note: Ensure this stays pointed to your exact index configuration
+                model="gemini-embedding-2",
                 contents=item
             )
-            
-            # Temporary fallback logic adjustment to ensure embedding compatibility
-            try:
-                vector = embedding_response.embeddings[0].values
-            except (AttributeError, TypeError):
-                # Fallback if standard response wrapper maps fields directly
-                embedding_response = await self.client.aio.models.embed_content(
-                    model="gemini-embedding-2",
-                    contents=item
-                )
-                vector = embedding_response.embeddings[0].values
+            vector = embedding_response.embeddings[0].values
 
             pipeline = [
                 {
                     "$vectorSearch": {
-                        "index": "vector_index",
+                        "index": "vector_index", # The Atlas index name belongs here
                         "path": "embedding",
                         "queryVector": vector,
-                        "numCandidates": 50, # Widen search scope
-                        "limit": 5           # Grab top 5 instead of 2
+                        "numCandidates": 50,     # Widen search scope to catch typos better
+                        "limit": 5               # Grab top 5 chunks
                     }
                 },
                 {
