@@ -63,35 +63,58 @@ class AoTRValue(commands.Cog):
                         return
                     csv_text = await response.text()
 
-            # Read the CSV raw text asynchronously using an in-memory text stream
+            # Read the CSV raw text asynchronously
             f = io.StringIO(csv_text)
-            reader = csv.DictReader(f)
+            reader = csv.reader(f)
+
+            # 1. Dynamic Header Hunting (Bulletproof against layout changes)
+            headers = None
+            for row_list in reader:
+                # Clean the row to check for our core column names
+                clean_row = [str(col).strip().lower() for col in row_list]
+                
+                if "item" in clean_row or "item name" in clean_row:
+                    # We found the header row! Save the exact casing used in the sheet.
+                    headers = [str(col).strip() for col in row_list]
+                    break
+            
+            if not headers:
+                print("[AoTR Sync] ERROR: Could not find the header row! Did the devs completely change the sheet layout or move data to a new tab?")
+                return
 
             updated_count = 0
             skipped_count = 0
 
-            for raw_row in reader:
-                # Sanitize headers and edge whitespaces
-                row = {k.strip().lower(): v.strip() for k, v in raw_row.items() if k}
+            # 2. Parse the actual data now that we mapped the headers
+            for row_list in reader:
+                # Zip the found headers with the current row data
+                raw_row = dict(zip(headers, row_list))
                 
-                item_name = raw_row.get("Item", "").strip()
+                # Sanitize ALL keys to lowercase to prevent KeyErrors if devs add trailing spaces
+                row = {k.strip().lower(): str(v).strip() for k, v in raw_row.items() if k}
+                
+                # Look for "item" or "item name" dynamically
+                item_name = row.get("item", row.get("item name", ""))
                 if not item_name:
                     continue
 
-                category = raw_row.get("Category", "Unknown").strip()
-                rarity = raw_row.get("Rarity", "Unknown").strip()
-                demand = raw_row.get("Demand", "Unknown").strip()
-                value = raw_row.get("Value", "Unknown").strip()
-                rate_of_change = raw_row.get("Rate Of Change", "Stable").strip()
+                category = row.get("category", "Unknown")
+                rarity = row.get("rarity", "Unknown")
+                demand = row.get("demand", "Unknown")
+                value = row.get("value", "Unknown")
+                rate_of_change = row.get("rate of change", "Stable")
                 
                 # Check for flexible tax column variants dynamically
                 tax_str = ""
                 if "tax (gems)" in row and row["tax (gems)"]:
-                    tax_str = f" Tax (Gems): {raw_row.get('Tax (Gems)')}."
+                    tax_str = f" Tax (Gems): {row['tax (gems)']}"
                 elif "tax (gold)" in row and row["tax (gold)"]:
-                    tax_str = f" Tax (Gold): {raw_row.get('Tax (Gold)')}."
+                    tax_str = f" Tax (Gold): {row['tax (gold)']}"
                 elif "tax" in row and row["tax"]:
-                    tax_str = f" Tax: {raw_row.get('Tax')}."
+                    tax_str = f" Tax: {row['tax']}"
+                    
+                if tax_str:
+                    tax_str += "."
 
                 # Reconstruct your exact custom sentenced string format perfectly
                 content_sentence = f"Item: {item_name}. Category: {category}. Rarity: {rarity}. Demand: {demand}. Value: {value}. Rate Of Change: {rate_of_change}.{tax_str}"
