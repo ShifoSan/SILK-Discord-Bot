@@ -37,6 +37,21 @@ class TradeCompare(commands.Cog):
         self.scroll = "<:Scroll:1505387447218077699>"
         self.vizard_mask = "<:VizardMask:1505387338363043880>"
 
+    def extract_quantity_and_name(self, raw_input: str) -> tuple[int, str]:
+        """
+        Extracts multiplier quantities at the start of item strings.
+        Example: "2 colossal shard" -> (2, "colossal shard")
+        Example: "Fritz" -> (1, "Fritz")
+        """
+        clean_input = raw_input.strip()
+        # Matches patterns like "2 x colossal shard", "2x colossal shard", or "2 colossal shard"
+        match = re.match(r"^(\d+)\s*x?\s+(.+)$", clean_input, re.IGNORECASE)
+        if match:
+            quantity = int(match.group(1))
+            item_name = match.group(2).strip()
+            return quantity, item_name
+        return 1, clean_input
+
     def parse_raw_currency(self, item_name: str) -> int | None:
         """
         Optimized local shortcut matching: Map 'Key' or 'Keys' directly to Emperor Keys.
@@ -67,26 +82,31 @@ class TradeCompare(commands.Cog):
             
         return 0
 
-    async def fetch_item_data(self, item_query: str) -> dict:
+    async def fetch_item_data(self, raw_item_query: str) -> dict:
         """
-        Employs the Version 2 RAG architecture with widened Atlas boundaries
-        and analytical constraints to match misspelled items and extract accurate tax info.
+        Extracts stack multipliers, employs the Version 2 RAG architecture with widened 
+        boundaries, matches misspelled names, and applies the stack multiplication factor.
         """
-        # Shortcut calculation evaluation check
+        # Extract item multiplier count if provided
+        quantity, item_query = self.extract_quantity_and_name(raw_item_query)
+
+        # Shortcut calculation evaluation check for raw currency injections
         direct_keys = self.parse_raw_currency(item_query)
         if direct_keys is not None:
+            # Multiplied directly by quantity count
+            total_keys = direct_keys * quantity
             return {
-                "name": f"Raw Currency ({direct_keys:,} Keys)",
-                "keys": direct_keys,
-                "scrolls": direct_keys / 3,
-                "vizard": direct_keys / 900,
+                "display_name": f"Raw Currency ({total_keys:,} Keys)",
+                "keys": total_keys,
+                "scrolls": total_keys / 3,
+                "vizard": total_keys / 900,
                 "gems_tax": 0,
                 "gold_tax": 0,
                 "error": None
             }
 
         if self.client is None or self.collection is None:
-            return {"name": item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "config_missing"}
+            return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "config_missing"}
 
         try:
             # Vector Search Pipeline - Widened boundaries to catch typos (V2 Setup)
@@ -118,11 +138,11 @@ class TradeCompare(commands.Cog):
             results = await cursor.to_list(length=5)
 
             if not results:
-                return {"name": item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "not_found"}
+                return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "not_found"}
 
             chunks = "\n\n".join([doc.get("content", "") for doc in results])
 
-            # Explicitly instruct the AI to isolate Tax (Gems) and Tax (Gold) from the raw database content string
+            # Explicitly instruct the AI to isolate Tax (Gems) and Tax (Gold)
             system_prompt = (
                 "You are a strict data extraction tool. You will receive a user's search query (which may contain typos) "
                 "and a set of database texts.\n\n"
@@ -134,7 +154,7 @@ class TradeCompare(commands.Cog):
                 "- Look inside the database text for 'Tax (Gold):' and extract its value into 'gold_tax' (e.g., if text says 'Tax (Gold): 🪙58k', extract '58k').\n"
                 "- If either text field is completely absent or not specified for the matched item, set its respective JSON value to '0'.\n\n"
                 "General Rules:\n"
-                "- Numerical value fields (keys, scrolls, vizard) should represent raw metrics, or fallback to 'Undefined'.\n"
+                "- Numerical value fields (keys, scrolls, vizard) should represent raw single-item metrics, or fallback to 'Undefined'.\n"
                 "- If the item is completely missing, output EXACTLY this JSON: {\"error\": \"not_found\"}\n"
                 "- Output ONLY raw, valid JSON. Do not include markdown formatting code blocks."
             )
@@ -154,7 +174,7 @@ class TradeCompare(commands.Cog):
                 data = data[0]
 
             if data.get("error") == "not_found":
-                return {"name": item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "not_found"}
+                return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "not_found"}
 
             def clean_int(val) -> int:
                 if isinstance(val, (int, float)):
@@ -162,29 +182,33 @@ class TradeCompare(commands.Cog):
                 digits = re.findall(r"\d+", str(val).replace(",", ""))
                 return int(digits[0]) if digits else 0
 
-            raw_keys = clean_int(data.get("keys", 0))
+            # Single item base stats parsing
+            base_keys = clean_int(data.get("keys", 0))
             raw_scrolls = data.get("scrolls")
             raw_vizard = data.get("vizard")
             
-            final_scrolls = clean_int(raw_scrolls) if raw_scrolls and str(raw_scrolls).lower() != "undefined" else (raw_keys / 3)
-            final_vizard = clean_int(raw_vizard) if raw_vizard and str(raw_vizard).lower() != "undefined" else (raw_keys / 900)
+            base_scrolls = clean_int(raw_scrolls) if raw_scrolls and str(raw_scrolls).lower() != "undefined" else (base_keys / 3)
+            base_vizard = clean_int(raw_vizard) if raw_vizard and str(raw_vizard).lower() != "undefined" else (base_keys / 900)
 
-            # Pass the separated AI extractions directly into our type-scaling calculator
-            gems_tax = self.parse_tax_value(data.get("gems_tax", 0))
-            gold_tax = self.parse_tax_value(data.get("gold_tax", 0))
+            base_gems_tax = self.parse_tax_value(data.get("gems_tax", 0))
+            base_gold_tax = self.parse_tax_value(data.get("gold_tax", 0))
+
+            # Apply Stack Multipliers safely across all elements
+            final_name = data.get("name", item_query)
+            display_name = f"{final_name} x{quantity}" if quantity > 1 else final_name
 
             return {
-                "name": data.get("name", item_query),
-                "keys": raw_keys,
-                "scrolls": final_scrolls,
-                "vizard": final_vizard,
-                "gems_tax": gems_tax,
-                "gold_tax": gold_tax,
+                "display_name": display_name,
+                "keys": base_keys * quantity,
+                "scrolls": base_scrolls * quantity,
+                "vizard": base_vizard * quantity,
+                "gems_tax": base_gems_tax * quantity,
+                "gold_tax": base_gold_tax * quantity,
                 "error": None
             }
 
         except Exception:
-            return {"name": item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "failed_to_parse"}
+            return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "failed_to_parse"}
 
     @app_commands.command(name="trade-compare", description="Calculate if a trade is a Win or a Loss based on item values.")
     @app_commands.describe(
@@ -219,23 +243,23 @@ class TradeCompare(commands.Cog):
 
         for res in giving_results:
             if res["error"] == "not_found":
-                unmatched_items.append(f"`{res['name']}` (Giving Side)")
+                unmatched_items.append(f"`{res['display_name']}` (Giving Side)")
             total_giving_keys += res["keys"]
             total_giving_scrolls += res["scrolls"]
             total_giving_vizard += res["vizard"]
             total_giving_gems_tax += res["gems_tax"]
             total_giving_gold_tax += res["gold_tax"]
-            giving_breakdown.append(f"• {res['name']} — {self.emperor_key} **{res['keys']:,}** Keys")
+            giving_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{res['keys']:,}** Keys")
 
         for res in getting_results:
             if res["error"] == "not_found":
-                unmatched_items.append(f"`{res['name']}` (Getting Side)")
+                unmatched_items.append(f"`{res['display_name']}` (Getting Side)")
             total_getting_keys += res["keys"]
             total_getting_scrolls += res["scrolls"]
             total_getting_vizard += res["vizard"]
             total_getting_gems_tax += res["gems_tax"]
             total_getting_gold_tax += res["gold_tax"]
-            getting_breakdown.append(f"• {res['name']} — {self.emperor_key} **{res['keys']:,}** Keys")
+            getting_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{res['keys']:,}** Keys")
 
         # Ratio Logic
         if total_giving_keys == 0:
