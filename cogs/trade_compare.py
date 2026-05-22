@@ -48,37 +48,29 @@ class TradeCompare(commands.Cog):
             return int(match.group(1))
         return None
 
-    def parse_tax_string(self, tax_str: str) -> tuple[int, int]:
+    def parse_tax_value(self, tax_val) -> int:
         """
-        Robust text parser that safely extracts and evaluates currency counts from unstructured fields.
-        Accurately translates abbreviations like '50k' into full numeric configurations (50000).
+        Robust text parser that handles raw integers, strings, and short-scale 
+        thousands multipliers like '50k' or '58k', turning them into proper numbers.
         """
-        if not tax_str or tax_str.lower() in ["unknown", "none", "0"]:
-            return 0, 0
+        if not tax_val or str(tax_val).lower() in ["unknown", "none", "0", "undefined"]:
+            return 0
             
-        clean_tax = tax_str.replace(",", "").lower()
-        gems = 0
-        gold = 0
+        clean_tax = str(tax_val).replace(",", "").strip().lower()
         
-        # Pattern captures numbers followed optionally by a 'k' scaling factor before the tag name
-        gems_match = re.search(r"(\d+)\s*(k)?\s*gem", clean_tax)
-        if gems_match:
-            base_val = int(gems_match.group(1))
-            is_k_scaled = gems_match.group(2) is not None
-            gems = base_val * 1000 if is_k_scaled else base_val
+        # Look for numbers optionally followed by 'k'
+        match = re.search(r"(\d+)\s*(k)?", clean_tax)
+        if match:
+            base_val = int(match.group(1))
+            is_k_scaled = match.group(2) is not None
+            return base_val * 1000 if is_k_scaled else base_val
             
-        gold_match = re.search(r"(\d+)\s*(k)?\s*gold", clean_tax)
-        if gold_match:
-            base_val = int(gold_match.group(1))
-            is_k_scaled = gold_match.group(2) is not None
-            gold = base_val * 1000 if is_k_scaled else base_val
-            
-        return gems, gold
+        return 0
 
     async def fetch_item_data(self, item_query: str) -> dict:
         """
         Employs the Version 2 RAG architecture with widened Atlas boundaries
-        and analytical constraints to match misspelled items.
+        and analytical constraints to match misspelled items and extract accurate tax info.
         """
         # Shortcut calculation evaluation check
         direct_keys = self.parse_raw_currency(item_query)
@@ -130,18 +122,21 @@ class TradeCompare(commands.Cog):
 
             chunks = "\n\n".join([doc.get("content", "") for doc in results])
 
-            # Data Extraction Prompt Strategy
+            # Explicitly instruct the AI to isolate Tax (Gems) and Tax (Gold) from the raw database content string
             system_prompt = (
                 "You are a strict data extraction tool. You will receive a user's search query (which may contain typos) "
                 "and a set of database texts.\n\n"
                 "Task 1: Identify which item from the database text best matches the user's query regardless of typos.\n"
-                "Task 2: Extract the data for THAT specific item into a JSON object with EXACTLY these keys: "
-                "name, keys, scrolls, vizard, tax.\n\n"
-                "Rules:\n"
-                "- Numerical fields should represent raw numbers if listed, or fallback safely to 'Undefined'.\n"
-                "- Preserve the exact literal value of the tax string exactly as written in the content (e.g., '💎50k' or '🪙58k').\n"
+                "Task 2: Extract the data for THAT specific item into a JSON object with EXACTLY these keys:\n"
+                "name, keys, scrolls, vizard, gems_tax, gold_tax.\n\n"
+                "Tax Extraction Rules:\n"
+                "- Look inside the database text for 'Tax (Gems):' and extract its value into 'gems_tax' (e.g., if text says 'Tax (Gems): 💎50k', extract '50k').\n"
+                "- Look inside the database text for 'Tax (Gold):' and extract its value into 'gold_tax' (e.g., if text says 'Tax (Gold): 🪙58k', extract '58k').\n"
+                "- If either text field is completely absent or not specified for the matched item, set its respective JSON value to '0'.\n\n"
+                "General Rules:\n"
+                "- Numerical value fields (keys, scrolls, vizard) should represent raw metrics, or fallback to 'Undefined'.\n"
                 "- If the item is completely missing, output EXACTLY this JSON: {\"error\": \"not_found\"}\n"
-                "- Output ONLY raw, valid JSON. No markdown formatting tags."
+                "- Output ONLY raw, valid JSON. Do not include markdown formatting code blocks."
             )
 
             response = await self.client.aio.models.generate_content(
@@ -174,7 +169,9 @@ class TradeCompare(commands.Cog):
             final_scrolls = clean_int(raw_scrolls) if raw_scrolls and str(raw_scrolls).lower() != "undefined" else (raw_keys / 3)
             final_vizard = clean_int(raw_vizard) if raw_vizard and str(raw_vizard).lower() != "undefined" else (raw_keys / 900)
 
-            gems_tax, gold_tax = self.parse_tax_string(str(data.get("tax", "0")))
+            # Pass the separated AI extractions directly into our type-scaling calculator
+            gems_tax = self.parse_tax_value(data.get("gems_tax", 0))
+            gold_tax = self.parse_tax_value(data.get("gold_tax", 0))
 
             return {
                 "name": data.get("name", item_query),
