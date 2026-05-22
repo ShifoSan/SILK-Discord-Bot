@@ -275,22 +275,34 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
     * Commands: None explicitly, triggers based on content.
     * Dependencies/Configs: `motor`
 
-20. **AoTR Value Module (Phase 20) (SUSPENDED until further notice⚠️)**
-    * Primary Role: RAG (Retrieval-Augmented Generation) based search engine to fetch, parse, and format official Attack on Titan: Revolution item values.
-    * Files Included:
-      * `cogs/aotr_value.py`: The main cog containing the slash command, database vector search, and GenAI extraction logic.
-    * Core Logic & Features:
-      * Vectorizes user input using the `gemini-embedding-2` model and queries the MongoDB `aotr_knowledge` collection using an Atlas `$vectorSearch` pipeline.
-      * Widen search scope (`numCandidates: 50`, `limit: 5`) to retrieve a broader set of database chunks, effectively catching misspelled item names.
-      * Feeds the retrieved chunks *alongside the user's exact query* into the `gemini-3.1-flash-lite-preview` model at a low temperature (`0.1`) for strict, analytical parsing.
-      * Forces the AI to use Structured Output (`response_mime_type="application/json"`) to perfectly extract specific data points (rarity, demand, rate, keys, scrolls, vizard, tax) while filtering out conversational text.
-      * Features a dedicated "Bail Out" state: If the AI determines the requested item does not exist in the retrieved text, it outputs a strict `{"error": "not_found"}` JSON payload to gracefully inform the user rather than hallucinating or crashing.
-      * Safely handles `JSONDecodeError` and list-wrapping edge cases natively.
-      * Maps the extracted JSON into a highly formatted, red-orange (`0xFF4500`) Discord embed featuring custom server emojis and the command invoker's avatar.
-      * Strictly implements the Defer Protocol to prevent 10062 timeout errors during the multi-step API process.
-    * Commands:
-      * `/value [item]`: Looks up the trade value and demand of an item using AI vector matching.
-    * Dependencies/Configs: `google-genai`, `motor`, `certifi`, `json`. Requires `GEMINI_API_KEY` and `MONGO_URI`. Requires a configured Atlas Vector Search index named `vector_index`.
+20. Trade Module (Phase 20)
+* **Primary Role:** RAG (Retrieval-Augmented Generation) based search engine and multi-asset transactional evaluation matrix used to fetch, parse, scale, and format official Attack on Titan: Revolution item weights and market parameters.
+* **Files Included:**
+    * `cogs/aotr_value.py`: Core item look-up cog containing standard asset analysis and embedding parsing loops.
+    * `cogs/trade_compare.py`: Core trade comparison calculator managing delimiter parsing, item aggregation, automated stack quantity parsing, and dynamic profit ratios.
+* **Core Logic & Features:**
+    * **Vector Ingestion Search:** Vectorizes user inputs using the `gemini-embedding-2` model and queries the MongoDB `aotr_knowledge` collection inside the `silk_bot` database utilizing a dedicated Atlas `$vectorSearch` pipeline.
+    * **Typo-Forgiveness Constraints:** Widens retrieval boundaries (`numCandidates: 50`, `limit: 5`) to capture deep context variants, allowing the AI to seamlessly match misspelled inputs (e.g., matching "colasal" back to "Colossal") safely without throwing empty returns.
+    * **Deterministic AI Extraction:** Feeds context chunks alongside exact targets directly into `gemini-3.1-flash-lite-preview` at a low temperature (`0.1`) using a structured format (`response_mime_type="application/json"`) to securely pull item statistics without conversational hallucinations.
+    * **Advanced Stack Multiplier Extraction:** Implements a localized regex pre-processing step (`extract_quantity_and_name`) that scans the beginning of each parsed item segment to isolate leading numbers (e.g., extracting "2" as a multiplier factor and "Colossal Shard" as the clean lookup target). The module then scales keys, scrolls, vizard masks, and taxes by that quantity before constructing the card sums.
+    * **Raw Currency Shortcuts:** Features an instantaneous shortcut expression check mapping variations of standalone "Key" or "Keys" strings. If an entry consists of a direct number and label (e.g., "360 keys"), it plucks out the integer directly, logs it, and completely skips both the vector search and AI parsing layers to save processing overhead.
+    * **Dual-Sided Tax Matrix Tracking:** Explicitly guides the model to target and isolate the literal `Tax (Gems):` and `Tax (Gold):` fields from raw matching database text fragments. It automatically evaluates shorthand notation (e.g., translating "50k" or "58k" into full numeric integers like `50000` or `58000`) and displays separate rows for **Your Required Trade Tax (Side A)** and **Their Required Trade Tax (Side B)** to avoid confusing net calculations.
+    * **Asynchronous Speed Consolidation:** Bundles multi-item comparison pipelines concurrently using `asyncio.gather()`, resolving extensive list chains simultaneously to keep the bot's single event loop unblocked and completely safe from gateway websocket lag or disconnections.
+    * **Dynamic Profit Assessment Calibration:** Tracks cumulative weights against an absolute base unit in Emperor Keys, automatically resolving secondary market tokens via uniform scaling definitions ($\text{Scrolls} = \frac{\text{Keys}}{3}$ | $\text{Viz} = \frac{\text{Keys}}{900}$) formatted with clean floating-point precision. It evaluates inbound values against outbound weights, dynamically shifting embed border colors and final verdict text layouts based on an internal return margin ratio:
+        * **Ratio ≥ 1.50** $\rightarrow$ 🚀 `MASSIVE WIN (HUGE W)` [Vibrant Green: `0x00FF00`]
+        * **1.10 ≤ Ratio < 1.50** $\rightarrow$ ✅ `PROFIT (SLIGHT W)` [Dark Green: `0x2ECC71`]
+        * **0.90 < Ratio < 1.10** $\rightarrow$ 🤝 `FAIR TRADE` [Blue/White: `0x3498DB`]
+        * **0.60 ≤ Ratio ≤ 0.90** $\rightarrow$ ⚠️ `LOSS (SLIGHT L)` [Orange: `0xE67E22`]
+        * **Ratio < 0.60** $\rightarrow$ 🛑 `SEVERE DEFICIT (MASSIVE L)` [Red: `0xE74C3C`]
+    * **Graceful Missing Record Bail-Outs:** Instructs the AI model to yield exactly `{"error": "not_found"}` if a user's item doesn't exist in the context blocks. Unrecognized objects default safely to `0 Keys` and trigger a clear text warning at the base of the embed card rather than throwing runtime formatting exceptions.
+    * **Strict Execution Defers:** Automatically invokes the Defer Protocol (`await interaction.response.defer(thinking=True)`) as the very first operation of commands to bypass Discord's rigid 3-second response boundary, using followup webhooks to print the finalized embed payload.
+* **Commands:**
+    * `/value [item]`: Looks up the current baseline trade value, rarity, rate of change, and tax details of a singular specified item via RAG vector processing.
+    * `/trade-compare [giving] [getting]`: Evaluates a complex trade by splitting item strings on the `+` character, computing collective multi-currency valuation pools, processing stack quantities, tracking split transaction taxes, and calculating the exact net profit/loss margin inside premium ANSI text blocks.
+* **Dependencies/Configs:**
+    * `google-genai`, `motor`, `certifi`, `json`, `re`, `asyncio`.
+    * Requires environment configurations for `GEMINI_API_KEY` and `MONGO_URI` inside the `.env` root.
+    * Requires a primary database index configuration named `vector_index` bound to the `silk_bot.aotr_knowledge` target collection.
 
 ## 🔮 Future Roadmap (Context for Expansion)
 No future plans.
