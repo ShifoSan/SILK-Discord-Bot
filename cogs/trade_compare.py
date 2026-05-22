@@ -50,7 +50,8 @@ class TradeCompare(commands.Cog):
 
     def parse_tax_string(self, tax_str: str) -> tuple[int, int]:
         """
-        Utility function to parse unstructured tax strings and aggregate Gems and Gold values.
+        Robust text parser that safely extracts and evaluates currency counts from unstructured fields.
+        Accurately translates abbreviations like '50k' into full numeric configurations (50000).
         """
         if not tax_str or tax_str.lower() in ["unknown", "none", "0"]:
             return 0, 0
@@ -59,13 +60,18 @@ class TradeCompare(commands.Cog):
         gems = 0
         gold = 0
         
-        gems_match = re.search(r"(\d+)\s*gem", clean_tax)
+        # Pattern captures numbers followed optionally by a 'k' scaling factor before the tag name
+        gems_match = re.search(r"(\d+)\s*(k)?\s*gem", clean_tax)
         if gems_match:
-            gems = int(gems_match.group(1))
+            base_val = int(gems_match.group(1))
+            is_k_scaled = gems_match.group(2) is not None
+            gems = base_val * 1000 if is_k_scaled else base_val
             
-        gold_match = re.search(r"(\d+)\s*gold", clean_tax)
+        gold_match = re.search(r"(\d+)\s*(k)?\s*gold", clean_tax)
         if gold_match:
-            gold = int(gold_match.group(1))
+            base_val = int(gold_match.group(1))
+            is_k_scaled = gold_match.group(2) is not None
+            gold = base_val * 1000 if is_k_scaled else base_val
             
         return gems, gold
 
@@ -133,6 +139,7 @@ class TradeCompare(commands.Cog):
                 "name, keys, scrolls, vizard, tax.\n\n"
                 "Rules:\n"
                 "- Numerical fields should represent raw numbers if listed, or fallback safely to 'Undefined'.\n"
+                "- Preserve the exact literal value of the tax string exactly as written in the content (e.g., '💎50k' or '🪙58k').\n"
                 "- If the item is completely missing, output EXACTLY this JSON: {\"error\": \"not_found\"}\n"
                 "- Output ONLY raw, valid JSON. No markdown formatting tags."
             )
