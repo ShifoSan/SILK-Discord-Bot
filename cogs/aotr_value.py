@@ -133,14 +133,19 @@ class AoTRValue(commands.Cog):
             if data.get("error") == "not_found":
                 return await interaction.followup.send(f"❌ I searched the active index, but couldn't resolve any assets matching `{item}`.")
 
-            # Formatting helper to strip numerical integers cleanly
-            def clean_int(val) -> int | None:
+            # Upgraded float parser helper to ensure decimals like 0.3 or 0.17 are preserved perfectly
+            def clean_float(val) -> float | None:
                 if val is None or str(val).lower() in ["undefined", "unknown", "none", "null"]:
                     return None
-                if isinstance(val, (int, float)):
-                    return int(val)
-                digits = re.findall(r"\d+", str(val).replace(",", ""))
-                return int(digits[0]) if digits else None
+                try:
+                    if isinstance(val, (int, float)):
+                        return float(val)
+                    # Extract single numbers including their decimal dots safely
+                    cleaned_str = str(val).replace(",", "").strip()
+                    match = re.search(r"(\d+(\.\d+)?)", cleaned_str)
+                    return float(match.group(1)) if match else None
+                except ValueError:
+                    return None
 
             name = data.get("name", "Unknown Item")
             rarity = data.get("rarity", "Unknown")
@@ -148,15 +153,23 @@ class AoTRValue(commands.Cog):
             rate = data.get("rate", "Unknown")
 
             # 5. Core Mathematical Fallback System Execution
-            raw_keys = clean_int(data.get("keys"))
-            keys_total = raw_keys if raw_keys is not None else 0
+            parsed_keys = clean_float(data.get("keys"))
+            keys_total = int(parsed_keys) if parsed_keys is not None else 0
 
-            raw_scrolls = clean_int(data.get("scrolls"))
-            raw_vizard = clean_int(data.get("vizard"))
+            parsed_scrolls = clean_float(data.get("scrolls"))
+            parsed_vizard = clean_float(data.get("vizard"))
 
-            # Calculate math values dynamically only if database outputs show 'Undefined' strings
-            scrolls_display = f"{raw_scrolls:,}" if raw_scrolls is not None else f"{keys_total / 3:,.1f} *(Calculated)*"
-            vizard_display = f"{raw_vizard:,}" if raw_vizard is not None else f"{keys_total / 900:,.2f} *(Calculated)*"
+            # Format scrolls display: strip clean integers if possible, else format to 1 decimal place
+            if parsed_scrolls is not None:
+                scrolls_display = f"{int(parsed_scrolls):,}" if parsed_scrolls.is_integer() else f"{parsed_scrolls:,.1f}"
+            else:
+                scrolls_display = f"{keys_total / 3:,.1f} *(Calculated)*"
+
+            # Format vizard display: strip clean integers if possible, else format to 2 decimal places
+            if parsed_vizard is not None:
+                vizard_display = f"{int(parsed_vizard):,}" if parsed_vizard.is_integer() else f"{parsed_vizard:,.2f}"
+            else:
+                vizard_display = f"{keys_total / 900:,.2f} *(Calculated)*"
 
             # Parse split multi-currency trade tax points
             gems_tax = self.parse_tax_value(data.get("gems_tax", 0))
@@ -202,7 +215,7 @@ class AoTRValue(commands.Cog):
                 inline=False
             )
 
-            embed.set_footer(text="The official AoTR values | Last updated - 22/05/2026.")
+            embed.set_footer(text="The official AoTR values | Last updated - 24/05/2026.")
             await interaction.followup.send(embed=embed)
 
         except discord.NotFound:
