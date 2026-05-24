@@ -325,7 +325,7 @@ class TradeCompare(commands.Cog):
                 inline=False
             )
 
-        embed.set_footer(text="The official AoTR values | Last updated - 17/05/2026.")
+        embed.set_footer(text="The official AoTR values | Last updated - 22/05/2026.")
         await interaction.followup.send(embed=embed)
 
 async def setup(bot):
