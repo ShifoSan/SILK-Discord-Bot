@@ -98,16 +98,17 @@ class AoTRValue(commands.Cog):
 
             chunks = "\n\n".join([doc.get("content", "") for doc in results])
 
-            # 3. Data Extraction - Split prompt architecture pulling dual tax variables
+            # 3. Data Extraction - Updated prompt to isolate multi-level structures safely
             system_prompt = (
                 "You are a strict data extraction tool. You will receive a user's search query and database text chunks.\n\n"
                 "Task 1: Identify which item from the database text best matches the user's query regardless of spelling mistakes.\n"
                 "Task 2: Extract data fields into a JSON object with EXACTLY these keys:\n"
-                "name, rarity, demand, rate, keys, scrolls, vizard, gems_tax, gold_tax.\n\n"
+                "name, rarity, demand, rate, is_perk, lvl0, lvl10.\n\n"
                 "Extraction Instructions:\n"
-                "- Numerical fields (keys, scrolls, vizard) should hold clean base numbers if tracking exists, or 'Undefined' if absent.\n"
-                "- Map 'Tax (Gems):' content verbatim to the 'gems_tax' key (e.g. '50k'). Set to '0' if missing.\n"
-                "- Map 'Tax (Gold):' content verbatim to the 'gold_tax' key (e.g. '58k'). Set to '0' if missing.\n"
+                "- 'is_perk' must be true if the database text explicitly includes multi-level properties (e.g. 'Level 0 Value:' or 'Lvl 0:'), otherwise false.\n"
+                "- 'lvl0' and 'lvl10' are child objects each containing: keys, scrolls, vizard, gems_tax, gold_tax.\n"
+                "- For regular single items, put all extracted data inside 'lvl0' and set 'lvl10' to null.\n"
+                "- Isolate numbers for numerical fields or set to 'Undefined'. Pass tax variables verbatim (e.g. '480k') or '0' if missing.\n"
                 "- If the item does not exist inside the text context, return EXACTLY: {\"error\": \"not_found\"}\n"
                 "- Return ONLY raw, valid JSON text blocks."
             )
@@ -133,49 +134,22 @@ class AoTRValue(commands.Cog):
             if data.get("error") == "not_found":
                 return await interaction.followup.send(f"❌ I searched the active index, but couldn't resolve any assets matching `{item}`.")
 
-            # Upgraded float parser helper to ensure decimals like 0.3 or 0.17 are preserved perfectly
-            def clean_float(val) -> float | None:
+            # Formatting helper to strip numerical integers cleanly
+            def clean_int(val) -> int | None:
                 if val is None or str(val).lower() in ["undefined", "unknown", "none", "null"]:
                     return None
-                try:
-                    if isinstance(val, (int, float)):
-                        return float(val)
-                    # Extract single numbers including their decimal dots safely
-                    cleaned_str = str(val).replace(",", "").strip()
-                    match = re.search(r"(\d+(\.\d+)?)", cleaned_str)
-                    return float(match.group(1)) if match else None
-                except ValueError:
-                    return None
+                if isinstance(val, (int, float)):
+                    return int(val)
+                digits = re.findall(r"\d+", str(val).replace(",", ""))
+                return int(digits[0]) if digits else None
 
             name = data.get("name", "Unknown Item")
             rarity = data.get("rarity", "Unknown")
             demand = data.get("demand", "Unknown")
             rate = data.get("rate", "Unknown")
+            is_perk = data.get("is_perk", False)
 
-            # 5. Core Mathematical Fallback System Execution
-            parsed_keys = clean_float(data.get("keys"))
-            keys_total = int(parsed_keys) if parsed_keys is not None else 0
-
-            parsed_scrolls = clean_float(data.get("scrolls"))
-            parsed_vizard = clean_float(data.get("vizard"))
-
-            # Format scrolls display: strip clean integers if possible, else format to 1 decimal place
-            if parsed_scrolls is not None:
-                scrolls_display = f"{int(parsed_scrolls):,}" if parsed_scrolls.is_integer() else f"{parsed_scrolls:,.1f}"
-            else:
-                scrolls_display = f"{keys_total / 3:,.1f} *(Calculated)*"
-
-            # Format vizard display: strip clean integers if possible, else format to 2 decimal places
-            if parsed_vizard is not None:
-                vizard_display = f"{int(parsed_vizard):,}" if parsed_vizard.is_integer() else f"{parsed_vizard:,.2f}"
-            else:
-                vizard_display = f"{keys_total / 900:,.2f} *(Calculated)*"
-
-            # Parse split multi-currency trade tax points
-            gems_tax = self.parse_tax_value(data.get("gems_tax", 0))
-            gold_tax = self.parse_tax_value(data.get("gold_tax", 0))
-
-            # Dynamically handle embed color palette shifts matching market rate trajectories
+            # Process Rate Changes
             rate_lower = str(rate).lower()
             if "rise" in rate_lower or "rising" in rate_lower or "hyped" in rate_lower:
                 embed_color = 0x2ECC71  # Green
@@ -187,7 +161,7 @@ class AoTRValue(commands.Cog):
                 embed_color = 0xFF4500  # Default Orange
                 rate_text = f"**{rate}** 🤝"
 
-            # 6. Premium Embed Construction Space
+            # 5. Embed Construction Space
             embed = discord.Embed(title=f"🔮 S.I.L.K. — Asset Valuation Profile", color=embed_color)
             embed.description = f"### **{name}**"
             
@@ -203,19 +177,58 @@ class AoTRValue(commands.Cog):
                 inline=False
             )
 
-            embed.add_field(
-                name="💰 BASE MARKET VALUATION",
-                value=f"• {self.emperor_key} **Emperor Keys:** `{keys_total:,} Keys`\n• {self.scroll} **Prestige Scrolls:** `{scrolls_display}`\n• {self.vizard_mask} **Vizard Masks:** `{vizard_display}`",
-                inline=False
-            )
+            # Conditional Dual Layout for Perks
+            if is_perk and data.get("lvl10"):
+                lvl0 = data.get("lvl0", {})
+                lvl10 = data.get("lvl10", {})
 
-            embed.add_field(
-                name="⚖️ REQUIRED TRANSACTION TAX",
-                value=f"• 💎 **Gems Cost:** `{gems_tax:,} Gems`\n• 🪙 **Gold Cost:** `{gold_tax:,} Gold`",
-                inline=False
-            )
+                # Parse Level 0 Metrics
+                k0 = clean_int(lvl0.get("keys")) or 0
+                s0 = f"{clean_int(lvl0.get('scrolls')):,}" if lvl0.get('scrolls') and str(lvl0.get('scrolls')).lower() != "undefined" else f"{k0 / 3:,.1f} *"
+                v0 = f"{clean_int(lvl0.get('vizard')):,}" if lvl0.get('vizard') and str(lvl0.get('vizard')).lower() != "undefined" else f"{k0 / 900:,.2f} *"
+                gold0 = self.parse_tax_value(lvl0.get("gold_tax", 0))
 
-            embed.set_footer(text="The official AoTR values | Last updated - 24/05/2026.")
+                # Parse Level 10 Metrics
+                k10 = clean_int(lvl10.get("keys")) or 0
+                s10 = f"{clean_int(lvl10.get('scrolls')):,}" if lvl10.get('scrolls') and str(lvl10.get('scrolls')).lower() != "undefined" else f"{k10 / 3:,.1f} *"
+                v10 = f"{clean_int(lvl10.get('vizard')):,}" if lvl10.get('vizard') and str(lvl10.get('vizard')).lower() != "undefined" else f"{k10 / 900:,.2f} *"
+                gold10 = self.parse_tax_value(lvl10.get("gold_tax", 0))
+
+                embed.add_field(
+                    name="🟢 LEVEL 0 VALUATION",
+                    value=f"• {self.emperor_key} **Keys:** `{k0:,} Keys`\n• {self.scroll} **Scrolls:** `{s0}`\n• {self.vizard_mask} **Masks:** `{v0}`\n• 🪙 **Gold Tax:** `{gold0:,} Gold`",
+                    inline=True
+                )
+                embed.add_field(
+                    name="🔥 LEVEL 10 (MAX) VALUATION",
+                    value=f"• {self.emperor_key} **Keys:** `{k10:,} Keys`\n• {self.scroll} **Scrolls:** `{s10}`\n• {self.vizard_mask} **Masks:** `{v10}`\n• 🪙 **Gold Tax:** `{gold10:,} Gold`",
+                    inline=True
+                )
+            else:
+                # Regular Single Item Parser Execution Path
+                lvl0 = data.get("lvl0", {})
+                keys_total = clean_int(lvl0.get("keys")) or 0
+                raw_scrolls = clean_int(lvl0.get("scrolls"))
+                raw_vizard = clean_int(lvl0.get("vizard"))
+
+                scrolls_display = f"{raw_scrolls:,}" if raw_scrolls is not None else f"{keys_total / 3:,.1f} *(Calculated)*"
+                vizard_display = f"{raw_vizard:,}" if raw_vizard is not None else f"{keys_total / 900:,.2f} *(Calculated)*"
+
+                gems_tax = self.parse_tax_value(lvl0.get("gems_tax", 0))
+                gold_tax = self.parse_tax_value(lvl0.get("gold_tax", 0))
+
+                embed.add_field(
+                    name="💰 BASE MARKET VALUATION",
+                    value=f"• {self.emperor_key} **Emperor Keys:** `{keys_total:,} Keys`\n• {self.scroll} **Prestige Scrolls:** `{scrolls_display}`\n• {self.vizard_mask} **Vizard Masks:** `{vizard_display}`",
+                    inline=False
+                )
+                embed.add_field(
+                    name="⚖️ REQUIRED TRANSACTION TAX",
+                    value=f"• 💎 **Gems Cost:** `{gems_tax:,} Gems`\n• 🪙 **Gold Cost:** `{gold_tax:,} Gold`",
+                    inline=False
+                )
+
+            embed.set_footer(text="The official AoTR values | Last updated - 22/05/2026.")
             await interaction.followup.send(embed=embed)
 
         except discord.NotFound:
