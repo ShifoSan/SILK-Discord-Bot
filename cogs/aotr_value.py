@@ -114,7 +114,7 @@ class AoTRValue(commands.Cog):
             )
 
             response = await self.client.aio.models.generate_content(
-                model='gemini-3.1-flash-lite-preview',
+                model='gemini-3.1-flash-lite',
                 contents=f"User's Query: {item}\n\nDatabase Text:\n{chunks}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
