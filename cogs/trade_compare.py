@@ -22,7 +22,7 @@ class TradeCompare(commands.Cog):
             self.client = None
             print("Warning: GEMINI_API_KEY not found. TradeCompare module will fail.")
 
-        # Initialize MongoDB natively targeting the exact Version 2 manual route
+        # Initialize MongoDB natively targeting the manual database route
         self.mongo_uri = os.getenv("MONGO_URI")
         if self.mongo_uri:
             self.db_client = AsyncIOMotorClient(self.mongo_uri, tlsCAFile=certifi.where())
@@ -32,7 +32,7 @@ class TradeCompare(commands.Cog):
             self.collection = None
             print("Warning: MONGO_URI not found. TradeCompare module will fail.")
 
-        # Custom Emojis inherited from your aotr_value.py settings
+        # Custom Emojis configuration
         self.emperor_key = "<:EmperorKey:1505387099518537918>"
         self.scroll = "<:Scroll:1505387447218077699>"
         self.vizard_mask = "<:VizardMask:1505387338363043880>"
@@ -40,11 +40,9 @@ class TradeCompare(commands.Cog):
     def extract_quantity_and_name(self, raw_input: str) -> tuple[int, str]:
         """
         Extracts multiplier quantities at the start of item strings.
-        Example: "2 colossal shard" -> (2, "colossal shard")
-        Example: "Fritz" -> (1, "Fritz")
+        Example: "2 x Lvl 10 Kengo" -> (2, "Lvl 10 Kengo")
         """
         clean_input = raw_input.strip()
-        # Matches patterns like "2 x colossal shard", "2x colossal shard", or "2 colossal shard"
         match = re.match(r"^(\d+)\s*x?\s+(.+)$", clean_input, re.IGNORECASE)
         if match:
             quantity = int(match.group(1))
@@ -54,8 +52,7 @@ class TradeCompare(commands.Cog):
 
     def parse_raw_currency(self, item_name: str) -> int | None:
         """
-        Optimized local shortcut matching: Map 'Key' or 'Keys' directly to Emperor Keys.
-        Bypasses the database cluster entirely to save network processing latency.
+        Maps 'Key' or 'Keys' directly to Emperor Keys to save API latency.
         """
         clean_name = item_name.strip().lower()
         match = re.match(r"^(\d+)\s*keys?$", clean_name)
@@ -65,35 +62,29 @@ class TradeCompare(commands.Cog):
 
     def parse_tax_value(self, tax_val) -> int:
         """
-        Robust text parser that handles raw integers, strings, and short-scale 
-        thousands multipliers like '50k' or '58k', turning them into proper numbers.
+        Turns short-scale thousands multipliers like '480k' or '140k' into integers.
         """
         if not tax_val or str(tax_val).lower() in ["unknown", "none", "0", "undefined"]:
             return 0
             
         clean_tax = str(tax_val).replace(",", "").strip().lower()
-        
-        # Look for numbers optionally followed by 'k'
-        match = re.search(r"(\d+)\s*(k)?", clean_tax)
+        match = re.search(r"(\d+(\.\d+)?)\s*(k)?", clean_tax)
         if match:
-            base_val = int(match.group(1))
-            is_k_scaled = match.group(2) is not None
-            return base_val * 1000 if is_k_scaled else base_val
+            base_val = float(match.group(1))
+            is_k_scaled = match.group(3) is not None
+            return int(base_val * 1000) if is_k_scaled else int(base_val)
             
         return 0
 
     async def fetch_item_data(self, raw_item_query: str) -> dict:
         """
-        Extracts stack multipliers, employs the Version 2 RAG architecture with widened 
-        boundaries, matches misspelled names, and applies the stack multiplication factor.
+        Optimizes strings, runs structural dual extraction via Gemini, 
+        and maps level stats using deterministic Python rules.
         """
-        # Extract item multiplier count if provided
         quantity, item_query = self.extract_quantity_and_name(raw_item_query)
 
-        # Shortcut calculation evaluation check for raw currency injections
         direct_keys = self.parse_raw_currency(item_query)
         if direct_keys is not None:
-            # Multiplied directly by quantity count
             total_keys = direct_keys * quantity
             return {
                 "display_name": f"Raw Currency ({total_keys:,} Keys)",
@@ -109,10 +100,21 @@ class TradeCompare(commands.Cog):
             return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "config_missing"}
 
         try:
-            # Vector Search Pipeline - Widened boundaries to catch typos (V2 Setup)
+            # Rule 1: Deterministic Level Target Detection via Python
+            query_lower = item_query.lower()
+            is_lvl10 = any(x in query_lower for x in ["10", "max", "lvl10", "lvl 10", "level 10", "level10"])
+
+            # Rule 2: Clean level clutter out to optimize Vector Index matching accuracy
+            search_query = re.sub(r"\b(lvl|level|lv)\s*(0|10)\b", "", item_query, flags=re.IGNORECASE)
+            search_query = re.sub(r"\b(max)\b", "", search_query, flags=re.IGNORECASE)
+            search_query = re.sub(r"\s+", " ", search_query).strip()
+            if not search_query:  # Fallback if query was only numerical level text
+                search_query = item_query
+
+            # Vector Search Pipeline
             embedding_response = await self.client.aio.models.embed_content(
                 model="gemini-embedding-2",
-                contents=item_query
+                contents=search_query
             )
             vector = embedding_response.embeddings[0].values
 
@@ -142,26 +144,24 @@ class TradeCompare(commands.Cog):
 
             chunks = "\n\n".join([doc.get("content", "") for doc in results])
 
-            # Explicitly instruct the AI to isolate Tax (Gems) and Tax (Gold)
+            # Rule 3: Enforce strict dual schema extraction layout instructions
             system_prompt = (
-                "You are a strict data extraction tool. You will receive a user's search query (which may contain typos) "
-                "and a set of database texts.\n\n"
-                "Task 1: Identify which item from the database text best matches the user's query regardless of typos.\n"
-                "Task 2: Extract the data for THAT specific item into a JSON object with EXACTLY these keys:\n"
-                "name, keys, scrolls, vizard, gems_tax, gold_tax.\n\n"
-                "Tax Extraction Rules:\n"
-                "- Look inside the database text for 'Tax (Gems):' and extract its value into 'gems_tax' (e.g., if text says 'Tax (Gems): 💎50k', extract '50k').\n"
-                "- Look inside the database text for 'Tax (Gold):' and extract its value into 'gold_tax' (e.g., if text says 'Tax (Gold): 🪙58k', extract '58k').\n"
-                "- If either text field is completely absent or not specified for the matched item, set its respective JSON value to '0'.\n\n"
-                "General Rules:\n"
-                "- Numerical value fields (keys, scrolls, vizard) should represent raw single-item metrics, or fallback to 'Undefined'.\n"
-                "- If the item is completely missing, output EXACTLY this JSON: {\"error\": \"not_found\"}\n"
-                "- Output ONLY raw, valid JSON. Do not include markdown formatting code blocks."
+                "You are a strict data extraction tool. You will receive an item search query and database texts.\n\n"
+                "Task 1: Identify which item from the database text best matches the query regardless of typos.\n"
+                "Task 2: Extract data fields into a JSON object with EXACTLY these keys:\n"
+                "name, is_perk, lvl0, lvl10.\n\n"
+                "Extraction Instructions:\n"
+                "- 'is_perk' must be true if the database text explicitly contains separate level stats (e.g. 'Lvl 0:' or 'Level 0 Value:'), otherwise false.\n"
+                "- 'lvl0' and 'lvl10' are child objects each containing: keys, scrolls, vizard, gems_tax, gold_tax.\n"
+                "- For standard single items without tiers, extract metrics into 'lvl0' and set 'lvl10' to null.\n"
+                "- Pull base integers for value metrics or return 'Undefined'. Pass tax variables verbatim (e.g. '480k') or '0' if missing.\n"
+                "- If the item does not exist inside the text context, return EXACTLY: {\"error\": \"not_found\"}\n"
+                "- Return ONLY raw, valid JSON text blocks."
             )
 
             response = await self.client.aio.models.generate_content(
                 model='gemini-3.1-flash-lite-preview',
-                contents=f"User's Query: {item_query}\n\nDatabase Text:\n{chunks}",
+                contents=f"Query: {search_query}\n\nDatabase Text:\n{chunks}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     system_instruction=system_prompt,
@@ -182,20 +182,29 @@ class TradeCompare(commands.Cog):
                 digits = re.findall(r"\d+", str(val).replace(",", ""))
                 return int(digits[0]) if digits else 0
 
-            # Single item base stats parsing
-            base_keys = clean_int(data.get("keys", 0))
-            raw_scrolls = data.get("scrolls")
-            raw_vizard = data.get("vizard")
+            is_perk = data.get("is_perk", False)
+
+            # Rule 4: Route data deterministically based on Python's level detection check
+            if is_perk and is_lvl10 and data.get("lvl10"):
+                stats = data["lvl10"]
+                level_label = " (Lvl 10)"
+            else:
+                stats = data.get("lvl0", {})
+                level_label = " (Lvl 0)" if is_perk else ""
+
+            base_keys = clean_int(stats.get("keys", 0))
+            raw_scrolls = stats.get("scrolls")
+            raw_vizard = stats.get("vizard")
             
             base_scrolls = clean_int(raw_scrolls) if raw_scrolls and str(raw_scrolls).lower() != "undefined" else (base_keys / 3)
             base_vizard = clean_int(raw_vizard) if raw_vizard and str(raw_vizard).lower() != "undefined" else (base_keys / 900)
 
-            base_gems_tax = self.parse_tax_value(data.get("gems_tax", 0))
-            base_gold_tax = self.parse_tax_value(data.get("gold_tax", 0))
+            base_gems_tax = self.parse_tax_value(stats.get("gems_tax", 0))
+            base_gold_tax = self.parse_tax_value(stats.get("gold_tax", 0))
 
-            # Apply Stack Multipliers safely across all elements
-            final_name = data.get("name", item_query)
-            display_name = f"{final_name} x{quantity}" if quantity > 1 else final_name
+            final_name = data.get("name", search_query)
+            item_display_decor = f"{final_name}{level_label}"
+            display_name = f"{item_display_decor} x{quantity}" if quantity > 1 else item_display_decor
 
             return {
                 "display_name": display_name,
@@ -216,7 +225,6 @@ class TradeCompare(commands.Cog):
         getting="The items you are receiving (separate items using '+')"
     )
     async def trade_compare(self, interaction: discord.Interaction, giving: str, getting: str):
-        # The Defer Protocol protects against interaction timeout drops (3-second limit)
         await interaction.response.defer(thinking=True)
 
         giving_list = [item.strip() for item in giving.split("+") if item.strip()]
@@ -226,7 +234,6 @@ class TradeCompare(commands.Cog):
             await interaction.followup.send("⚠️ Invalid formatting. Please provide items for both fields split by `+`.")
             return
 
-        # Parallel Execution: Runs lookups concurrently to protect the Discord Gateway loop
         giving_tasks = [self.fetch_item_data(item) for item in giving_list]
         getting_tasks = [self.fetch_item_data(item) for item in getting_list]
 
@@ -261,13 +268,11 @@ class TradeCompare(commands.Cog):
             total_getting_gold_tax += res["gold_tax"]
             getting_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{res['keys']:,}** Keys")
 
-        # Ratio Logic
         if total_giving_keys == 0:
             ratio = 5.0 if total_getting_keys > 0 else 1.0
         else:
             ratio = total_getting_keys / total_giving_keys
 
-        # Determine visual traits based on pricing margins
         if ratio >= 1.50:
             verdict = "🚀 VERDICT: MASSIVE WIN (HUGE W)"
             embed_color = 0x00FF00  
@@ -289,7 +294,6 @@ class TradeCompare(commands.Cog):
         margin_vizard = total_getting_vizard - total_giving_vizard
         sign = "+" if margin_keys >= 0 else ""
 
-        # UI Formatting
         embed = discord.Embed(title="⚖️ S.I.L.K. — Trade Analytics Engine", color=embed_color)
         avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
         embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
@@ -325,7 +329,7 @@ class TradeCompare(commands.Cog):
                 inline=False
             )
 
-        embed.set_footer(text="The official AoTR values | Last updated - 22/05/2026.")
+        embed.set_footer(text="The official AoTR values | Data dynamically synchronized from live sheet.")
         await interaction.followup.send(embed=embed)
 
 async def setup(bot):
