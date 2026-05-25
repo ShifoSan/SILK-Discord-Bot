@@ -160,7 +160,7 @@ class TradeCompare(commands.Cog):
             )
 
             response = await self.client.aio.models.generate_content(
-                model='gemini-3.1-flash-lite-preview',
+                model='gemini-3.1-flash-lite',
                 contents=f"Query: {search_query}\n\nDatabase Text:\n{chunks}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
