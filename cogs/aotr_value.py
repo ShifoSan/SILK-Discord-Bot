@@ -134,14 +134,22 @@ class AoTRValue(commands.Cog):
             if data.get("error") == "not_found":
                 return await interaction.followup.send(f"❌ I searched the active index, but couldn't resolve any assets matching `{item}`.")
 
-            # Formatting helper to strip numerical integers cleanly
-            def clean_int(val) -> int | None:
+            # Upgraded numerical helper to preserve decimal floats and scale 'k' shorthands accurately
+            def clean_numeric(val) -> int | float | None:
                 if val is None or str(val).lower() in ["undefined", "unknown", "none", "null"]:
                     return None
                 if isinstance(val, (int, float)):
-                    return int(val)
-                digits = re.findall(r"\d+", str(val).replace(",", ""))
-                return int(digits[0]) if digits else None
+                    return val
+                
+                clean_str = str(val).replace(",", "").strip().lower()
+                match = re.search(r"(\d+(?:\.\d+)?)\s*([kK]?)", clean_str)
+                if match:
+                    num = float(match.group(1))
+                    multiplier = match.group(2)
+                    if multiplier:
+                        return int(num * 1000)
+                    return int(num) if num.is_integer() else num
+                return None
 
             name = data.get("name", "Unknown Item")
             rarity = data.get("rarity", "Unknown")
@@ -183,15 +191,15 @@ class AoTRValue(commands.Cog):
                 lvl10 = data.get("lvl10", {})
 
                 # Parse Level 0 Metrics
-                k0 = clean_int(lvl0.get("keys")) or 0
-                s0 = f"{clean_int(lvl0.get('scrolls')):,}" if lvl0.get('scrolls') and str(lvl0.get('scrolls')).lower() != "undefined" else f"{k0 / 3:,.1f} *"
-                v0 = f"{clean_int(lvl0.get('vizard')):,}" if lvl0.get('vizard') and str(lvl0.get('vizard')).lower() != "undefined" else f"{k0 / 900:,.2f} *"
+                k0 = clean_numeric(lvl0.get("keys")) or 0
+                s0 = f"{clean_numeric(lvl0.get('scrolls')):,}" if lvl0.get('scrolls') and str(lvl0.get('scrolls')).lower() != "undefined" else f"{k0 / 3:,.1f} *"
+                v0 = f"{clean_numeric(lvl0.get('vizard')):,}" if lvl0.get('vizard') and str(lvl0.get('vizard')).lower() != "undefined" else f"{k0 / 900:,.2f} *"
                 gold0 = self.parse_tax_value(lvl0.get("gold_tax", 0))
 
                 # Parse Level 10 Metrics
-                k10 = clean_int(lvl10.get("keys")) or 0
-                s10 = f"{clean_int(lvl10.get('scrolls')):,}" if lvl10.get('scrolls') and str(lvl10.get('scrolls')).lower() != "undefined" else f"{k10 / 3:,.1f} *"
-                v10 = f"{clean_int(lvl10.get('vizard')):,}" if lvl10.get('vizard') and str(lvl10.get('vizard')).lower() != "undefined" else f"{k10 / 900:,.2f} *"
+                k10 = clean_numeric(lvl10.get("keys")) or 0
+                s10 = f"{clean_numeric(lvl10.get('scrolls')):,}" if lvl10.get('scrolls') and str(lvl10.get('scrolls')).lower() != "undefined" else f"{k10 / 3:,.1f} *"
+                v10 = f"{clean_numeric(lvl10.get('vizard')):,}" if lvl10.get('vizard') and str(lvl10.get('vizard')).lower() != "undefined" else f"{k10 / 900:,.2f} *"
                 gold10 = self.parse_tax_value(lvl10.get("gold_tax", 0))
 
                 embed.add_field(
@@ -207,9 +215,9 @@ class AoTRValue(commands.Cog):
             else:
                 # Regular Single Item Parser Execution Path
                 lvl0 = data.get("lvl0", {})
-                keys_total = clean_int(lvl0.get("keys")) or 0
-                raw_scrolls = clean_int(lvl0.get("scrolls"))
-                raw_vizard = clean_int(lvl0.get("vizard"))
+                keys_total = clean_numeric(lvl0.get("keys")) or 0
+                raw_scrolls = clean_numeric(lvl0.get("scrolls"))
+                raw_vizard = clean_numeric(lvl0.get("vizard"))
 
                 scrolls_display = f"{raw_scrolls:,}" if raw_scrolls is not None else f"{keys_total / 3:,.1f} *(Calculated)*"
                 vizard_display = f"{raw_vizard:,}" if raw_vizard is not None else f"{keys_total / 900:,.2f} *(Calculated)*"
@@ -238,3 +246,4 @@ class AoTRValue(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(AoTRValue(bot))
+        
