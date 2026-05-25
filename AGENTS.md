@@ -278,29 +278,33 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
 20. Trade Module (Phase 20)
 * **Primary Role:** RAG (Retrieval-Augmented Generation) based search engine and multi-asset transactional evaluation matrix used to fetch, parse, scale, and format official Attack on Titan: Revolution item weights and market parameters.
 * **Files Included:**
-    * `cogs/aotr_value.py`: Core item look-up cog containing standard asset analysis and embedding parsing loops.
-    * `cogs/trade_compare.py`: Core trade comparison calculator managing delimiter parsing, item aggregation, automated stack quantity parsing, and dynamic profit ratios.
+    * `cogs/aotr_value.py`: Singular asset valuation lookup cog. Interfaces with Atlas Vector Search and utilizes Gemini structured JSON responses to render individual item statistics or side-by-side tier profiles.
+    * `cogs/trade_compare.py`: Core trade comparison calculator managing delimiter parsing, item aggregation, automated stack quantity parsing, and dynamic profit ratios via a hybrid python routing matrix.
+    * `rebuild_perk_embeddings.py`: Administrative database utility script designed to sequentially iterate through consolidated Perk documents, generate fresh vector coordinate arrays via `gemini-embedding-2`, and push synchronous updates to Atlas.
 * **Core Logic & Features:**
     * **Vector Ingestion Search:** Vectorizes user inputs using the `gemini-embedding-2` model and queries the MongoDB `aotr_knowledge` collection inside the `silk_bot` database utilizing a dedicated Atlas `$vectorSearch` pipeline.
     * **Typo-Forgiveness Constraints:** Widens retrieval boundaries (`numCandidates: 50`, `limit: 5`) to capture deep context variants, allowing the AI to seamlessly match misspelled inputs (e.g., matching "colasal" back to "Colossal") safely without throwing empty returns.
     * **Deterministic AI Extraction:** Feeds context chunks alongside exact targets directly into `gemini-3.1-flash-lite-preview` at a low temperature (`0.1`) using a structured format (`response_mime_type="application/json"`) to securely pull item statistics without conversational hallucinations.
-    * **Advanced Stack Multiplier Extraction:** Implements a localized regex pre-processing step (`extract_quantity_and_name`) that scans the beginning of each parsed item segment to isolate leading numbers (e.g., extracting "2" as a multiplier factor and "Colossal Shard" as the clean lookup target). The module then scales keys, scrolls, vizard masks, and taxes by that quantity before constructing the card sums.
-    * **Raw Currency Shortcuts:** Features an instantaneous shortcut expression check mapping variations of standalone "Key" or "Keys" strings. If an entry consists of a direct number and label (e.g., "360 keys"), it plucks out the integer directly, logs it, and completely skips both the vector search and AI parsing layers to save processing overhead.
-    * **Dual-Sided Tax Matrix Tracking:** Explicitly guides the model to target and isolate the literal `Tax (Gems):` and `Tax (Gold):` fields from raw matching database text fragments. It automatically evaluates shorthand notation (e.g., translating "50k" or "58k" into full numeric integers like `50000` or `58000`) and displays separate rows for **Your Required Trade Tax (Side A)** and **Their Required Trade Tax (Side B)** to avoid confusing net calculations.
-    * **Asynchronous Speed Consolidation:** Bundles multi-item comparison pipelines concurrently using `asyncio.gather()`, resolving extensive list chains simultaneously to keep the bot's single event loop unblocked and completely safe from gateway websocket lag or disconnections.
-    * **Dynamic Profit Assessment Calibration:** Tracks cumulative weights against an absolute base unit in Emperor Keys, automatically resolving secondary market tokens via uniform scaling definitions ($\text{Scrolls} = \frac{\text{Keys}}{3}$ | $\text{Viz} = \frac{\text{Keys}}{900}$) formatted with clean floating-point precision. It evaluates inbound values against outbound weights, dynamically shifting embed border colors and final verdict text layouts based on an internal return margin ratio:
-        * **Ratio ≥ 1.50** $\rightarrow$ 🚀 `MASSIVE WIN (HUGE W)` [Vibrant Green: `0x00FF00`]
-        * **1.10 ≤ Ratio < 1.50** $\rightarrow$ ✅ `PROFIT (SLIGHT W)` [Dark Green: `0x2ECC71`]
-        * **0.90 < Ratio < 1.10** $\rightarrow$ 🤝 `FAIR TRADE` [Blue/White: `0x3498DB`]
-        * **0.60 ≤ Ratio ≤ 0.90** $\rightarrow$ ⚠️ `LOSS (SLIGHT L)` [Orange: `0xE67E22`]
-        * **Ratio < 0.60** $\rightarrow$ 🛑 `SEVERE DEFICIT (MASSIVE L)` [Red: `0xE74C3C`]
+    * **Advanced Stack Multiplier Extraction:** Implements a localized regex pre-processing engine to dynamically pull stack sizes and multipliers (e.g. `2x Kengo` or `3 helos`) at the start of input blocks.
+    * **Deterministic Hybrid Multi-Tier Routing:** Intercepts incoming user query strings via native Python text filters to extract tier metadata (e.g., "lvl 10", "max", "lvl 0") before triggering a vector search. Strips these tracking keywords from the final database search query string to maximize RAG candidate retrieval scores within Atlas Vector Search index filters.
+    * **Verdict Profit Margins:** Evaluates numeric asset weights to generate an analytical swap assessment via ratio scales:
+        * Ratio $\ge 1.50 \rightarrow$ 🚀 `MASSIVE WIN (HUGE W)` [Green: `0x00FF00`]
+        * $1.10 \le \text{Ratio} < 1.50 \rightarrow$ ✅ `PROFIT (SLIGHT W)` [Light Green: `0x2ECC71`]
+        * $0.90 < \text{Ratio} < 1.10 \rightarrow$ 🤝 `FAIR TRADE` [Blue: `0x3498DB`]
+        * $0.60 \le \text{Ratio} \le 0.90 \rightarrow$ ⚠️ `LOSS (SLIGHT L)` [Orange: `0xE67E22`]
+        * Ratio $< 0.60 \rightarrow$ 🛑 `SEVERE DEFICIT (MASSIVE L)` [Red: `0xE74C3C`]
     * **Graceful Missing Record Bail-Outs:** Instructs the AI model to yield exactly `{"error": "not_found"}` if a user's item doesn't exist in the context blocks. Unrecognized objects default safely to `0 Keys` and trigger a clear text warning at the base of the embed card rather than throwing runtime formatting exceptions.
     * **Strict Execution Defers:** Automatically invokes the Defer Protocol (`await interaction.response.defer(thinking=True)`) as the very first operation of commands to bypass Discord's rigid 3-second response boundary, using followup webhooks to print the finalized embed payload.
+* **Database Document Schema Standards:**
+    All text records generated for or stored inside the `silk_bot.aotr_knowledge` collection must strictly match one of these two schema blueprints to prevent text-parsing or integer-scallop translation breaks:
+    * **Standard Base Items:** `Item: [Name]. Category: [Category]. Rarity: [Rarity]. Demand: [X.X]. Value: [X] Keys. Rate Of Change: [Trend]. Tax (Gold): [X].`
+    * **Tiered Character Perks (Category: Perks):** Both level states must be cleanly consolidated inside a single document string block using split pipe (`|`) boundaries:
+      `Item: [Name]. Category: Perks. Rarity: [Rarity]. Demand: [X.X]. Value: Lvl 0: [X] | Lvl 10: [X]. Rate Of Change: [Trend]. Tax (Gold): Lvl 0: [X] | Lvl 10: [X].`
 * **Commands:**
-    * `/value [item]`: Looks up the current baseline trade value, rarity, rate of change, and tax details of a singular specified item via RAG vector processing.
-    * `/trade-compare [giving] [getting]`: Evaluates a complex trade by splitting item strings on the `+` character, computing collective multi-currency valuation pools, processing stack quantities, tracking split transaction taxes, and calculating the exact net profit/loss margin inside premium ANSI text blocks.
+    * `/value [item]`: Looks up trade values, public demand parameters, market trends, and transaction tax profiles via vector processing. For tiered character Perks, forces Gemini to extract a multi-nested child JSON structure (`lvl0` and `lvl10`) to render a side-by-side level comparison profile card inside a single presentation embed.
+    * `/trade-compare [giving] [getting]`: Evaluates multi-item transaction margins by splitting string blocks on the `+` delimiter and computing cumulative values. Employs the Deterministic Hybrid Level Router for Perks; automatically extracts level context from player text entries, cleans search query strings to optimize Vector Search indexes, isolates corresponding data tiers from the consolidated database string, and processes exact transaction calculations.
 * **Dependencies/Configs:**
-    * `google-genai`, `motor`, `certifi`, `json`, `re`, `asyncio`.
+    * `google-genai`, `motor`, `certifi`, `json`, `re`, `asyncio`, `dotenv`.
     * Requires environment configurations for `GEMINI_API_KEY` and `MONGO_URI` inside the `.env` root.
     * Requires a primary database index configuration named `vector_index` bound to the `silk_bot.aotr_knowledge` target collection.
 
