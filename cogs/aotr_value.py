@@ -65,38 +65,48 @@ class AoTRValue(commands.Cog):
             return await interaction.followup.send("System configuration missing (API Key or MongoDB URI).")
 
         try:
-            # 2. Vector Search Pipeline with expanded boundaries
-            embedding_response = await self.client.aio.models.embed_content(
-                model="gemini-embedding-2",
-                contents=item
-            )
-            vector = embedding_response.embeddings[0].values
+            # --- TIER 1: EXACT KEYWORD MATCH ---
+            exact_match = await self.collection.find_one({
+                "item_name": {"$regex": f"^{re.escape(item)}$", "$options": "i"}
+            })
 
-            pipeline = [
-                {
-                    "$vectorSearch": {
-                        "index": "vector_index",
-                        "path": "embedding",
-                        "queryVector": vector,
-                        "numCandidates": 50, 
-                        "limit": 5           
+            chunks = ""
+
+            if exact_match:
+                chunks = exact_match.get("content", "")
+            else:
+                # --- TIER 2: VECTOR SEARCH FALLBACK ---
+                embedding_response = await self.client.aio.models.embed_content(
+                    model="gemini-embedding-2",
+                    contents=item
+                )
+                vector = embedding_response.embeddings[0].values
+
+                pipeline = [
+                    {
+                        "$vectorSearch": {
+                            "index": "vector_index",
+                            "path": "embedding",
+                            "queryVector": vector,
+                            "numCandidates": 50, 
+                            "limit": 5           
+                        }
+                    },
+                    {
+                        "$project": {
+                            "content": 1,
+                            "_id": 0
+                        }
                     }
-                },
-                {
-                    "$project": {
-                        "content": 1,
-                        "_id": 0
-                    }
-                }
-            ]
+                ]
 
-            cursor = self.collection.aggregate(pipeline)
-            results = await cursor.to_list(length=5)
+                cursor = self.collection.aggregate(pipeline)
+                results = await cursor.to_list(length=5)
 
-            if not results:
-                return await interaction.followup.send(f"❌ No asset logs found matching `{item}` inside the cluster.")
+                if not results:
+                    return await interaction.followup.send(f"❌ No asset logs found matching `{item}` inside the cluster.")
 
-            chunks = "\n\n".join([doc.get("content", "") for doc in results])
+                chunks = "\n\n".join([doc.get("content", "") for doc in results])
 
             # 3. Data Extraction - Updated prompt to isolate multi-level structures safely
             system_prompt = (
@@ -246,4 +256,3 @@ class AoTRValue(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(AoTRValue(bot))
-        
