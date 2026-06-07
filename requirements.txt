@@ -12,5 +12,3 @@ motor
 certifi
 quart
 psutil
-
-better_profanity
