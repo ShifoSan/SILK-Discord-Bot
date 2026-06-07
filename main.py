@@ -19,6 +19,7 @@ class SilkBot(commands.Bot):
         # Load extensions
         cogs_folder = './cogs'
         if os.path.exists(cogs_folder):
+            # 1. UNTOUCHED: Standard top-level file loader
             for filename in os.listdir(cogs_folder):
                 if filename.endswith('.py'):
                     try:
@@ -27,18 +28,30 @@ class SilkBot(commands.Bot):
                     except Exception as e:
                         print(f"Failed to load extension {filename}: {e}")
 
-            # Load level_system extensions manually since they are in subdirectories
-            level_system_extensions = [
-                'cogs.level_system.core',
-                'cogs.level_system.commands',
-                'cogs.level_system.bot_config.main_menu'
-            ]
-            for ext in level_system_extensions:
-                try:
-                    await self.load_extension(ext)
-                    print(f"Loaded extension: {ext}")
-                except Exception as e:
-                    print(f"Failed to load extension {ext}: {e}")
+            # 2 & 3. REPLACED LEVEL SYSTEM: Dynamic Subdirectory Folder Loader
+            for item in os.listdir(cogs_folder):
+                item_path = os.path.join(cogs_folder, item)
+                if os.path.isdir(item_path):
+                    
+                    # 4. NON-HARDCODED IGNORE RULE:
+                    # Skips any folder containing a '.ignore' file or starting with an underscore '_'
+                    if os.path.exists(os.path.join(item_path, '.ignore')) or item.startswith('_'):
+                        continue
+                    
+                    # Recursively traverse permitted folders
+                    for root, dirs, files in os.walk(item_path):
+                        # Filter nested directories dynamically in-place
+                        dirs[:] = [d for d in dirs if not os.path.exists(os.path.join(root, d, '.ignore')) and not d.startswith('_')]
+                        
+                        for filename in files:
+                            if filename.endswith('.py') and filename != '__init__.py':
+                                rel_path = os.path.relpath(os.path.join(root, filename), start='.')
+                                module_path = rel_path[:-3].replace(os.sep, '.')
+                                try:
+                                    await self.load_extension(module_path)
+                                    print(f"Loaded extension: {module_path}")
+                                except Exception as e:
+                                    print(f"Failed to load extension {module_path}: {e}")
                     
         # NOTE: Auto-syncing has been removed to prevent Discord Cloudflare 1015 IP Bans.
         print("Setup hook complete. Ready to connect to Discord.")
