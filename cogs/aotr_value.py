@@ -2,30 +2,19 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
-import json
-import re
 import certifi
+import difflib
 from motor.motor_asyncio import AsyncIOMotorClient
-from google import genai
-from google.genai import types
 
 class AoTRValue(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # Initialize Google GenAI
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        if self.api_key:
-            self.client = genai.Client(api_key=self.api_key)
-        else:
-            self.client = None
-            print("Warning: GEMINI_API_KEY not found. AoTRValue module will fail.")
-
-        # Initialize MongoDB Targeting your exact manual database route
+        # Initialize MongoDB Targeting the new mechanical normalized collection
         self.mongo_uri = os.getenv("MONGO_URI")
         if self.mongo_uri:
             self.db_client = AsyncIOMotorClient(self.mongo_uri, tlsCAFile=certifi.where())
-            self.collection = self.db_client["silk_bot"]["aotr_knowledge"]
+            self.collection = self.db_client["silk_bot"]["value_list"]
         else:
             self.db_client = None
             self.collection = None
@@ -36,138 +25,78 @@ class AoTRValue(commands.Cog):
         self.scroll = "<:Scroll:1505387447218077699>"
         self.vizard_mask = "<:VizardMask:1505387338363043880>"
 
-    def parse_tax_value(self, tax_val) -> int:
-        """
-        Robust text parser that handles integers, strings, and short-scale 
-        thousands multipliers like '50k' or '2.5k', turning them into proper numbers.
-        """
-        if not tax_val or str(tax_val).lower() in ["unknown", "none", "0", "undefined"]:
-            return 0
-            
-        clean_tax = str(tax_val).replace(",", "").strip().lower()
+    # --- Structural Formatting Helpers ---
+    def format_val(self, val, is_float=False):
+        """Mechanically formats database integers into clean strings."""
+        if val is None:
+            return "N/A / O/C"
         
-        # Matches digits optionally followed by 'k'
-        match = re.search(r"(\d+(\.\d+)?)\s*(k)?", clean_tax)
-        if match:
-            base_val = float(match.group(1))
-            is_k_scaled = match.group(3) is not None
-            return int(base_val * 1000) if is_k_scaled else int(base_val)
+        # Handle ranges (like Artifact Taxes having Min/Max keys)
+        if isinstance(val, dict) and "Min" in val and "Max" in val:
+            return f"{val['Min']:,} - {val['Max']:,}"
             
-        return 0
+        # Handle fractional strings securely (like 0.3 viz)
+        if is_float:
+            return f"{float(val):,.3f}".rstrip('0').rstrip('.')
+            
+        return f"{int(val):,}"
+
+    def get_lvl(self, data_field, level_key):
+        """Safely tunnels into multi-tier perk objects."""
+        if isinstance(data_field, dict):
+            return data_field.get(level_key)
+        return None
 
     @app_commands.command(name="value", description="Look up the official AoTR value and statistics for an item.")
     @app_commands.describe(item="The exact or partial name of the item to lookup")
     async def value(self, interaction: discord.Interaction, item: str):
-        # 1. Critical Defer Protocol protects loop threads from timing out
+        # Critical Defer Protocol
         await interaction.response.defer()
 
-        if self.client is None or self.collection is None:
-            return await interaction.followup.send("System configuration missing (API Key or MongoDB URI).")
+        if self.collection is None:
+            return await interaction.followup.send("❌ System configuration missing (MongoDB URI).")
 
         try:
-            # --- TIER 1: EXACT KEYWORD MATCH ---
-            exact_match = await self.collection.find_one({
-                "item_name": {"$regex": f"^{re.escape(item)}$", "$options": "i"}
-            })
-
-            chunks = ""
-
-            if exact_match:
-                chunks = exact_match.get("content", "")
-            else:
-                # --- TIER 2: VECTOR SEARCH FALLBACK ---
-                embedding_response = await self.client.aio.models.embed_content(
-                    model="gemini-embedding-2",
-                    contents=item
-                )
-                vector = embedding_response.embeddings[0].values
-
-                pipeline = [
-                    {
-                        "$vectorSearch": {
-                            "index": "vector_index",
-                            "path": "embedding",
-                            "queryVector": vector,
-                            "numCandidates": 50, 
-                            "limit": 5           
-                        }
-                    },
-                    {
-                        "$project": {
-                            "content": 1,
-                            "_id": 0
+            # 1. Zero-API Atlas Search Pipeline (Fuzzy Match Filter)
+            pipeline = [
+                {
+                    "$search": {
+                        "index": "default",
+                        "text": {
+                            "query": item,
+                            "path": "Item",
+                            "fuzzy": {
+                                "maxEdits": 2,
+                                "prefixLength": 1
+                            }
                         }
                     }
-                ]
+                },
+                {"$limit": 5}
+            ]
 
-                cursor = self.collection.aggregate(pipeline)
-                results = await cursor.to_list(length=5)
+            cursor = self.collection.aggregate(pipeline)
+            search_results = await cursor.to_list(length=5)
 
-                if not results:
-                    return await interaction.followup.send(f"❌ No asset logs found matching `{item}` inside the cluster.")
-
-                chunks = "\n\n".join([doc.get("content", "") for doc in results])
-
-            # 3. Data Extraction - Updated prompt to isolate multi-level structures safely
-            system_prompt = (
-                "You are a strict data extraction tool. You will receive a user's search query and database text chunks.\n\n"
-                "Task 1: Identify which item from the database text best matches the user's query regardless of spelling mistakes.\n"
-                "Task 2: Extract data fields into a JSON object with EXACTLY these keys:\n"
-                "name, rarity, demand, rate, is_perk, lvl0, lvl10.\n\n"
-                "Extraction Instructions:\n"
-                "- 'is_perk' must be true if the database text explicitly includes multi-level properties (e.g. 'Level 0 Value:' or 'Lvl 0:'), otherwise false.\n"
-                "- 'lvl0' and 'lvl10' are child objects each containing: keys, scrolls, vizard, gems_tax, gold_tax.\n"
-                "- For regular single items, put all extracted data inside 'lvl0' and set 'lvl10' to null.\n"
-                "- Isolate numbers for numerical fields or set to 'Undefined'. Pass tax variables verbatim (e.g. '480k') or '0' if missing.\n"
-                "- If the item does not exist inside the text context, return EXACTLY: {\"error\": \"not_found\"}\n"
-                "- Return ONLY raw, valid JSON text blocks."
-            )
-
-            response = await self.client.aio.models.generate_content(
-                model='gemini-3.1-flash-lite',
-                contents=f"User's Query: {item}\n\nDatabase Text:\n{chunks}",
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    system_instruction=system_prompt,
-                    temperature=0.1 
-                )
-            )
-
-            # 4. JSON Validation & Guard Clauses
-            try:
-                data = json.loads(response.text)
-                if isinstance(data, list) and len(data) > 0:
-                    data = data[0]
-            except json.JSONDecodeError:
-                return await interaction.followup.send("⚠️ The AI failed to parse structural data cleanly. Please try again.")
-
-            if data.get("error") == "not_found":
+            if not search_results:
                 return await interaction.followup.send(f"❌ I searched the active index, but couldn't resolve any assets matching `{item}`.")
 
-            # Upgraded numerical helper to preserve decimal floats and scale 'k' shorthands accurately
-            def clean_numeric(val) -> int | float | None:
-                if val is None or str(val).lower() in ["undefined", "unknown", "none", "null"]:
-                    return None
-                if isinstance(val, (int, float)):
-                    return val
-                
-                clean_str = str(val).replace(",", "").strip().lower()
-                match = re.search(r"(\d+(?:\.\d+)?)\s*([kK]?)", clean_str)
-                if match:
-                    num = float(match.group(1))
-                    multiplier = match.group(2)
-                    if multiplier:
-                        return int(num * 1000)
-                    return int(num) if num.is_integer() else num
-                return None
+            # 2. Python Tie-Breaker Logic (Levenshtein Distance over the top 5 candidates)
+            candidate_names = [doc["Item"] for doc in search_results]
+            best_matches = difflib.get_close_matches(item, candidate_names, n=1, cutoff=0.0)
+            best_match_name = best_matches[0]
+            
+            # 3. Extract the Winning Database Object
+            data = next(doc for doc in search_results if doc["Item"] == best_match_name)
 
-            name = data.get("name", "Unknown Item")
-            rarity = data.get("rarity", "Unknown")
-            demand = data.get("demand", "Unknown")
-            rate = data.get("rate", "Unknown")
-            is_perk = data.get("is_perk", False)
+            # --- Extract Core Properties ---
+            name = data.get("Item", "Unknown Item")
+            rarity = data.get("Rarity") or "Unknown"
+            demand = data.get("Demand") or "N/A"
+            rate = data.get("Rate Of Change") or "Unknown"
+            is_perk = data.get("Category") == "Perks"
 
-            # Process Rate Changes
+            # Process Rate Changes for Embed Coloring
             rate_lower = str(rate).lower()
             if "rise" in rate_lower or "rising" in rate_lower or "hyped" in rate_lower:
                 embed_color = 0x2ECC71  # Green
@@ -179,7 +108,7 @@ class AoTRValue(commands.Cog):
                 embed_color = 0xFF4500  # Default Orange
                 rate_text = f"**{rate}** 🤝"
 
-            # 5. Embed Construction Space
+            # --- Embed Construction ---
             embed = discord.Embed(title=f"🔮 S.I.L.K. — Asset Valuation Profile", color=embed_color)
             embed.description = f"### **{name}**"
             
@@ -195,64 +124,65 @@ class AoTRValue(commands.Cog):
                 inline=False
             )
 
-            # Conditional Dual Layout for Perks
-            if is_perk and data.get("lvl10"):
-                lvl0 = data.get("lvl0", {})
-                lvl10 = data.get("lvl10", {})
+            # --- Render Fields Mechanically ---
+            if is_perk:
+                # Level 0 Metrics
+                k0 = self.format_val(self.get_lvl(data.get("Value_Key"), "Lvl_0"))
+                s0 = self.format_val(self.get_lvl(data.get("Value_Scroll"), "Lvl_0"), is_float=True)
+                v0 = self.format_val(self.get_lvl(data.get("Value_Viz"), "Lvl_0"), is_float=True)
+                gold0 = self.format_val(self.get_lvl(data.get("Tax_Gold"), "Lvl_0"))
 
-                # Parse Level 0 Metrics
-                k0 = clean_numeric(lvl0.get("keys")) or 0
-                s0 = f"{clean_numeric(lvl0.get('scrolls')):,}" if lvl0.get('scrolls') and str(lvl0.get('scrolls')).lower() != "undefined" else f"{k0 / 3:,.1f} *"
-                v0 = f"{clean_numeric(lvl0.get('vizard')):,}" if lvl0.get('vizard') and str(lvl0.get('vizard')).lower() != "undefined" else f"{k0 / 900:,.2f} *"
-                gold0 = self.parse_tax_value(lvl0.get("gold_tax", 0))
-
-                # Parse Level 10 Metrics
-                k10 = clean_numeric(lvl10.get("keys")) or 0
-                s10 = f"{clean_numeric(lvl10.get('scrolls')):,}" if lvl10.get('scrolls') and str(lvl10.get('scrolls')).lower() != "undefined" else f"{k10 / 3:,.1f} *"
-                v10 = f"{clean_numeric(lvl10.get('vizard')):,}" if lvl10.get('vizard') and str(lvl10.get('vizard')).lower() != "undefined" else f"{k10 / 900:,.2f} *"
-                gold10 = self.parse_tax_value(lvl10.get("gold_tax", 0))
+                # Level 10 Metrics
+                k10 = self.format_val(self.get_lvl(data.get("Value_Key"), "Lvl_10"))
+                s10 = self.format_val(self.get_lvl(data.get("Value_Scroll"), "Lvl_10"), is_float=True)
+                v10 = self.format_val(self.get_lvl(data.get("Value_Viz"), "Lvl_10"), is_float=True)
+                gold10 = self.format_val(self.get_lvl(data.get("Tax_Gold"), "Lvl_10"))
 
                 embed.add_field(
                     name="🟢 LEVEL 0 VALUATION",
-                    value=f"• {self.emperor_key} **Keys:** `{k0:,} Keys`\n• {self.scroll} **Scrolls:** `{s0}`\n• {self.vizard_mask} **Masks:** `{v0}`\n• 🪙 **Gold Tax:** `{gold0:,} Gold`",
+                    value=f"• {self.emperor_key} **Keys:** `{k0} Keys`\n• {self.scroll} **Scrolls:** `{s0}`\n• {self.vizard_mask} **Masks:** `{v0}`\n• 🪙 **Gold Tax:** `{gold0} Gold`",
                     inline=True
                 )
                 embed.add_field(
                     name="🔥 LEVEL 10 (MAX) VALUATION",
-                    value=f"• {self.emperor_key} **Keys:** `{k10:,} Keys`\n• {self.scroll} **Scrolls:** `{s10}`\n• {self.vizard_mask} **Masks:** `{v10}`\n• 🪙 **Gold Tax:** `{gold10:,} Gold`",
+                    value=f"• {self.emperor_key} **Keys:** `{k10} Keys`\n• {self.scroll} **Scrolls:** `{s10}`\n• {self.vizard_mask} **Masks:** `{v10}`\n• 🪙 **Gold Tax:** `{gold10} Gold`",
                     inline=True
                 )
             else:
-                # Regular Single Item Parser Execution Path
-                lvl0 = data.get("lvl0", {})
-                keys_total = clean_numeric(lvl0.get("keys")) or 0
-                raw_scrolls = clean_numeric(lvl0.get("scrolls"))
-                raw_vizard = clean_numeric(lvl0.get("vizard"))
-
-                scrolls_display = f"{raw_scrolls:,}" if raw_scrolls is not None else f"{keys_total / 3:,.1f} *(Calculated)*"
-                vizard_display = f"{raw_vizard:,}" if raw_vizard is not None else f"{keys_total / 900:,.2f} *(Calculated)*"
-
-                gems_tax = self.parse_tax_value(lvl0.get("gems_tax", 0))
-                gold_tax = self.parse_tax_value(lvl0.get("gold_tax", 0))
+                # Single Items
+                keys = self.format_val(data.get("Value_Key"))
+                scrolls = self.format_val(data.get("Value_Scroll"), is_float=True)
+                vizard = self.format_val(data.get("Value_Viz"), is_float=True)
 
                 embed.add_field(
                     name="💰 BASE MARKET VALUATION",
-                    value=f"• {self.emperor_key} **Emperor Keys:** `{keys_total:,} Keys`\n• {self.scroll} **Prestige Scrolls:** `{scrolls_display}`\n• {self.vizard_mask} **Vizard Masks:** `{vizard_display}`",
+                    value=f"• {self.emperor_key} **Emperor Keys:** `{keys} Keys`\n• {self.scroll} **Prestige Scrolls:** `{scrolls}`\n• {self.vizard_mask} **Vizard Masks:** `{vizard}`",
                     inline=False
                 )
+                
+                # Check properties to cleanly display only the applicable tax
+                tax_val_str = ""
+                if data.get("Tax_Gem") is not None:
+                    tax_val_str += f"• 💎 **Gems Cost:** `{self.format_val(data.get('Tax_Gem'))} Gems`\n"
+                if data.get("Tax_Gold") is not None:
+                    tax_val_str += f"• 🪙 **Gold Cost:** `{self.format_val(data.get('Tax_Gold'))} Gold`\n"
+                    
+                if not tax_val_str:
+                    tax_val_str = "• 🆓 **Cost:** `None / 0`"
+                    
                 embed.add_field(
                     name="⚖️ REQUIRED TRANSACTION TAX",
-                    value=f"• 💎 **Gems Cost:** `{gems_tax:,} Gems`\n• 🪙 **Gold Cost:** `{gold_tax:,} Gold`",
+                    value=tax_val_str.strip(),
                     inline=False
                 )
 
-            embed.set_footer(text="The official AoTR values | Last updated - 22/05/2026.")
+            embed.set_footer(text="The official AoTR values | Mechanically Verified")
             await interaction.followup.send(embed=embed)
 
         except discord.NotFound:
             pass 
         except Exception as e:
-            await interaction.followup.send(f"An error occurred: {str(e)}")
+            await interaction.followup.send(f"An error occurred during mechanical lookup: {str(e)}")
 
 async def setup(bot):
     await bot.add_cog(AoTRValue(bot))
