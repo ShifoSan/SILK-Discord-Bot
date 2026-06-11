@@ -8,6 +8,7 @@ import certifi
 import difflib
 from motor.motor_asyncio import AsyncIOMotorClient
 
+
 class TradeCompare(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -72,11 +73,19 @@ class TradeCompare(commands.Cog):
                 "vizard": total_keys / 900,
                 "gems_tax": 0,
                 "gold_tax": 0,
-                "error": None
+                "error": None,
             }
 
         if self.collection is None:
-            return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "config_missing"}
+            return {
+                "display_name": raw_item_query,
+                "keys": 0,
+                "scrolls": 0,
+                "vizard": 0,
+                "gems_tax": 0,
+                "gold_tax": 0,
+                "error": "config_missing",
+            }
 
         try:
             # Step 1: Detect Tier Level requirements from player string context
@@ -101,25 +110,33 @@ class TradeCompare(commands.Cog):
                             "path": "Item",
                             "fuzzy": {
                                 "maxEdits": 2,
-                                "prefixLength": 1
-                            }
-                        }
+                                "prefixLength": 1,
+                            },
+                        },
                     }
                 },
-                {"$limit": 5}
+                {"$limit": 5},
             ]
 
             cursor = self.collection.aggregate(pipeline)
             search_results = await cursor.to_list(length=5)
 
             if not search_results:
-                return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "not_found"}
+                return {
+                    "display_name": raw_item_query,
+                    "keys": 0,
+                    "scrolls": 0,
+                    "vizard": 0,
+                    "gems_tax": 0,
+                    "gold_tax": 0,
+                    "error": "not_found",
+                }
 
             # Step 4: Python String Tie-Breaker Match over candidates
             candidate_names = [doc["Item"] for doc in search_results]
             best_matches = difflib.get_close_matches(search_query, candidate_names, n=1, cutoff=0.0)
             best_match_name = best_matches[0]
-            
+
             data = next(doc for doc in search_results if doc["Item"] == best_match_name)
 
             # Step 5: Tunnelling and parsing properties programmatically
@@ -144,138 +161,148 @@ class TradeCompare(commands.Cog):
                 "vizard": base_vizard * quantity,
                 "gems_tax": base_gems_tax * quantity,
                 "gold_tax": base_gold_tax * quantity,
-                "error": None
+                "error": None,
             }
 
         except Exception:
-            return {"display_name": raw_item_query, "keys": 0, "scrolls": 0, "vizard": 0, "gems_tax": 0, "gold_tax": 0, "error": "failed_to_parse"}
+            return {
+                "display_name": raw_item_query,
+                "keys": 0,
+                "scrolls": 0,
+                "vizard": 0,
+                "gems_tax": 0,
+                "gold_tax": 0,
+                "error": "failed_to_parse",
+            }
 
     @app_commands.command(name="trade-compare", description="Calculate if a trade is a Win or a Loss based on item values.")
     @app_commands.describe(
         giving="The items you are giving up (separate items using '+')",
-        getting="The items you are receiving (separate items using '+')"
+        getting="The items you are receiving (separate items using '+')",
     )
     async def trade_compare(self, interaction: discord.Interaction, giving: str, getting: str):
-        await interaction.response.defer(thinking=True)
+        try:
+            await interaction.response.defer(thinking=True)
 
-        giving_list = [item.strip() for item in giving.split("+") if item.strip()]
-        getting_list = [item.strip() for item in getting.split("+") if item.strip()]
+            giving_list = [item.strip() for item in giving.split("+") if item.strip()]
+            getting_list = [item.strip() for item in getting.split("+") if item.strip()]
 
-        if not giving_list or not getting_list:
-            await interaction.followup.send("⚠️ Invalid formatting. Please provide items for both fields split by `+`.")
-            return
+            if not giving_list or not getting_list:
+                await interaction.followup.send("⚠️ Invalid formatting. Please provide items for both fields split by `+`.")
+                return
 
-        # Fire async batch routines concurrently across the value matrix
-        giving_tasks = [self.fetch_item_data(item) for item in giving_list]
-        getting_tasks = [self.fetch_item_data(item) for item in getting_list]
+            # Fire async batch routines concurrently across the value matrix
+            giving_tasks = [self.fetch_item_data(item) for item in giving_list]
+            getting_tasks = [self.fetch_item_data(item) for item in getting_list]
 
-        giving_results = await asyncio.gather(*giving_tasks)
-        getting_results = await asyncio.gather(*getting_tasks)
+            giving_results = await asyncio.gather(*giving_tasks)
+            getting_results = await asyncio.gather(*getting_tasks)
 
-        total_giving_keys, total_giving_scrolls, total_giving_vizard = 0, 0, 0
-        total_giving_gems_tax, total_giving_gold_tax = 0, 0
+            total_giving_keys, total_giving_scrolls, total_giving_vizard = 0, 0, 0
+            total_giving_gems_tax, total_giving_gold_tax = 0, 0
 
-        total_getting_keys, total_getting_scrolls, total_getting_vizard = 0, 0, 0
-        total_getting_gems_tax, total_getting_gold_tax = 0, 0
+            total_getting_keys, total_getting_scrolls, total_getting_vizard = 0, 0, 0
+            total_getting_gems_tax, total_getting_gold_tax = 0, 0
 
-        giving_breakdown, getting_breakdown, unmatched_items = [], [], []
+            giving_breakdown, getting_breakdown, unmatched_items = [], [], []
 
-        # Accumulate metrics for Giving parameters
-        for res in giving_results:
-            if res["error"] == "not_found":
-                unmatched_items.append(f"`{res['display_name']}` (Giving Side)")
-            total_giving_keys += res["keys"]
-            total_giving_scrolls += res["scrolls"]
-            total_giving_vizard += res["vizard"]
-            total_giving_gems_tax += res["gems_tax"]
-            total_giving_gold_tax += res["gold_tax"]
-            
-            val_display = f"{res['keys']:,}" if res['keys'] > 0 else "N/A / O/C"
-            giving_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{val_display}** Keys")
+            # Accumulate metrics for Giving parameters
+            for res in giving_results:
+                if res["error"] == "not_found":
+                    unmatched_items.append(f"`{res['display_name']}` (Giving Side)")
+                total_giving_keys += res["keys"]
+                total_giving_scrolls += res["scrolls"]
+                total_giving_vizard += res["vizard"]
+                total_giving_gems_tax += res["gems_tax"]
+                total_giving_gold_tax += res["gold_tax"]
 
-        # Accumulate metrics for Getting parameters
-        for res in getting_results:
-            if res["error"] == "not_found":
-                unmatched_items.append(f"`{res['display_name']}` (Getting Side)")
-            total_getting_keys += res["keys"]
-            total_getting_scrolls += res["scrolls"]
-            total_getting_vizard += res["vizard"]
-            total_getting_gems_tax += res["gems_tax"]
-            total_getting_gold_tax += res["gold_tax"]
-            
-            val_display = f"{res['keys']:,}" if res['keys'] > 0 else "N/A / O/C"
-            getting_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{val_display}** Keys")
+                val_display = f"{res['keys']:,}" if res["keys"] > 0 else "N/A / O/C"
+                giving_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{val_display}** Keys")
 
-        # Calculate Win/Loss Verdict Ratios safely
-        if total_giving_keys == 0:
-            ratio = 5.0 if total_getting_keys > 0 else 1.0
-        else:
-            ratio = total_getting_keys / total_giving_keys
+            # Accumulate metrics for Getting parameters
+            for res in getting_results:
+                if res["error"] == "not_found":
+                    unmatched_items.append(f"`{res['display_name']}` (Getting Side)")
+                total_getting_keys += res["keys"]
+                total_getting_scrolls += res["scrolls"]
+                total_getting_vizard += res["vizard"]
+                total_getting_gems_tax += res["gems_tax"]
+                total_getting_gold_tax += res["gold_tax"]
 
-        if ratio >= 1.50:
-            verdict = "🚀 VERDICT: MASSIVE WIN (HUGE W)"
-            embed_color = 0x00FF00  
-        elif 1.10 <= ratio < 1.50:
-            verdict = "✅ VERDICT: PROFIT (SLIGHT W)"
-            embed_color = 0x2ECC71  
-        elif 0.90 < ratio < 1.10:
-            verdict = "🤝 VERDICT: FAIR TRADE"
-            embed_color = 0x3498DB  
-        elif 0.60 <= ratio <= 0.90:
-            verdict = "⚠️ VERDICT: LOSS (SLIGHT L)"
-            embed_color = 0xE67E22  
-        else:
-            verdict = "🛑 VERDICT: SEVERE DEFICIT (MASSIVE L)"
-            embed_color = 0xE74C3C  
+                val_display = f"{res['keys']:,}" if res["keys"] > 0 else "N/A / O/C"
+                getting_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{val_display}** Keys")
 
-        margin_keys = total_getting_keys - total_giving_keys
-        margin_scrolls = total_getting_scrolls - total_giving_scrolls
-        margin_vizard = total_getting_vizard - total_giving_vizard
-        sign = "+" if margin_keys >= 0 else ""
+            # Calculate Win/Loss Verdict Ratios safely
+            if total_giving_keys == 0:
+                ratio = 5.0 if total_getting_keys > 0 else 1.0
+            else:
+                ratio = total_getting_keys / total_giving_keys
 
-        # Build output presentation dashboard
-        embed = discord.Embed(title="⚖️ S.I.L.K. — Trade Analytics Engine", color=embed_color)
-        avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
-        embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
+            if ratio >= 1.50:
+                verdict = "🚀 VERDICT: MASSIVE WIN (HUGE W)"
+                embed_color = 0x00FF00
+            elif 1.10 <= ratio < 1.50:
+                verdict = "✅ VERDICT: PROFIT (SLIGHT W)"
+                embed_color = 0x2ECC71
+            elif 0.90 < ratio < 1.10:
+                verdict = "🤝 VERDICT: FAIR TRADE"
+                embed_color = 0x3498DB
+            elif 0.60 <= ratio <= 0.90:
+                verdict = "⚠️ VERDICT: LOSS (SLIGHT L)"
+                embed_color = 0xE67E22
+            else:
+                verdict = "🛑 VERDICT: SEVERE DEFICIT (MASSIVE L)"
+                embed_color = 0xE74C3C
 
-        embed.add_field(
-            name="📤 SIDE A (WHAT YOU ARE GIVING)",
-            value="\n".join(giving_breakdown) + 
-                  f"\n\n**Total Outbound Value:**\n📊 {self.emperor_key} `{total_giving_keys:,} Keys` | {self.scroll} `{total_giving_scrolls:,.1f} Scrolls` | {self.vizard_mask} `{total_giving_vizard:,.2f} Viz`" +
-                  f"\n💼 **Your Required Trade Tax:** 💎 `{total_giving_gems_tax:,} Gems` | 🪙 `{total_giving_gold_tax:,} Gold`",
-            inline=False
-        )
+            margin_keys = total_getting_keys - total_giving_keys
+            margin_scrolls = total_getting_scrolls - total_giving_scrolls
+            margin_vizard = total_getting_vizard - total_giving_vizard
+            sign = "+" if margin_keys >= 0 else ""
 
-        embed.add_field(
-            name="📥 SIDE B (WHAT YOU ARE RECEIVING)",
-            value="\n".join(getting_breakdown) + \
-                  f"\n\n**Total Inbound Value:**\n📊 {self.emperor_key} `{total_getting_keys:,} Keys` | {self.scroll} `{total_getting_scrolls:,.2f} Scrolls` | {self.vizard_mask} `{total_getting_vizard:,.2f} Viz`" +
-                  f"\n💼 **Their Required Trade Tax:** 💎 `{total_getting_gems_tax:,} Gems` | 🪙 `{total_getting_gold_tax:,} Gold`",
-            inline=False
-        )
+            # Build output presentation dashboard
+            embed = discord.Embed(title="⚖️ S.I.L.K. — Trade Analytics Engine", color=embed_color)
+            avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
+            embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
 
-        # Generate standard ANSI color block lines for text breakdown
-        breakdown_text = (
-            f"```ansi\n"
-            f"{verdict}\n"
-            f"📈 NET MARGIN: {sign}{margin_keys:,} Keys ({sign}{margin_scrolls:,.1f} Scrolls / {sign}{margin_vizard:,.2f} Viz)\n"
-            f"```"
-        )
-        embed.add_field(name=\"📊 TRANSACTION BREAKDOWN\", value=breakdown_text, inline=False)
-
-        # Push fuzzy match mismatch indicators down to warnings block if triggered
-        if unmatched_items:
             embed.add_field(
-                name="⚠️ Typo Warning / Items Not Found",
-                value=f"The following inputs could not be cleanly identified and calculated as `0 Keys`:\n{', '.join(unmatched_items)}",
-                inline=False
+                name="📤 SIDE A (WHAT YOU ARE GIVING)",
+                value="\n".join(giving_breakdown)
+                + f"\n\n**Total Outbound Value:**\n📊 {self.emperor_key} `{total_giving_keys:,} Keys` | {self.scroll} `{total_giving_scrolls:,.1f} Scrolls` | {self.vizard_mask} `{total_giving_vizard:,.2f} Viz`"
+                + f"\n💼 **Your Required Trade Tax:** 💎 `{total_giving_gems_tax:,} Gems` | 🪙 `{total_giving_gold_tax:,} Gold`",
+                inline=False,
             )
 
-        embed.set_footer(text="Trade margins calculated mechanically | Zero AI footprint.")
-        await interaction.followup.send(embed=embed)
+            embed.add_field(
+                name="📥 SIDE B (WHAT YOU ARE RECEIVING)",
+                value="\n".join(getting_breakdown)
+                + f"\n\n**Total Inbound Value:**\n📊 {self.emperor_key} `{total_getting_keys:,} Keys` | {self.scroll} `{total_getting_scrolls:,.2f} Scrolls` | {self.vizard_mask} `{total_getting_vizard:,.2f} Viz`"
+                + f"\n💼 **Their Required Trade Tax:** 💎 `{total_getting_gems_tax:,} Gems` | 🪙 `{total_getting_gold_tax:,} Gold`",
+                inline=False,
+            )
 
-    except Exception as e:
-        await interaction.followup.send(f"An error occurred during trade comparison processing: {str(e)}")
+            # Generate standard ANSI color block lines for text breakdown
+            breakdown_text = (
+                "```ansi\n"
+                f"{verdict}\n"
+                f"📈 NET MARGIN: {sign}{margin_keys:,} Keys ({sign}{margin_scrolls:,.1f} Scrolls / {sign}{margin_vizard:,.2f} Viz)\n"
+                "```"
+            )
+            embed.add_field(name="📊 TRANSACTION BREAKDOWN", value=breakdown_text, inline=False)
+
+            # Push fuzzy match mismatch indicators down to warnings block if triggered
+            if unmatched_items:
+                embed.add_field(
+                    name="⚠️ Typo Warning / Items Not Found",
+                    value=f"The following inputs could not be cleanly identified and calculated as `0 Keys`:\n{', '.join(unmatched_items)}",
+                    inline=False,
+                )
+
+            embed.set_footer(text="Trade margins calculated mechanically | Zero AI footprint.")
+            await interaction.followup.send(embed=embed)
+
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred during trade comparison processing: {str(e)}")
+
 
 async def setup(bot):
     await bot.add_cog(TradeCompare(bot))
