@@ -322,7 +322,7 @@ To achieve perfect, typo-forgiving searches without network handshakes to extern
    * **Multipliers:** Recognizes prefix declarations (e.g., 2 x Kengo) and multiplies the integer/float values of that resource by the quantity integer.
    * **Level Routing:** Inspects the raw input string for level flags (e.g., max, lvl 10, level 10). If a Perk document is selected, the arithmetic processor automatically routes into the matching nested schema layer (Lvl_10 vs Lvl_0) before summing up the trade totals.
  * **Presentation Layer:** Displays both trade sides, including total accumulated currencies and transaction taxes. It maps a final net ledger line containing the transaction verdict inside an ANSI-rendered block, dynamically changing colors based on profit ratio margins:
-   * >= 1.50 \rightarrow 🚀 **MASSIVE WIN (HUGE W)** [Green: 0x2ECC71]
+   * ">= 1.50" \rightarrow 🚀 **MASSIVE WIN (HUGE W)** [Green: 0x2ECC71]
    * 1.10 to 1.49 \rightarrow ✅ **PROFIT (SLIGHT W)** [Green: 0x2ECC71]
    * 0.91 to 1.09 \rightarrow 🤝 **FAIR TRADE** [Blue: 0x3498DB]
    * 0.60 to 0.90 \rightarrow ⚠️ **LOSS (SLIGHT L)** [Orange: 0xE67E22]
