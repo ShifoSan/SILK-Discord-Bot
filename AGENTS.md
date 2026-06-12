@@ -275,39 +275,63 @@ S.I.L.K. is a modular Discord bot written in Python using discord.py. It is curr
     * Commands: None explicitly, triggers based on content.
     * Dependencies/Configs: `motor`
 
-20. Trade Module (Phase 20)
-* **Primary Role:** RAG (Retrieval-Augmented Generation) based search engine and multi-asset transactional evaluation matrix used to fetch, parse, scale, and format official Attack on Titan: Revolution item weights and market parameters.
-* **Files Included:**
-    * `cogs/aotr_value.py`: Singular asset valuation lookup cog. Interfaces with Atlas Vector Search and utilizes Gemini structured JSON responses to render individual item statistics or side-by-side tier profiles.
-    * `cogs/trade_compare.py`: Core trade comparison calculator managing delimiter parsing, item aggregation, automated stack quantity parsing, and dynamic profit ratios via a hybrid python routing matrix.
-    * `rebuild_perk_embeddings.py`: Administrative database utility script designed to sequentially iterate through consolidated Perk documents, generate fresh vector coordinate arrays via `gemini-embedding-2`, and push synchronous updates to Atlas.
-* **Core Logic & Features:**
-    * **Vector Ingestion Search:** Vectorizes user inputs using the `gemini-embedding-2` model and queries the MongoDB `aotr_knowledge` collection inside the `silk_bot` database utilizing a dedicated Atlas `$vectorSearch` pipeline.
-    * **Typo-Forgiveness Constraints:** Widens retrieval boundaries (`numCandidates: 50`, `limit: 5`) to capture deep context variants, allowing the AI to seamlessly match misspelled inputs (e.g., matching "colasal" back to "Colossal") safely without throwing empty returns.
-    * **Deterministic AI Extraction:** Feeds context chunks alongside exact targets directly into `gemini-3.1-flash-lite` at a low temperature (`0.1`) using a structured format (`response_mime_type="application/json"`) to securely pull item statistics without conversational hallucinations.
-    * **Advanced Stack Multiplier Extraction:** Implements a localized regex pre-processing engine to dynamically pull stack sizes and multipliers (e.g. `2x Kengo` or `3 helos`) at the start of input blocks.
-    * **Deterministic Hybrid Multi-Tier Routing:** Intercepts incoming user query strings via native Python text filters to extract tier metadata (e.g., "lvl 10", "max", "lvl 0") before triggering a vector search. Strips these tracking keywords from the final database search query string to maximize RAG candidate retrieval scores within Atlas Vector Search index filters.
-    * **Verdict Profit Margins:** Evaluates numeric asset weights to generate an analytical swap assessment via ratio scales:
-        * Ratio $\ge 1.50 \rightarrow$ 🚀 `MASSIVE WIN (HUGE W)` [Green: `0x00FF00`]
-        * $1.10 \le \text{Ratio} < 1.50 \rightarrow$ ✅ `PROFIT (SLIGHT W)` [Light Green: `0x2ECC71`]
-        * $0.90 < \text{Ratio} < 1.10 \rightarrow$ 🤝 `FAIR TRADE` [Blue: `0x3498DB`]
-        * $0.60 \le \text{Ratio} \le 0.90 \rightarrow$ ⚠️ `LOSS (SLIGHT L)` [Orange: `0xE67E22`]
-        * Ratio $< 0.60 \rightarrow$ 🛑 `SEVERE DEFICIT (MASSIVE L)` [Red: `0xE74C3C`]
-    * **Graceful Missing Record Bail-Outs:** Instructs the AI model to yield exactly `{"error": "not_found"}` if a user's item doesn't exist in the context blocks. Unrecognized objects default safely to `0 Keys` and trigger a clear text warning at the base of the embed card rather than throwing runtime formatting exceptions.
-    * **Strict Execution Defers:** Automatically invokes the Defer Protocol (`await interaction.response.defer(thinking=True)`) as the very first operation of commands to bypass Discord's rigid 3-second response boundary, using followup webhooks to print the finalized embed payload.
-    * **Robust Float & Multiplier Parsing (clean_numeric):** To prevent shorthand multipliers and fractional tokens from truncating, all parsing utilities must evaluate value string blocks via a float-safe regex pattern (`\d+(?:\.\d+)?`). If a short-scale thousand suffix ('k'/'K') is caught, it must scale the base float by 1,000 (e.g., `4.05k` -> `4050`) before integer typecasting to maintain absolute calculation precision across Keys and Vizard Masks.
-* **Database Document Schema Standards:**
-    All text records generated for or stored inside the `silk_bot.aotr_knowledge` collection must strictly match one of these two schema blueprints to prevent text-parsing or integer-scallop translation breaks:
-    * **Standard Base Items:** `Item: [Name]. Category: [Category]. Rarity: [Rarity]. Demand: [X.X]. Value: [X] Keys. Rate Of Change: [Trend]. Tax (Gold): [X].`
-    * **Tiered Character Perks (Category: Perks):** Both level states must be cleanly consolidated inside a single document string block using split pipe (`|`) boundaries:
-      `Item: [Name]. Category: Perks. Rarity: [Rarity]. Demand: [X.X]. Value: Lvl 0: [X] | Lvl 10: [X]. Rate Of Change: [Trend]. Tax (Gold): Lvl 0: [X] | Lvl 10: [X].`
-* **Commands:**
-    * `/value [item]`: Looks up trade values, public demand parameters, market trends, and transaction tax profiles via vector processing. For tiered character Perks, forces Gemini to extract a multi-nested child JSON structure (`lvl0` and `lvl10`) to render a side-by-side level comparison profile card inside a single presentation embed.
-    * `/trade-compare [giving] [getting]`: Evaluates multi-item transaction margins by splitting string blocks on the `+` delimiter and computing cumulative values. Employs the Deterministic Hybrid Level Router for Perks; automatically extracts level context from player text entries, cleans search query strings to optimize Vector Search indexes, isolates corresponding data tiers from the consolidated database string, and processes exact transaction calculations.
-* **Dependencies/Configs:**
-    * `google-genai`, `motor`, `certifi`, `json`, `re`, `asyncio`, `dotenv`.
-    * Requires environment configurations for `GEMINI_API_KEY` and `MONGO_URI` inside the `.env` root.
-    * Requires a primary database index configuration named `vector_index` bound to the `silk_bot.aotr_knowledge` target collection.
+20. **⚖️ Trading Module (AoTR Value Engine)**
+
+The Trading Module provides automated asset valuations and transactional margin assessments for *Attack on Titan: Revolution* (AoTR). To maximize uptime, eliminate corporate API latency, and maintain a zero-cost infrastructure, this module operates **entirely mechanically without AI models**.
+
+## 🗄️ Database Architecture & Search Infrastructure
+* **Database Cluster Name:** `SILK-DB`
+* **Active Database:** `silk_bot`
+* **Primary Collection:** `value_list` (Contains perfectly field-separated, normalized asset metrics).
+* **Atlas Search Index Name:** `default` (A local Lucene engine configured with a text-matching path on the `Item` field).
+
+### 📊 Normalized Document Schema Standard
+All entry metrics are strictly verified as true primitive data numbers (Integers/Floats) or isolated nested level models to support immediate mathematical compilation without string parsing:
+
+```json
+{
+  "Item": "String (The official formatted item name)",
+  "Category": "String (e.g., 'Perks', 'Attire', 'Cosmetics')",
+  "Rarity": "String (Market classification tier)",
+  "Demand": "Number (Public interest indicator out of 10)",
+  "Rate Of Change": "String (Market vector trend tracker: Rising, Dropping, Stable)",
+  "Value_Key": "Integer OR Nested Perk Object {'Lvl_0': int, 'Lvl_10': int}",
+  "Value_Scroll": "Float OR Nested Perk Object {'Lvl_0': float, 'Lvl_10': float}",
+  "Value_Viz": "Float OR Nested Perk Object {'Lvl_0': float, 'Lvl_10': float}",
+  "Tax_Gold": "Integer, Range Object {'Min': int, 'Max': int}, OR Nested Perk Object",
+  "Tax_Gem": "Integer OR Nested Perk Object (Nullable if item has no Gem cost)",
+  "image_link": "String (Direct secure Cloudinary CDN asset URL pathway)"
+}
+```
+
+## 🎛️ Search Pipeline: Candidate Filter + Local Tie-Breaker
+To achieve perfect, typo-forgiving searches without network handshakes to external embedding models, both slash commands use a specialized two-stage execution architecture:
+ 1. **Stage 1: Atlas Search Filter (On-Cluster):** A text lookup runs directly over the Lucene index utilizing a fuzzy edit distance threshold (maxEdits: 2, prefixLength: 1). This screens out the entire database cluster in under 5 milliseconds and returns the top 5 closest matching documents.
+ 2. **Stage 2: Python String Tie-Breaker (Local Memory):** The bot extracts the exact string text from the Item fields of those 5 documents. It uses Python's native difflib.get_close_matches() (set to cutoff=0.0) to run an immediate character-level match matrix side-by-side against what the user typed, breaking the database tie and selecting the perfect winner every single time.
+## 🛠️ Core Slash Commands
+### 1. /value [item]
+ * **Description:** Looks up the official asset valuation profiles, demand vectors, and base taxes.
+ * **Dynamic UI Layout Routing:**
+   * **Standard Items:** Generates an embed presenting Base Market Valuations (Emperor Keys, Prestige Scrolls, Vizard Masks) alongside transaction tax constraints (Tax_Gem / Tax_Gold).
+   * **Character Perks:** Automatically triggers a split data configuration branch. It maps nested properties from the Lvl_0 and Lvl_10 sub-objects, displaying a comprehensive side-by-side level progression matrix inside a dual-field column block.
+ * **Thumbnail Routing Engine:** The embed reads the winner's primitive document layer for the image_link parameter. If a secure Cloudinary URL is present, it is set as the active embed profile thumbnail. If the field is blank or unpopulated, it gracefully triggers a safety fallback routing line, displaying the active Discord server's avatar icon.
+#### 2. /trade-compare [giving] [getting]
+ * **Description:** Evaluates multi-item transaction parameters to calculate exact profitability margins.
+ * **Parsing Protocol:** String inputs accept multiple assets split using the + delimiter boundary. Individual tokens are processed asynchronously in concurrent execution threads.
+ * **Multiplier & Level Tracking:**
+   * **Multipliers:** Recognizes prefix declarations (e.g., 2 x Kengo) and multiplies the integer/float values of that resource by the quantity integer.
+   * **Level Routing:** Inspects the raw input string for level flags (e.g., max, lvl 10, level 10). If a Perk document is selected, the arithmetic processor automatically routes into the matching nested schema layer (Lvl_10 vs Lvl_0) before summing up the trade totals.
+ * **Presentation Layer:** Displays both trade sides, including total accumulated currencies and transaction taxes. It maps a final net ledger line containing the transaction verdict inside an ANSI-rendered block, dynamically changing colors based on profit ratio margins:
+   * >= 1.50 \rightarrow 🚀 **MASSIVE WIN (HUGE W)** [Green: 0x2ECC71]
+   * 1.10 to 1.49 \rightarrow ✅ **PROFIT (SLIGHT W)** [Green: 0x2ECC71]
+   * 0.91 to 1.09 \rightarrow 🤝 **FAIR TRADE** [Blue: 0x3498DB]
+   * 0.60 to 0.90 \rightarrow ⚠️ **LOSS (SLIGHT L)** [Orange: 0xE67E22]
+   * < 0.60 \rightarrow 🛑 **SEVERE DEFICIT (MASSIVE L)** [Red: 0xE74C3C]
+## ⚙️ Administrative & Data Population Scripts
+Maintained inside the root environment directory for cluster upkeep operations:
+ * cloud_items_fetch.py: A **zero-dependency utility script** running on pure Python standard libraries (urllib). Bypasses panel RAM-cap limits to safely scan, catalog, and export an unrestricted inventory ledger (cloudinary_images.json) of your secure Cloudinary image links.
+ * bulk_update_links.py: Loads clean mappings out of verified lists, stacks them inside a performance-optimized pymongo.UpdateOne staging array, and dispatches a consolidated bulk_write transaction payload directly to your production cluster collection to register image_link targets instantly.
+ * bulk_upload_webp.py: Intercepts local computer image folders, runs alphanumeric character sanitization on resource keys to conform with Discord API parameters, and sequences base64 data streams straight into your Developer Portal app emoji slots. Contains a self-healing wait loop that monitors 429 Retry-After indicators to automatically pause and resume across Discord rate limits without crashing the terminal thread.
 
 ## 🔮 Future Roadmap (Context for Expansion)
 No future plans.
