@@ -108,26 +108,25 @@ class AoTRValue(commands.Cog):
                 embed_color = 0xFF4500  # Default Orange
                 rate_text = f"**{rate}** 🤝"
 
-            # --- Components V2 Construction ---
-            # Containers act as the structural card shell replacing traditional embeds
+            # --- Components V2 Construction (Completely Flattened) ---
+            # 1. Instantiate the root Container shell
             container = discord.ui.Container(accent_color=discord.Color(embed_color))
             
-            # Title component holding rich markdown headings
-            header_content = f"### 🔮 S.I.L.K. — Asset Valuation Profile\n## **{name}**"
-            container.add_item(discord.ui.TextDisplay(content=header_content))
+            # 2. Title header
+            container.add_item(discord.ui.TextDisplay(
+                content=f"### 🔮 S.I.L.K. — Asset Valuation Profile\n## **{name}**"
+            ))
             
-            # Draw spacing separator lines using the root discord.SeparatorSpacing enum
+            # Spacing Divider
             container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
             
-            # Core market trend statistics row group
-            market_section = discord.ui.Section()
-            market_section.add_item(discord.ui.TextDisplay(
+            # 3. Core market trend statistics
+            container.add_item(discord.ui.TextDisplay(
                 content=f"### 📈 MARKET PROFILE\n"
                         f"• **Rarity Tier:** `{rarity}`\n"
                         f"• **Public Demand:** `{demand}/10`\n"
                         f"• **Market Rate:** {rate_text}"
             ))
-            container.add_item(market_section)
 
             # --- Render Pricing Structures Mechanically ---
             if is_perk:
@@ -145,28 +144,25 @@ class AoTRValue(commands.Cog):
 
                 container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
                 
-                # Stack level profiles as partitioned visual blocks
-                lvl0_section = discord.ui.Section()
-                lvl0_section.add_item(discord.ui.TextDisplay(
+                # Level 0 Text Block
+                container.add_item(discord.ui.TextDisplay(
                     content=f"### 🟢 LEVEL 0 VALUATION\n"
                             f"• {self.emperor_key} **Keys:** `{k0} Keys`\n"
                             f"• {self.scroll} **Scrolls:** `{s0}`\n"
                             f"• {self.vizard_mask} **Masks:** `{v0}`\n"
                             f"• 🪙 **Gold Tax:** `{gold0} Gold`"
                 ))
-                container.add_item(lvl0_section)
 
                 container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
-                lvl10_section = discord.ui.Section()
-                lvl10_section.add_item(discord.ui.TextDisplay(
+                # Level 10 Text Block
+                container.add_item(discord.ui.TextDisplay(
                     content=f"### 🔥 LEVEL 10 (MAX) VALUATION\n"
                             f"• {self.emperor_key} **Keys:** `{k10} Keys`\n"
                             f"• {self.scroll} **Scrolls:** `{s10}`\n"
                             f"• {self.vizard_mask} **Masks:** `{v10}`\n"
                             f"• 🪙 **Gold Tax:** `{gold10} Gold`"
                 ))
-                container.add_item(lvl10_section)
             else:
                 # Standard singular trade item mapping
                 keys = self.format_val(data.get("Value_Key"))
@@ -175,14 +171,13 @@ class AoTRValue(commands.Cog):
 
                 container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
-                base_section = discord.ui.Section()
-                base_section.add_item(discord.ui.TextDisplay(
+                # Base Item Block
+                container.add_item(discord.ui.TextDisplay(
                     content=f"### 💰 BASE MARKET VALUATION\n"
                             f"• {self.emperor_key} **Emperor Keys:** `{keys} Keys`\n"
                             f"• {self.scroll} **Prestige Scrolls:** `{scrolls}`\n"
                             f"• {self.vizard_mask} **Vizard Masks:** `{vizard}`"
                 ))
-                container.add_item(base_section)
                 
                 # Check properties to cleanly display only the applicable tax fields
                 tax_val_str = ""
@@ -196,22 +191,21 @@ class AoTRValue(commands.Cog):
                     
                 container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
-                tax_section = discord.ui.Section()
-                tax_section.add_item(discord.ui.TextDisplay(
+                # Tax Info Block
+                container.add_item(discord.ui.TextDisplay(
                     content=f"### ⚖️ REQUIRED TRANSACTION TAX\n"
                             f"{tax_val_str.strip()}"
                 ))
-                container.add_item(tax_section)
 
-            # Footer representation element appended at the base of the container layout
+            # Footer element
             container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
             container.add_item(discord.ui.TextDisplay(content="*The official AoTR values | Mechanically Verified*"))
 
-            # Bind layout tree structures to a master LayoutView component collector
+            # Bind layout tree strictly to LayoutView
             view = discord.ui.LayoutView()
             view.add_item(container)
 
-            # Dispatch transaction response via layout engine view context maps
+            # Dispatch transaction
             await interaction.followup.send(view=view)
 
         except discord.NotFound:
