@@ -111,11 +111,29 @@ class AoTRValue(commands.Cog):
             # --- Components V2 Construction (Completely Flattened) ---
             # 1. Instantiate the root Container shell
             container = discord.ui.Container(accent_color=discord.Color(embed_color))
-            
-            # 2. Title header
+
+            # Author Attribution — mirrors embed set_author; Discord's -# syntax renders as small subtext
             container.add_item(discord.ui.TextDisplay(
-                content=f"### 🔮 S.I.L.K. — Asset Valuation Profile\n## **{name}**"
+                content=f"-# 🔍 Requested by **{interaction.user.display_name}**"
             ))
+
+            # Thumbnail Resolution — item's image_link field takes priority, guild icon is the safety fallback
+            thumbnail_url = data.get("image_link") or None
+            if not thumbnail_url and interaction.guild and interaction.guild.icon:
+                thumbnail_url = str(interaction.guild.icon.url)
+
+            # 2. Title header — Section+Thumbnail when an image resolved, plain TextDisplay otherwise
+            title_text = discord.ui.TextDisplay(
+                content=f"### 🔮 S.I.L.K. — Asset Valuation Profile\n## **{name}**"
+            )
+            if thumbnail_url:
+                title_section = discord.ui.Section(
+                    accessory=discord.ui.Thumbnail(media=discord.UnfurledMediaItem(url=thumbnail_url))
+                )
+                title_section.add_item(title_text)
+                container.add_item(title_section)
+            else:
+                container.add_item(title_text)
             
             # Spacing Divider
             container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
