@@ -116,8 +116,8 @@ class AoTRValue(commands.Cog):
             header_content = f"### 🔮 S.I.L.K. — Asset Valuation Profile\n## **{name}**"
             container.add_item(discord.ui.TextDisplay(content=header_content))
             
-            # Draw spacing separator lines to keep components uncluttered
-            container.add_item(discord.ui.Separator(spacing=discord.ui.Spacing.medium))
+            # Draw spacing separator lines using the root discord.SeparatorSpacing enum
+            container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
             
             # Core market trend statistics row group
             market_section = discord.ui.Section()
@@ -143,7 +143,7 @@ class AoTRValue(commands.Cog):
                 v10 = self.format_val(self.get_lvl(data.get("Value_Viz"), "Lvl_10"), is_float=True)
                 gold10 = self.format_val(self.get_lvl(data.get("Tax_Gold"), "Lvl_10"))
 
-                container.add_item(discord.ui.Separator(spacing=discord.ui.Spacing.small))
+                container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
                 
                 # Stack level profiles as partitioned visual blocks
                 lvl0_section = discord.ui.Section()
@@ -156,7 +156,7 @@ class AoTRValue(commands.Cog):
                 ))
                 container.add_item(lvl0_section)
 
-                container.add_item(discord.ui.Separator(spacing=discord.ui.Spacing.small))
+                container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
                 lvl10_section = discord.ui.Section()
                 lvl10_section.add_item(discord.ui.TextDisplay(
@@ -173,7 +173,7 @@ class AoTRValue(commands.Cog):
                 scrolls = self.format_val(data.get("Value_Scroll"), is_float=True)
                 vizard = self.format_val(data.get("Value_Viz"), is_float=True)
 
-                container.add_item(discord.ui.Separator(spacing=discord.ui.Spacing.small))
+                container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
                 base_section = discord.ui.Section()
                 base_section.add_item(discord.ui.TextDisplay(
@@ -194,7 +194,7 @@ class AoTRValue(commands.Cog):
                 if not tax_val_str:
                     tax_val_str = "• 🆓 **Cost:** `None / 0`"
                     
-                container.add_item(discord.ui.Separator(spacing=discord.ui.Spacing.small))
+                container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
                 tax_section = discord.ui.Section()
                 tax_section.add_item(discord.ui.TextDisplay(
@@ -204,7 +204,7 @@ class AoTRValue(commands.Cog):
                 container.add_item(tax_section)
 
             # Footer representation element appended at the base of the container layout
-            container.add_item(discord.ui.Separator(spacing=discord.ui.Spacing.medium))
+            container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
             container.add_item(discord.ui.TextDisplay(content="*The official AoTR values | Mechanically Verified*"))
 
             # Bind layout tree structures to a master LayoutView component collector
