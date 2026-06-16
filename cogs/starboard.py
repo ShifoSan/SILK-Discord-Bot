@@ -35,8 +35,7 @@ class DashboardChannelSelect(discord.ui.ChannelSelect):
         super().__init__(
             placeholder="Select Starboard Target Channel...",
             channel_types=[discord.ChannelType.text],
-            custom_id="select_channel",
-            row=2
+            custom_id="select_channel"
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -54,7 +53,8 @@ class DashboardChannelSelect(discord.ui.ChannelSelect):
         await interaction.response.edit_message(view=view)
 
 
-class StarboardConfigView(discord.ui.View):
+# FIX: Changed parent class to LayoutView
+class StarboardConfigView(discord.ui.LayoutView):
     def __init__(self, cog: "Starboard", guild_id: int, config: dict):
         super().__init__(timeout=300)
         self.cog = cog
@@ -71,17 +71,13 @@ class StarboardConfigView(discord.ui.View):
         """Re-builds the internal dashboard component tree."""
         self.clear_items()
 
-        # Fix: Using accent_color for the container's highlight
         accent_color = discord.Color.from_rgb(255, 215, 0) if self.is_enabled else discord.Color.from_rgb(100, 100, 100)
-        
-        # Fix: Container initialized only with its accent color, removing the invalid 'title' parameter
         container = discord.ui.Container(accent_color=accent_color)
 
         status_str  = "🟢 Enabled" if self.is_enabled else "🔴 Disabled"
         channel_str = f"<#{self.channel_id}>" if self.channel_id else "❌ Not Set (Bot will ignore reactions)"
         rule_str    = "⭐ Stars Only" if self.trigger_emoji == "⭐" else "🌍 Any Emoji (4+ Count)"
 
-        # Set title as standard Markdown inside the body instead
         dashboard_text = (
             f"## ⭐ S.I.L.K. Starboard System\n\n"
             f"### Live Configuration Status\n"
@@ -91,18 +87,24 @@ class StarboardConfigView(discord.ui.View):
             f"> Use the interface buttons below to update your starboard environment parameters instantly."
         )
 
-        # Fix: TextDisplay keyword argument changed from 'body' to 'content'
         container.add_item(discord.ui.TextDisplay(content=dashboard_text))
         self.add_item(container)
 
+        # FIX: Standard buttons inside a LayoutView must reside within an ActionRow
+        row_buttons = discord.ui.ActionRow()
+        
         toggle_label = "Disable System" if self.is_enabled else "Enable System"
         toggle_style = discord.ButtonStyle.danger if self.is_enabled else discord.ButtonStyle.success
-        self.add_item(DashboardButton(label=toggle_label, style=toggle_style, custom_id="toggle_power", row=1))
+        row_buttons.add_item(DashboardButton(label=toggle_label, style=toggle_style, custom_id="toggle_power"))
 
         emoji_label = "Set to 'Any Emoji'" if self.trigger_emoji == "⭐" else "Set to '⭐ Only'"
-        self.add_item(DashboardButton(label=emoji_label, style=discord.ButtonStyle.primary, custom_id="toggle_emoji", row=1))
+        row_buttons.add_item(DashboardButton(label=emoji_label, style=discord.ButtonStyle.primary, custom_id="toggle_emoji"))
+        self.add_item(row_buttons)
 
-        self.add_item(DashboardChannelSelect())
+        # FIX: Dropdown selectors must also reside within an ActionRow inside a LayoutView
+        row_select = discord.ui.ActionRow()
+        row_select.add_item(DashboardChannelSelect())
+        self.add_item(row_select)
 
     async def save_to_db(self):
         """Pushes the current view state back to MongoDB Atlas."""
@@ -122,7 +124,8 @@ class StarboardConfigView(discord.ui.View):
 #  Starboard Highlight Post (top-level, not nested)
 # ──────────────────────────────────────────────
 
-class StarboardPostView(discord.ui.View):
+# FIX: Changed parent class to LayoutView
+class StarboardPostView(discord.ui.LayoutView):
     """Persistent, non-interactive view for a starboard highlight card."""
 
     def __init__(self, message: discord.Message):
@@ -130,7 +133,6 @@ class StarboardPostView(discord.ui.View):
 
         user_avatar = message.author.display_avatar.url if message.author.display_avatar else None
 
-        # Fix: Container initialized with only 'accent_color', avoiding 'title' and 'icon_url'
         container = discord.ui.Container(accent_color=discord.Color.from_rgb(255, 215, 0))
 
         # Guard against empty content crashing len()
@@ -143,11 +145,9 @@ class StarboardPostView(discord.ui.View):
         if message.attachments:
             body_text += f"\n\n![Attachment]({message.attachments[0].url})"
 
-        # Header Text for post highlight title
         header_text = f"### ⭐ Highlight | {message.author.display_name}\n\n"
         full_text = header_text + body_text
 
-        # Fix: Display the user avatar dynamically using a Section and a Thumbnail accessory
         if user_avatar:
             section = discord.ui.Section(
                 discord.ui.TextDisplay(content=full_text),
@@ -159,11 +159,14 @@ class StarboardPostView(discord.ui.View):
 
         self.add_item(container)
 
-        self.add_item(discord.ui.Button(
+        # FIX: Link buttons inside a LayoutView must reside within an ActionRow
+        row_link = discord.ui.ActionRow()
+        row_link.add_item(discord.ui.Button(
             style=discord.ButtonStyle.link,
             url=message.jump_url,
             label="Jump to Original Message"
         ))
+        self.add_item(row_link)
 
 
 # ──────────────────────────────────────────────
