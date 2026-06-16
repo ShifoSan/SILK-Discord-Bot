@@ -71,14 +71,19 @@ class StarboardConfigView(discord.ui.View):
         """Re-builds the internal dashboard component tree."""
         self.clear_items()
 
+        # Fix: Using accent_color for the container's highlight
         accent_color = discord.Color.from_rgb(255, 215, 0) if self.is_enabled else discord.Color.from_rgb(100, 100, 100)
-        container = discord.ui.Container(title="⭐ S.I.L.K. Starboard System", color=accent_color)
+        
+        # Fix: Container initialized only with its accent color, removing the invalid 'title' parameter
+        container = discord.ui.Container(accent_color=accent_color)
 
         status_str  = "🟢 Enabled" if self.is_enabled else "🔴 Disabled"
         channel_str = f"<#{self.channel_id}>" if self.channel_id else "❌ Not Set (Bot will ignore reactions)"
         rule_str    = "⭐ Stars Only" if self.trigger_emoji == "⭐" else "🌍 Any Emoji (4+ Count)"
 
+        # Set title as standard Markdown inside the body instead
         dashboard_text = (
+            f"## ⭐ S.I.L.K. Starboard System\n\n"
             f"### Live Configuration Status\n"
             f"* **System Power:** {status_str}\n"
             f"* **Target Output Channel:** {channel_str}\n"
@@ -86,7 +91,8 @@ class StarboardConfigView(discord.ui.View):
             f"> Use the interface buttons below to update your starboard environment parameters instantly."
         )
 
-        container.add_item(discord.ui.TextDisplay(body=dashboard_text))
+        # Fix: TextDisplay keyword argument changed from 'body' to 'content'
+        container.add_item(discord.ui.TextDisplay(content=dashboard_text))
         self.add_item(container)
 
         toggle_label = "Disable System" if self.is_enabled else "Enable System"
@@ -124,11 +130,8 @@ class StarboardPostView(discord.ui.View):
 
         user_avatar = message.author.display_avatar.url if message.author.display_avatar else None
 
-        container = discord.ui.Container(
-            title=f"⭐ Highlight | {message.author.display_name}",
-            color=discord.Color.from_rgb(255, 215, 0),
-            icon_url=user_avatar
-        )
+        # Fix: Container initialized with only 'accent_color', avoiding 'title' and 'icon_url'
+        container = discord.ui.Container(accent_color=discord.Color.from_rgb(255, 215, 0))
 
         # Guard against empty content crashing len()
         safe_content = message.content or ""
@@ -140,7 +143,20 @@ class StarboardPostView(discord.ui.View):
         if message.attachments:
             body_text += f"\n\n![Attachment]({message.attachments[0].url})"
 
-        container.add_item(discord.ui.TextDisplay(body=body_text))
+        # Header Text for post highlight title
+        header_text = f"### ⭐ Highlight | {message.author.display_name}\n\n"
+        full_text = header_text + body_text
+
+        # Fix: Display the user avatar dynamically using a Section and a Thumbnail accessory
+        if user_avatar:
+            section = discord.ui.Section(
+                discord.ui.TextDisplay(content=full_text),
+                accessory=discord.ui.Thumbnail(user_avatar)
+            )
+            container.add_item(section)
+        else:
+            container.add_item(discord.ui.TextDisplay(content=full_text))
+
         self.add_item(container)
 
         self.add_item(discord.ui.Button(
