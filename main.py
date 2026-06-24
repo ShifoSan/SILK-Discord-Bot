@@ -3,6 +3,8 @@ import os
 import asyncio
 from discord.ext import commands
 from dotenv import load_dotenv
+import certifi
+from motor.motor_asyncio import AsyncIOMotorClient
 
 # Load environment variables
 load_dotenv()
@@ -14,6 +16,13 @@ class SilkBot(commands.Bot):
             intents=discord.Intents.all(),
             help_command=None
         )
+
+        self.mongo_uri = os.getenv("MONGO_URI")
+        if self.mongo_uri:
+            self.mongo_client = AsyncIOMotorClient(self.mongo_uri, tlsCAFile=certifi.where())
+        else:
+            self.mongo_client = None
+            print("Warning: MONGO_URI not found. Database-backed modules will fail.")
 
     async def setup_hook(self):
         # Load extensions
@@ -59,6 +68,11 @@ class SilkBot(commands.Bot):
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         print('------')
+
+    async def close(self):
+        if self.mongo_client:
+            self.mongo_client.close()
+        await super().close()
 
 def main():
     token = os.getenv("DISCORD_TOKEN")
