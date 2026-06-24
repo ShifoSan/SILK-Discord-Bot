@@ -178,12 +178,19 @@ class TradeCompare(commands.Cog):
     async def trade_compare(self, interaction: discord.Interaction, giving: str, getting: str):
         try:
             await interaction.response.defer(thinking=True)
+            # Route processing variables smoothly to the decoupled core
+            await self.execute_trade_compare(interaction.followup, interaction.user, giving, getting)
+        except Exception as e:
+            await interaction.followup.send(f"An error occurred during transaction preparation: {str(e)}")
 
+    async def execute_trade_compare(self, destination, user, giving: str, getting: str):
+        """Isolated operational core processing both prefix listeners and slash commands."""
+        try:
             giving_list = [item.strip() for item in giving.split("+") if item.strip()]
             getting_list = [item.strip() for item in getting.split("+") if item.strip()]
 
             if not giving_list or not getting_list:
-                await interaction.followup.send("⚠️ Invalid formatting. Please provide items for both fields split by `+`.")
+                await destination.send("⚠️ Invalid formatting. Please provide items for both fields split by `+`.")
                 return
 
             # Fire async batch routines concurrently across the value matrix
@@ -256,8 +263,8 @@ class TradeCompare(commands.Cog):
 
             # Build output presentation dashboard
             embed = discord.Embed(title="⚖️ S.I.L.K. — Trade Analytics Engine", color=embed_color)
-            avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
-            embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
+            avatar_url = user.display_avatar.url if user.display_avatar else None
+            embed.set_author(name=user.display_name, icon_url=avatar_url)
 
             embed.add_field(
                 name="📤 SIDE A (WHAT YOU ARE GIVING)",
@@ -293,10 +300,10 @@ class TradeCompare(commands.Cog):
                 )
 
             embed.set_footer(text="Trade margins calculated mechanically | Zero AI footprint.")
-            await interaction.followup.send(embed=embed)
+            await destination.send(embed=embed)
 
         except Exception as e:
-            await interaction.followup.send(f"An error occurred during trade comparison processing: {str(e)}")
+            await destination.send(f"An error occurred during trade comparison processing: {str(e)}")
 
 
 async def setup(bot):
