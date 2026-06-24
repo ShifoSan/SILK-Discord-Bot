@@ -47,9 +47,13 @@ class AoTRValue(commands.Cog):
     async def value(self, interaction: discord.Interaction, item: str):
         # Critical Defer Protocol
         await interaction.response.defer()
+        # Route parameters cleanly to the decoupled search and UI engine
+        await self.execute_value_lookup(interaction.followup, interaction.user, interaction.guild, item)
 
+    async def execute_value_lookup(self, destination, user, guild, item: str):
+        """Core visual constructor rendering system assets down to target channels."""
         if self.collection is None:
-            return await interaction.followup.send("❌ System configuration missing (MongoDB URI).")
+            return await destination.send("❌ System configuration missing (MongoDB URI).")
 
         try:
             # 1. Zero-API Atlas Search Pipeline (Fuzzy Match Filter)
@@ -74,7 +78,7 @@ class AoTRValue(commands.Cog):
             search_results = await cursor.to_list(length=5)
 
             if not search_results:
-                return await interaction.followup.send(f"❌ I searched the active index, but couldn't resolve any assets matching `{item}`.")
+                return await destination.send(f"❌ I searched the active index, but couldn't resolve any assets matching `{item}`.")
 
             # 2. Python Tie-Breaker Logic (Levenshtein Distance over the top 5 candidates)
             candidate_names = [doc["Item"] for doc in search_results]
@@ -107,15 +111,15 @@ class AoTRValue(commands.Cog):
             # 1. Instantiate the root Container shell
             container = discord.ui.Container(accent_color=discord.Color(embed_color))
 
-            # Author Attribution — mirrors embed set_author; Discord's -# syntax renders as small subtext
+            # Author Attribution
             container.add_item(discord.ui.TextDisplay(
-                content=f"-# 🔍 Requested by **{interaction.user.display_name}**"
+                content=f"-# 🔍 Requested by **{user.display_name}**"
             ))
 
             # Thumbnail Resolution — item's image_link field takes priority, guild icon is the safety fallback
             thumbnail_url = data.get("image_link") or None
-            if not thumbnail_url and interaction.guild and interaction.guild.icon:
-                thumbnail_url = str(interaction.guild.icon.url)
+            if not thumbnail_url and guild and guild.icon:
+                thumbnail_url = str(guild.icon.url)
 
             # 2. Title header — Section+Thumbnail when an image resolved, plain TextDisplay otherwise
             title_text = discord.ui.TextDisplay(
@@ -219,12 +223,12 @@ class AoTRValue(commands.Cog):
             view.add_item(container)
 
             # Dispatch transaction
-            await interaction.followup.send(view=view)
+            await destination.send(view=view)
 
         except discord.NotFound:
             pass 
         except Exception as e:
-            await interaction.followup.send(f"An error occurred during mechanical lookup: {str(e)}")
+            await destination.send(f"An error occurred during mechanical lookup: {str(e)}")
 
 async def setup(bot):
     await bot.add_cog(AoTRValue(bot))
