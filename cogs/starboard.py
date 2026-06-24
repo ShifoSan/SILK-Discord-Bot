@@ -1,10 +1,5 @@
 import discord
-import os
 from discord.ext import commands
-from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-
-load_dotenv()
 
 
 # ──────────────────────────────────────────────
@@ -176,13 +171,13 @@ class StarboardPostView(discord.ui.LayoutView):
 class Starboard(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        # Self-contained connection — no dependency on bot.db
-        self._mongo_client = AsyncIOMotorClient(os.getenv("MONGO_URI"))
-        self.collection = self._mongo_client["silk_db"]["chat_configs"]
-
-    def cog_unload(self):
-        """Close the MongoDB connection cleanly when the cog is unloaded or reloaded."""
-        self._mongo_client.close()
+        # Reuse the centralized MongoDB client managed by SilkBot.
+        self.db_client = bot.mongo_client
+        if self.db_client:
+            self.collection = self.db_client["silk_db"]["chat_configs"]
+        else:
+            self.collection = None
+            print("Warning: MONGO_URI not found. Starboard module will fail.")
 
     # ── Dashboard Command ──────────────────────
 
@@ -190,6 +185,9 @@ class Starboard(commands.Cog):
     async def starboard_dashboard(self, ctx: commands.Context):
         if not ctx.author.guild_permissions.administrator:
             return
+
+        if self.collection is None:
+            return await ctx.send("❌ System configuration missing (MongoDB URI).")
 
         config = await self.collection.find_one({"guild_id": ctx.guild.id})
         if not config:
@@ -219,6 +217,9 @@ class Starboard(commands.Cog):
 
         # Ignore bot reactions
         if payload.member and payload.member.bot:
+            return
+
+        if self.collection is None:
             return
 
         # Fetch config & quick-kill if starboard isn't set up

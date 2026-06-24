@@ -1,24 +1,24 @@
 import discord
 from discord.ext import commands, tasks
 import random
-import os
-import motor.motor_asyncio
-import certifi
 
 class Presence(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # Database connection
-        MONGO_URI = os.getenv("MONGO_URI")
-        if MONGO_URI:
-            self.db_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
+        # Reuse the centralized MongoDB client managed by SilkBot.
+        self.db_client = bot.mongo_client
+        if self.db_client:
+            self.bot_statuses = self.db_client.silk_bot.bot_statuses
         else:
-            self.db_client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017/")
-        self.bot_statuses = self.db_client.silk_bot.bot_statuses
+            self.bot_statuses = None
+            print("Warning: MONGO_URI not found. Presence module will fail.")
 
     @tasks.loop(seconds=20)
     async def status_loop(self):
+        if self.bot_statuses is None:
+            return
+
         try:
             # Fetch active statuses from the database
             active_statuses = []

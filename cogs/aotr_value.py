@@ -1,22 +1,17 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import os
-import certifi
 import difflib
-from motor.motor_asyncio import AsyncIOMotorClient
 
 class AoTRValue(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # Initialize MongoDB Targeting the new mechanical normalized collection
-        self.mongo_uri = os.getenv("MONGO_URI")
-        if self.mongo_uri:
-            self.db_client = AsyncIOMotorClient(self.mongo_uri, tlsCAFile=certifi.where())
+        # Reuse the centralized MongoDB client managed by SilkBot.
+        self.db_client = bot.mongo_client
+        if self.db_client:
             self.collection = self.db_client["silk_bot"]["value_list"]
         else:
-            self.db_client = None
             self.collection = None
             print("Warning: MONGO_URI not found. AoTRValue module will fail.")
 
