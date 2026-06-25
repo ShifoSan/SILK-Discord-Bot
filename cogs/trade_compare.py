@@ -7,6 +7,9 @@ import difflib
 
 
 class TradeCompare(commands.Cog):
+    COMPONENT_TEXT_LIMIT = 3900
+    MAX_BREAKDOWN_LINES = 20
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -51,6 +54,117 @@ class TradeCompare(commands.Cog):
                 return field[level_key] or 0
             return field.get("Min", 0)  # Graceful fallback for range models (Artifact Taxes)
         return field
+
+    def sanitize_display_text(self, value) -> str:
+        """Escapes user/database text before rendering it in Discord markdown."""
+        safe_value = discord.utils.escape_markdown(str(value))
+        return discord.utils.escape_mentions(safe_value)
+
+    def truncate_component_text(self, text: str, limit: int = COMPONENT_TEXT_LIMIT) -> str:
+        """Keeps TextDisplay payloads safely under Discord component text limits."""
+        if len(text) <= limit:
+            return text
+
+        suffix = "\n…output compacted to fit Discord's Components V2 limits."
+        return text[: limit - len(suffix)].rstrip() + suffix
+
+    def format_breakdown_lines(self, lines: list[str]) -> str:
+        """Compacts long trade breakdowns visually without changing calculated totals."""
+        if len(lines) <= self.MAX_BREAKDOWN_LINES:
+            return "\n".join(lines)
+
+        visible_lines = lines[: self.MAX_BREAKDOWN_LINES]
+        hidden_count = len(lines) - self.MAX_BREAKDOWN_LINES
+        visible_lines.append(f"…and {hidden_count} more item(s) included in the totals.")
+        return "\n".join(visible_lines)
+
+    def add_text_block(self, container: discord.ui.Container, content: str) -> None:
+        """Adds a guarded TextDisplay block to a Components V2 container."""
+        container.add_item(discord.ui.TextDisplay(self.truncate_component_text(content)))
+
+    def build_trade_compare_view(
+        self,
+        user,
+        giving_breakdown: list[str],
+        getting_breakdown: list[str],
+        total_giving_keys,
+        total_giving_scrolls,
+        total_giving_vizard,
+        total_giving_gems_tax,
+        total_giving_gold_tax,
+        total_getting_keys,
+        total_getting_scrolls,
+        total_getting_vizard,
+        total_getting_gems_tax,
+        total_getting_gold_tax,
+        verdict: str,
+        accent_color: int,
+        margin_keys,
+        margin_scrolls,
+        margin_vizard,
+        sign: str,
+        unmatched_items: list[str],
+    ) -> discord.ui.LayoutView:
+        """Builds the successful trade analytics dashboard using Discord Components V2."""
+        view = discord.ui.LayoutView(timeout=None)
+        container = discord.ui.Container(accent_color=discord.Color(accent_color))
+
+        self.add_text_block(
+            container,
+            f"### ⚖️ S.I.L.K. — Trade Analytics Engine\n"
+            f"Requested by **{self.sanitize_display_text(user.display_name)}**",
+        )
+        container.add_item(discord.ui.Separator())
+
+        self.add_text_block(
+            container,
+            "### 📤 SIDE A (WHAT YOU ARE GIVING)\n"
+            f"{self.format_breakdown_lines(giving_breakdown)}\n\n"
+            f"**Total Outbound Value:**\n"
+            f"📊 {self.emperor_key} `{total_giving_keys:,} Keys` | "
+            f"{self.scroll} `{total_giving_scrolls:,.1f} Scrolls` | "
+            f"{self.vizard_mask} `{total_giving_vizard:,.2f} Viz`\n"
+            f"💼 **Your Required Trade Tax:** 💎 `{total_giving_gems_tax:,} Gems` | "
+            f"🪙 `{total_giving_gold_tax:,} Gold`",
+        )
+        container.add_item(discord.ui.Separator())
+
+        self.add_text_block(
+            container,
+            "### 📥 SIDE B (WHAT YOU ARE RECEIVING)\n"
+            f"{self.format_breakdown_lines(getting_breakdown)}\n\n"
+            f"**Total Inbound Value:**\n"
+            f"📊 {self.emperor_key} `{total_getting_keys:,} Keys` | "
+            f"{self.scroll} `{total_getting_scrolls:,.2f} Scrolls` | "
+            f"{self.vizard_mask} `{total_getting_vizard:,.2f} Viz`\n"
+            f"💼 **Their Required Trade Tax:** 💎 `{total_getting_gems_tax:,} Gems` | "
+            f"🪙 `{total_getting_gold_tax:,} Gold`",
+        )
+        container.add_item(discord.ui.Separator())
+
+        transaction_content = (
+            "### 📊 TRANSACTION BREAKDOWN\n"
+            "```ansi\n"
+            f"{verdict}\n"
+            f"📈 NET MARGIN: {sign}{margin_keys:,} Keys "
+            f"({sign}{margin_scrolls:,.1f} Scrolls / {sign}{margin_vizard:,.2f} Viz)\n"
+            "```"
+        )
+
+        if unmatched_items:
+            compacted_items = self.format_breakdown_lines(unmatched_items)
+            transaction_content += (
+                "\n\n### ⚠️ Typo Warning / Items Not Found\n"
+                "The following inputs could not be cleanly identified and calculated as `0 Keys`:\n"
+                f"{compacted_items}"
+            )
+
+        self.add_text_block(container, transaction_content)
+        container.add_item(discord.ui.Separator())
+        self.add_text_block(container, "**Trade margins calculated mechanically | Zero AI footprint.**")
+
+        view.add_item(container)
+        return view
 
     # --- Mechanical Core Search Engine ---
     async def fetch_item_data(self, raw_item_query: str) -> dict:
@@ -210,8 +324,9 @@ class TradeCompare(commands.Cog):
 
             # Accumulate metrics for Giving parameters
             for res in giving_results:
+                display_name = self.sanitize_display_text(res["display_name"])
                 if res["error"] == "not_found":
-                    unmatched_items.append(f"`{res['display_name']}` (Giving Side)")
+                    unmatched_items.append(f"`{display_name}` (Giving Side)")
                 total_giving_keys += res["keys"]
                 total_giving_scrolls += res["scrolls"]
                 total_giving_vizard += res["vizard"]
@@ -219,12 +334,13 @@ class TradeCompare(commands.Cog):
                 total_giving_gold_tax += res["gold_tax"]
 
                 val_display = f"{res['keys']:,}" if res["keys"] > 0 else "N/A / O/C"
-                giving_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{val_display}** Keys")
+                giving_breakdown.append(f"• {display_name} — {self.emperor_key} **{val_display}** Keys")
 
             # Accumulate metrics for Getting parameters
             for res in getting_results:
+                display_name = self.sanitize_display_text(res["display_name"])
                 if res["error"] == "not_found":
-                    unmatched_items.append(f"`{res['display_name']}` (Getting Side)")
+                    unmatched_items.append(f"`{display_name}` (Getting Side)")
                 total_getting_keys += res["keys"]
                 total_getting_scrolls += res["scrolls"]
                 total_getting_vizard += res["vizard"]
@@ -232,7 +348,7 @@ class TradeCompare(commands.Cog):
                 total_getting_gold_tax += res["gold_tax"]
 
                 val_display = f"{res['keys']:,}" if res["keys"] > 0 else "N/A / O/C"
-                getting_breakdown.append(f"• {res['display_name']} — {self.emperor_key} **{val_display}** Keys")
+                getting_breakdown.append(f"• {display_name} — {self.emperor_key} **{val_display}** Keys")
 
             # Calculate Win/Loss Verdict Ratios safely
             if total_giving_keys == 0:
@@ -261,46 +377,30 @@ class TradeCompare(commands.Cog):
             margin_vizard = total_getting_vizard - total_giving_vizard
             sign = "+" if margin_keys >= 0 else ""
 
-            # Build output presentation dashboard
-            embed = discord.Embed(title="⚖️ S.I.L.K. — Trade Analytics Engine", color=embed_color)
-            avatar_url = user.display_avatar.url if user.display_avatar else None
-            embed.set_author(name=user.display_name, icon_url=avatar_url)
-
-            embed.add_field(
-                name="📤 SIDE A (WHAT YOU ARE GIVING)",
-                value="\n".join(giving_breakdown)
-                + f"\n\n**Total Outbound Value:**\n📊 {self.emperor_key} `{total_giving_keys:,} Keys` | {self.scroll} `{total_giving_scrolls:,.1f} Scrolls` | {self.vizard_mask} `{total_giving_vizard:,.2f} Viz`"
-                + f"\n💼 **Your Required Trade Tax:** 💎 `{total_giving_gems_tax:,} Gems` | 🪙 `{total_giving_gold_tax:,} Gold`",
-                inline=False,
+            # Build output presentation dashboard using Discord Components V2.
+            view = self.build_trade_compare_view(
+                user,
+                giving_breakdown,
+                getting_breakdown,
+                total_giving_keys,
+                total_giving_scrolls,
+                total_giving_vizard,
+                total_giving_gems_tax,
+                total_giving_gold_tax,
+                total_getting_keys,
+                total_getting_scrolls,
+                total_getting_vizard,
+                total_getting_gems_tax,
+                total_getting_gold_tax,
+                verdict,
+                embed_color,
+                margin_keys,
+                margin_scrolls,
+                margin_vizard,
+                sign,
+                unmatched_items,
             )
-
-            embed.add_field(
-                name="📥 SIDE B (WHAT YOU ARE RECEIVING)",
-                value="\n".join(getting_breakdown)
-                + f"\n\n**Total Inbound Value:**\n📊 {self.emperor_key} `{total_getting_keys:,} Keys` | {self.scroll} `{total_getting_scrolls:,.2f} Scrolls` | {self.vizard_mask} `{total_getting_vizard:,.2f} Viz`"
-                + f"\n💼 **Their Required Trade Tax:** 💎 `{total_getting_gems_tax:,} Gems` | 🪙 `{total_getting_gold_tax:,} Gold`",
-                inline=False,
-            )
-
-            # Generate standard ANSI color block lines for text breakdown
-            breakdown_text = (
-                "```ansi\n"
-                f"{verdict}\n"
-                f"📈 NET MARGIN: {sign}{margin_keys:,} Keys ({sign}{margin_scrolls:,.1f} Scrolls / {sign}{margin_vizard:,.2f} Viz)\n"
-                "```"
-            )
-            embed.add_field(name="📊 TRANSACTION BREAKDOWN", value=breakdown_text, inline=False)
-
-            # Push fuzzy match mismatch indicators down to warnings block if triggered
-            if unmatched_items:
-                embed.add_field(
-                    name="⚠️ Typo Warning / Items Not Found",
-                    value=f"The following inputs could not be cleanly identified and calculated as `0 Keys`:\n{', '.join(unmatched_items)}",
-                    inline=False,
-                )
-
-            embed.set_footer(text="Trade margins calculated mechanically | Zero AI footprint.")
-            await destination.send(embed=embed)
+            await destination.send(view=view, allowed_mentions=discord.AllowedMentions.none())
 
         except Exception as e:
             await destination.send(f"An error occurred during trade comparison processing: {str(e)}")
