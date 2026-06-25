@@ -1,5 +1,74 @@
 import discord
+import logging
+import asyncio
 from discord.ext import commands
+from typing import Optional, Dict, Any
+from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
+
+# ──────────────────────────────────────────────
+#  Constants
+# ──────────────────────────────────────────────
+
+class StarboardConstants:
+    """Centralized configuration constants for the Starboard system."""
+    DEFAULT_EMOJI = "⭐"
+    TRIGGER_ANY = "any"
+    REACTION_THRESHOLD = 4
+    MAX_POSTED_HISTORY = 150
+    MAX_CONTENT_LENGTH = 3900
+    CONTENT_TRUNCATION_SUFFIX = "... [Read More]"
+    ACCENT_GOLD = (255, 215, 0)
+    ACCENT_GRAY = (100, 100, 100)
+    DASHBOARD_TIMEOUT = 300  # seconds
+    MONGO_TIMEOUT_MS = 5000  # 5 second timeout for DB operations
+    CACHE_TTL_SECONDS = 300  # 5 minute TTL for guild config cache
+    EMBED_ACCENT_COLOR = discord.Color.from_rgb(255, 215, 0)
+
+
+# ──────────────────────────────────────────────
+#  Mention Sanitization Utility
+# ──────────────────────────────────────────────
+
+def sanitize_mentions(message: discord.Message) -> str:
+    """
+    Sanitizes message content to prevent any pings in starboard reposts.
+
+    Strategy:
+    1. Use discord.py's clean_content to convert <@id> mentions to @name format.
+    2. Insert zero-width space after @ in @everyone and @here to break Discord's
+       mention detection (these keywords ping even without the ID syntax).
+    3. Escape any remaining '@' that could be misinterpreted.
+
+    This ensures NO ONE gets pinged — mentions become plain text only.
+    """
+    # Step 1: Get cleaned content (converts <@id> → @name, <@&id> → @rolename, etc.)
+    content = message.clean_content or ""
+
+    # Step 2: Break @everyone and @here by inserting zero-width space after @
+    # These are case-insensitive in Discord, so we handle all variations
+    content = content.replace("@everyone", "@\u200beveryone")
+    content = content.replace("@here", "@\u200bhere")
+    content = content.replace("@EVERYONE", "@\u200bEVERYONE")
+    content = content.replace("@HERE", "@\u200bHERE")
+    content = content.replace("@Everyone", "@\u200bEveryone")
+    content = content.replace("@Here", "@\u200bHere")
+
+    # Step 3: Also escape any remaining @everyone/@here with mixed casing
+    # Using case-insensitive approach for robustness
+    import re
+    content = re.sub(r'@everyone', '@\u200beveryone', content, flags=re.IGNORECASE)
+    content = re.sub(r'@here', '@\u200bhere', content, flags=re.IGNORECASE)
+
+    return content
+
+
+def truncate_content(content: str, max_length: int = StarboardConstants.MAX_CONTENT_LENGTH) -> str:
+    """Safely truncates content to Discord's limits with suffix."""
+    if len(content) <= max_length:
+        return content
+    return content[:max_length] + StarboardConstants.CONTENT_TRUNCATION_SUFFIX
 
 
 # ──────────────────────────────────────────────
@@ -10,15 +79,19 @@ class DashboardButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         view: "StarboardConfigView" = self.view
 
-        if not interaction.user.guild_permissions.administrator:
+        if not interaction.user or not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(
-                "❌ This setup panel belongs to administrators.", ephemeral=True
+                "\u274c This setup panel is restricted to administrators.", ephemeral=True
             )
 
         if self.custom_id == "toggle_power":
             view.is_enabled = not view.is_enabled
         elif self.custom_id == "toggle_emoji":
-            view.trigger_emoji = "any" if view.trigger_emoji == "⭐" else "⭐"
+            view.trigger_emoji = (
+                StarboardConstants.TRIGGER_ANY
+                if view.trigger_emoji == StarboardConstants.DEFAULT_EMOJI
+                else StarboardConstants.DEFAULT_EMOJI
+            )
 
         await view.save_to_db()
         view.update_components()
@@ -36,9 +109,9 @@ class DashboardChannelSelect(discord.ui.ChannelSelect):
     async def callback(self, interaction: discord.Interaction):
         view: "StarboardConfigView" = self.view
 
-        if not interaction.user.guild_permissions.administrator:
+        if not interaction.user or not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(
-                "❌ This setup panel belongs to administrators.", ephemeral=True
+                "\u274c This setup panel is restricted to administrators.", ephemeral=True
             )
 
         view.channel_id = self.values[0].id
@@ -48,17 +121,18 @@ class DashboardChannelSelect(discord.ui.ChannelSelect):
         await interaction.response.edit_message(view=view)
 
 
-# FIX: Changed parent class to LayoutView
 class StarboardConfigView(discord.ui.LayoutView):
+    """Persistent dashboard for configuring the starboard system."""
+
     def __init__(self, cog: "Starboard", guild_id: int, config: dict):
-        super().__init__(timeout=300)
+        super().__init__(timeout=StarboardConstants.DASHBOARD_TIMEOUT)
         self.cog = cog
         self.guild_id = guild_id
 
         sb_data = config.get("starboard", {})
         self.is_enabled = sb_data.get("is_enabled", False)
         self.channel_id = sb_data.get("channel_id", None)
-        self.trigger_emoji = sb_data.get("trigger_emoji", "any")
+        self.trigger_emoji = sb_data.get("trigger_emoji", StarboardConstants.TRIGGER_ANY)
 
         self.update_components()
 
@@ -66,60 +140,83 @@ class StarboardConfigView(discord.ui.LayoutView):
         """Re-builds the internal dashboard component tree."""
         self.clear_items()
 
-        accent_color = discord.Color.from_rgb(255, 215, 0) if self.is_enabled else discord.Color.from_rgb(100, 100, 100)
+        accent_color = (
+            discord.Color.from_rgb(*StarboardConstants.ACCENT_GOLD)
+            if self.is_enabled
+            else discord.Color.from_rgb(*StarboardConstants.ACCENT_GRAY)
+        )
         container = discord.ui.Container(accent_color=accent_color)
 
-        status_str  = "🟢 Enabled" if self.is_enabled else "🔴 Disabled"
-        channel_str = f"<#{self.channel_id}>" if self.channel_id else "❌ Not Set (Bot will ignore reactions)"
-        rule_str    = "⭐ Stars Only" if self.trigger_emoji == "⭐" else "🌍 Any Emoji (4+ Count)"
+        status_str  = "\ud83d\udfe2 Enabled" if self.is_enabled else "\ud83d\udd34 Disabled"
+        channel_str = f"<#{self.channel_id}>" if self.channel_id else "\u274c Not Set (Bot will ignore reactions)"
+        rule_str    = (
+            "\u2b50 Stars Only"
+            if self.trigger_emoji == StarboardConstants.DEFAULT_EMOJI
+            else "\ud83c\udf0e Any Emoji (4+ Count)"
+        )
 
         dashboard_text = (
-            f"## ⭐ S.I.L.K. Starboard System\n\n"
+            f"## \u2b50 S.I.L.K. Starboard System\n\n"
             f"### Live Configuration Status\n"
             f"* **System Power:** {status_str}\n"
             f"* **Target Output Channel:** {channel_str}\n"
             f"* **Reaction Trigger Filter:** {rule_str}\n\n"
-            f"> Use the interface buttons below to update your starboard environment parameters instantly."
+            f"> Use the interface below to update your starboard settings."
         )
 
         container.add_item(discord.ui.TextDisplay(content=dashboard_text))
         self.add_item(container)
 
-        # FIX: Standard buttons inside a LayoutView must reside within an ActionRow
+        # Buttons must reside within an ActionRow
         row_buttons = discord.ui.ActionRow()
-        
+
         toggle_label = "Disable System" if self.is_enabled else "Enable System"
         toggle_style = discord.ButtonStyle.danger if self.is_enabled else discord.ButtonStyle.success
-        row_buttons.add_item(DashboardButton(label=toggle_label, style=toggle_style, custom_id="toggle_power"))
+        row_buttons.add_item(DashboardButton(
+            label=toggle_label,
+            style=toggle_style,
+            custom_id="toggle_power"
+        ))
 
-        emoji_label = "Set to 'Any Emoji'" if self.trigger_emoji == "⭐" else "Set to '⭐ Only'"
-        row_buttons.add_item(DashboardButton(label=emoji_label, style=discord.ButtonStyle.primary, custom_id="toggle_emoji"))
+        emoji_label = (
+            "Set to 'Any Emoji'"
+            if self.trigger_emoji == StarboardConstants.DEFAULT_EMOJI
+            else "Set to '\u2b50 Only'"
+        )
+        row_buttons.add_item(DashboardButton(
+            label=emoji_label,
+            style=discord.ButtonStyle.primary,
+            custom_id="toggle_emoji"
+        ))
         self.add_item(row_buttons)
 
-        # FIX: Dropdown selectors must also reside within an ActionRow inside a LayoutView
+        # Dropdown selectors must also reside within an ActionRow
         row_select = discord.ui.ActionRow()
         row_select.add_item(DashboardChannelSelect())
         self.add_item(row_select)
 
     async def save_to_db(self):
-        """Pushes the current view state back to MongoDB Atlas."""
+        """Pushes the current view state back to MongoDB Atlas with timeout."""
         payload = {
             "starboard.is_enabled":    self.is_enabled,
             "starboard.channel_id":    self.channel_id,
             "starboard.trigger_emoji": self.trigger_emoji,
         }
-        await self.cog.collection.update_one(
-            {"guild_id": self.guild_id},
-            {"$set": payload},
-            upsert=True
-        )
+        try:
+            await self.cog.collection.update_one(
+                {"guild_id": self.guild_id},
+                {"$set": payload},
+                upsert=True
+            )
+        except Exception as e:
+            logger.error(f"Failed to save starboard config for guild {self.guild_id}: {e}")
+            raise
 
 
 # ──────────────────────────────────────────────
-#  Starboard Highlight Post (top-level, not nested)
+#  Starboard Highlight Post
 # ──────────────────────────────────────────────
 
-# FIX: Changed parent class to LayoutView
 class StarboardPostView(discord.ui.LayoutView):
     """Persistent, non-interactive view for a starboard highlight card."""
 
@@ -128,19 +225,23 @@ class StarboardPostView(discord.ui.LayoutView):
 
         user_avatar = message.author.display_avatar.url if message.author.display_avatar else None
 
-        container = discord.ui.Container(accent_color=discord.Color.from_rgb(255, 215, 0))
+        container = discord.ui.Container(accent_color=StarboardConstants.EMBED_ACCENT_COLOR)
 
-        # Guard against empty content crashing len()
-        safe_content = message.content or ""
-        if len(safe_content) > 3900:
-            safe_content = safe_content[:3900] + "... [Read More]"
+        # SECURITY FIX: Sanitize ALL mentions to prevent pings
+        safe_content = sanitize_mentions(message)
+        safe_content = truncate_content(safe_content)
 
         body_text = safe_content if safe_content else "*[Media Highlight]*"
 
+        # Handle attachments — include first image if present
         if message.attachments:
-            body_text += f"\n\n![Attachment]({message.attachments[0].url})"
+            first_attachment = message.attachments[0]
+            if first_attachment.content_type and first_attachment.content_type.startswith("image/"):
+                body_text += f"\n\n![Attachment]({first_attachment.url})"
+            else:
+                body_text += f"\n\n\ud83d\udcc4 [Attachment: {first_attachment.filename}]({first_attachment.url})"
 
-        header_text = f"### ⭐ Highlight | {message.author.display_name}\n\n"
+        header_text = f"### \u2b50 Highlight | {message.author.display_name}\n\n"
         full_text = header_text + body_text
 
         if user_avatar:
@@ -154,7 +255,7 @@ class StarboardPostView(discord.ui.LayoutView):
 
         self.add_item(container)
 
-        # FIX: Link buttons inside a LayoutView must reside within an ActionRow
+        # Link button inside an ActionRow
         row_link = discord.ui.ActionRow()
         row_link.add_item(discord.ui.Button(
             style=discord.ButtonStyle.link,
@@ -169,38 +270,86 @@ class StarboardPostView(discord.ui.LayoutView):
 # ──────────────────────────────────────────────
 
 class Starboard(commands.Cog):
+    """Starboard system: highlights popular messages via reactions."""
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         # Reuse the centralized MongoDB client managed by SilkBot.
-        self.db_client = bot.mongo_client
+        self.db_client = getattr(bot, "mongo_client", None)
         if self.db_client:
             self.collection = self.db_client["silk_db"]["chat_configs"]
         else:
             self.collection = None
-            print("Warning: MONGO_URI not found. Starboard module will fail.")
+            logger.warning("MONGO_URI not found. Starboard module is non-functional.")
+
+        # In-memory caches for efficiency
+        # Maps guild_id -> (config_dict, expiry_timestamp)
+        self._config_cache: Dict[int, tuple[dict, float]] = {}
+        # Set of message IDs already posted (avoids DB + API calls)
+        self._posted_cache: set[int] = set()
+        # Set of message IDs currently being processed (prevents race conditions)
+        self._in_flight: set[int] = set()
+
+    # ── Cache Management ───────────────────────
+
+    def _get_cached_config(self, guild_id: int) -> Optional[dict]:
+        """Returns cached config if still valid, else None."""
+        entry = self._config_cache.get(guild_id)
+        if entry is None:
+            return None
+        config, expiry = entry
+        if datetime.utcnow().timestamp() > expiry:
+            del self._config_cache[guild_id]
+            return None
+        return config
+
+    def _set_cached_config(self, guild_id: int, config: dict):
+        """Stores config in cache with TTL."""
+        expiry = datetime.utcnow().timestamp() + StarboardConstants.CACHE_TTL_SECONDS
+        self._config_cache[guild_id] = (config, expiry)
+
+    def _invalidate_cache(self, guild_id: int):
+        """Removes a guild's config from cache."""
+        self._config_cache.pop(guild_id, None)
 
     # ── Dashboard Command ──────────────────────
 
     @commands.command(name="sb")
     async def starboard_dashboard(self, ctx: commands.Context):
+        """Display the starboard configuration dashboard."""
         if not ctx.author.guild_permissions.administrator:
             return
 
         if self.collection is None:
-            return await ctx.send("❌ System configuration missing (MongoDB URI).")
+            return await ctx.send("\u274c Database connection not available.")
 
-        config = await self.collection.find_one({"guild_id": ctx.guild.id})
+        try:
+            config = await self.collection.find_one(
+                {"guild_id": ctx.guild.id}
+            )
+        except Exception as e:
+            logger.error(f"DB error fetching config for guild {ctx.guild.id}: {e}")
+            return await ctx.send("\u274c Database error. Please try again later.")
+
         if not config:
             config = {
                 "guild_id": ctx.guild.id,
                 "starboard": {
                     "is_enabled":     False,
                     "channel_id":     None,
-                    "trigger_emoji":  "any",
+                    "trigger_emoji":  StarboardConstants.TRIGGER_ANY,
                     "posted_messages": []
                 }
             }
-            await self.collection.insert_one(config)
+            try:
+                await self.collection.insert_one(config)
+            except Exception as e:
+                logger.error(f"DB error creating config for guild {ctx.guild.id}: {e}")
+                return await ctx.send("\u274c Failed to initialize configuration.")
+
+        # Invalidate cache since we may have changed config
+        self._invalidate_cache(ctx.guild.id)
+        self._set_cached_config(ctx.guild.id, config)
 
         view = StarboardConfigView(self, ctx.guild.id, config)
         await ctx.send(view=view)
@@ -211,19 +360,39 @@ class Starboard(commands.Cog):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         """Bypasses cache to detect starboard reaction thresholds globally."""
 
-        # FIX: Guard against DM reactions — payload.guild_id is None in DMs
+        # Guard against DM reactions — payload.guild_id is None in DMs
         if not payload.guild_id:
             return
 
-        # Ignore bot reactions
+        # SECURITY: Ignore ALL bot reactions (handles uncached members too)
+        if payload.user_id == self.bot.user.id:
+            return
+        # Fallback for other bots when member data is cached
         if payload.member and payload.member.bot:
             return
 
         if self.collection is None:
             return
 
-        # Fetch config & quick-kill if starboard isn't set up
-        config = await self.collection.find_one({"guild_id": payload.guild_id})
+        # EFFICIENCY: Check in-memory caches before touching DB or API
+        if payload.message_id in self._posted_cache:
+            return
+        if payload.message_id in self._in_flight:
+            return
+
+        # Try cache first, then fall back to DB
+        config = self._get_cached_config(payload.guild_id)
+        if config is None:
+            try:
+                config = await self.collection.find_one(
+                    {"guild_id": payload.guild_id}
+                )
+            except Exception as e:
+                logger.error(f"DB error fetching config for guild {payload.guild_id}: {e}")
+                return
+            if config:
+                self._set_cached_config(payload.guild_id, config)
+
         if not config:
             return
 
@@ -236,58 +405,93 @@ class Starboard(commands.Cog):
         if not target_channel_id:
             return
 
-        # FIX: Prevent self-starring — reactions inside the starboard channel are ignored
+        # Prevent self-starring — reactions inside the starboard channel are ignored
         if payload.channel_id == target_channel_id:
             return
 
         # Check emoji filter
-        trigger_rule = sb_data.get("trigger_emoji", "any")
-        if trigger_rule == "⭐" and str(payload.emoji) != "⭐":
+        trigger_rule = sb_data.get("trigger_emoji", StarboardConstants.TRIGGER_ANY)
+        if trigger_rule == StarboardConstants.DEFAULT_EMOJI and str(payload.emoji) != StarboardConstants.DEFAULT_EMOJI:
             return
 
-        # FIX: Catch Forbidden and HTTPException, not just NotFound
+        # Mark as in-flight to prevent concurrent processing of the same message
+        self._in_flight.add(payload.message_id)
+
         try:
-            channel = await self.bot.fetch_channel(payload.channel_id)
-            message = await channel.fetch_message(payload.message_id)
-        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-            return
+            # Fetch channel and message from Discord API
+            try:
+                channel = await self.bot.fetch_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException) as e:
+                logger.debug(f"Failed to fetch message {payload.message_id}: {e}")
+                return
 
-        # Verify the reaction count crosses the 4+ threshold
-        hit_threshold = any(
-            reaction.count >= 4
-            for reaction in message.reactions
-            if trigger_rule == "any" or str(reaction.emoji) == "⭐"
-        )
+            # Verify the reaction count crosses the threshold
+            hit_threshold = any(
+                reaction.count >= StarboardConstants.REACTION_THRESHOLD
+                for reaction in message.reactions
+                if trigger_rule == StarboardConstants.TRIGGER_ANY or str(reaction.emoji) == StarboardConstants.DEFAULT_EMOJI
+            )
 
-        if not hit_threshold:
-            return
+            if not hit_threshold:
+                return
 
-        # Anti-duplication atomic lock
-        update_result = await self.collection.update_one(
-            {
-                "guild_id": payload.guild_id,
-                "starboard.posted_messages": {"$ne": message.id}
-            },
-            {
-                "$push": {
-                    "starboard.posted_messages": {
-                        "$each":  [message.id],
-                        "$slice": -150
+            # Anti-duplication atomic lock via DB
+            try:
+                update_result = await self.collection.update_one(
+                    {
+                        "guild_id": payload.guild_id,
+                        "starboard.posted_messages": {"$ne": message.id}
+                    },
+                    {
+                        "$push": {
+                            "starboard.posted_messages": {
+                                "$each":  [message.id],
+                                "$slice": -StarboardConstants.MAX_POSTED_HISTORY
+                            }
+                        }
                     }
-                }
-            }
-        )
+                )
+            except Exception as e:
+                logger.error(f"DB error during atomic update for message {message.id}: {e}")
+                return
 
-        # modified_count == 0 means the ID was already tracked — abort to prevent duplicate posts
-        if update_result.modified_count == 0:
-            return
+            # modified_count == 0 means already tracked — abort to prevent duplicates
+            if update_result.modified_count == 0:
+                self._posted_cache.add(message.id)
+                return
 
-        # FIX: Wrap the final send in error handling — channel may have been deleted or perms revoked
-        try:
-            target_channel = self.bot.get_channel(target_channel_id) or await self.bot.fetch_channel(target_channel_id)
-            await target_channel.send(view=StarboardPostView(message))
-        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-            return
+            # SECURITY FIX: Send with allowed_mentions=none to prevent ANY pings
+            try:
+                target_channel = self.bot.get_channel(target_channel_id) or await self.bot.fetch_channel(target_channel_id)
+                await target_channel.send(
+                    view=StarboardPostView(message),
+                    allowed_mentions=discord.AllowedMentions.none()
+                )
+                self._posted_cache.add(message.id)
+                logger.info(f"Starboarded message {message.id} from guild {payload.guild_id}")
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException) as e:
+                logger.warning(f"Failed to send starboard post for message {message.id}: {e}")
+                # Remove from posted_messages so it can be retried later
+                try:
+                    await self.collection.update_one(
+                        {"guild_id": payload.guild_id},
+                        {"$pull": {"starboard.posted_messages": message.id}}
+                    )
+                except Exception as db_err:
+                    logger.error(f"Failed to rollback posted_messages for {message.id}: {db_err}")
+                return
+
+        finally:
+            self._in_flight.discard(payload.message_id)
+
+    # ── Cleanup ────────────────────────────────
+
+    def cog_unload(self):
+        """Clean up caches when cog is unloaded."""
+        self._config_cache.clear()
+        self._posted_cache.clear()
+        self._in_flight.clear()
 
 
 async def setup(bot: commands.Bot):
