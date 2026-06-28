@@ -18,7 +18,7 @@ class AoTRGPT(commands.Cog):
 
     DATABASE_NAME = "silk_bot"
     COLLECTION_NAME = "Test data"
-    VECTOR_INDEX_NAME = "default"
+    VECTOR_INDEX_NAME = "vector_index"
     EMBEDDING_FIELD = "embedding"
     EMBEDDING_MODEL = "gemini-embedding-2"
     GENERATION_MODEL = "gemma-4-31b-it"
