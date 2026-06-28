@@ -49,6 +49,22 @@ class _KeyedLocks:
                     self._locks.pop(key, None)
 
 
+class _EmptyGenerationError(RuntimeError):
+    """Raised when Gemini returns HTTP 200 with no usable text.
+
+    The SDK does NOT raise an exception for this - finish_reason simply
+    isn't STOP (commonly MAX_TOKENS, sometimes SAFETY/RECITATION/OTHER) and
+    the candidate's content has no text part. Carrying finish_reason lets
+    the caller give a specific, actionable message instead of a generic
+    "try again" that will just reproduce the same failure on retry whenever
+    the cause is deterministic (e.g. token budget) rather than transient.
+    """
+
+    def __init__(self, finish_reason: Any, detail: str) -> None:
+        super().__init__(detail)
+        self.finish_reason = finish_reason
+
+
 class AoTRGPT(commands.Cog):
     """Database-grounded AoTR information assistant for prefix commands."""
 
@@ -69,7 +85,11 @@ class AoTRGPT(commands.Cog):
     VECTOR_SEARCH_MAX_TIME_MS = 15_000
 
     GENERATION_TEMPERATURE = 0.5
-    GENERATION_MAX_OUTPUT_TOKENS = 700
+    # Was 700 - too tight for "compare X and Y" style answers, which run
+    # long. If the model exhausts this before finishing, Gemini returns
+    # finish_reason=MAX_TOKENS with EMPTY text (no error raised), which is
+    # exactly what was happening here.
+    GENERATION_MAX_OUTPUT_TOKENS = 2048
 
     # Caps how many embed/generate calls are in flight across ALL users at
     # once, so a burst of concurrent `!info` calls can't blow through Gemini
@@ -176,6 +196,14 @@ class AoTRGPT(commands.Cog):
                 except asyncio.TimeoutError:
                     logger.warning("AoTRGPT !info timed out for user %s (%s)", ctx.author, ctx.author.id)
                     await ctx.reply(self.TIMEOUT_MESSAGE, mention_author=False)
+                except _EmptyGenerationError as exc:
+                    logger.warning(
+                        "AoTRGPT !info got an empty generation for user %s (%s): %s",
+                        ctx.author,
+                        ctx.author.id,
+                        exc,
+                    )
+                    await ctx.reply(self._message_for_empty_generation(exc.finish_reason), mention_author=False)
                 except Exception as exc:
                     await self._reply_failure(ctx, "!info", exc)
 
@@ -192,7 +220,7 @@ class AoTRGPT(commands.Cog):
 
         async with self._api_semaphore:
             response_text = await asyncio.to_thread(self._generate_response, generation_prompt)
-        return response_text or self.EMPTY_RESPONSE_MESSAGE
+        return response_text
 
     def _embed_prompt(self, prompt: str) -> list[float]:
         response = self.client.models.embed_content(
@@ -230,7 +258,22 @@ class AoTRGPT(commands.Cog):
             ),
         )
         text = (response.text or "").strip()
-        return self._clip_response(text)
+        if text:
+            return self._clip_response(text)
+
+        # response.text == "" is not an SDK error - it's a valid HTTP 200
+        # whose candidate has no text part. finish_reason on the candidate
+        # is the only way to know why (MAX_TOKENS / SAFETY / RECITATION /
+        # OTHER). The original code discarded this, so every empty answer
+        # looked identical and "try again" never fixed deterministic causes.
+        finish_reason = response.candidates[0].finish_reason if response.candidates else None
+        logger.warning(
+            "Gemini generate_content returned no text. finish_reason=%s prompt_feedback=%s usage=%s",
+            finish_reason,
+            getattr(response, "prompt_feedback", None),
+            getattr(response, "usage_metadata", None),
+        )
+        raise _EmptyGenerationError(finish_reason, f"empty generation (finish_reason={finish_reason})")
 
     def _build_grounded_prompt(self, user_prompt: str, context: str) -> str:
         return (
@@ -298,6 +341,17 @@ class AoTRGPT(commands.Cog):
     async def _safe_reply(self, ctx: commands.Context, message: str):
         safe_message = self._clip_response(discord.utils.escape_mentions(message))
         await ctx.reply(safe_message, mention_author=False)
+
+    def _message_for_empty_generation(self, finish_reason: Any) -> str:
+        reason = str(finish_reason or "")
+        if "MAX_TOKENS" in reason:
+            return (
+                "⚠️ The answer got cut off before it produced any visible text — it ran out of output budget. "
+                "Try asking about one item at a time instead of a broad comparison."
+            )
+        if any(flag in reason for flag in ("SAFETY", "RECITATION", "PROHIBITED", "BLOCKLIST")):
+            return "⚠️ Gemini withheld an answer for that question (content filtering). Try rephrasing it."
+        return self.EMPTY_RESPONSE_MESSAGE
 
     async def _reply_failure(self, ctx: commands.Context, context_label: str, exc: BaseException) -> None:
         """Log the full exception server-side; send only a generic message to Discord.
