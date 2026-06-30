@@ -4,11 +4,12 @@ import asyncio
 from discord.ext import commands
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
-#  Constants
+#  Constants & Utilities
 # ──────────────────────────────────────────────
 
 class StarboardConstants:
@@ -27,27 +28,32 @@ class StarboardConstants:
     EMBED_ACCENT_COLOR = discord.Color.from_rgb(255, 215, 0)
 
 
-# ──────────────────────────────────────────────
-#  Mention Sanitization Utility
-# ──────────────────────────────────────────────
+class BoundedSet:
+    """A memory-efficient set with a maximum capacity to prevent memory leaks."""
+    def __init__(self, maxsize: int):
+        self.maxsize = maxsize
+        self._cache = OrderedDict()
+
+    def add(self, item: int):
+        self._cache[item] = None
+        if len(self._cache) > self.maxsize:
+            self._cache.popitem(last=False)
+
+    def __contains__(self, item: int) -> bool:
+        return item in self._cache
+
+    def discard(self, item: int):
+        self._cache.pop(item, None)
+
+    def clear(self):
+        self._cache.clear()
+
 
 def sanitize_mentions(message: discord.Message) -> str:
     """
     Sanitizes message content to prevent any pings in starboard reposts.
-
-    Strategy:
-    1. Use discord.py's clean_content to convert <@id> mentions to @name format.
-    2. Insert zero-width space after @ in @everyone and @here to break Discord's
-       mention detection (these keywords ping even without the ID syntax).
-    3. Escape any remaining '@' that could be misinterpreted.
-
-    This ensures NO ONE gets pinged — mentions become plain text only.
     """
-    # Step 1: Get cleaned content (converts <@id> → @name, <@&id> → @rolename, etc.)
     content = message.clean_content or ""
-
-    # Step 2: Break @everyone and @here by inserting zero-width space after @
-    # These are case-insensitive in Discord, so we handle all variations
     content = content.replace("@everyone", "@\u200beveryone")
     content = content.replace("@here", "@\u200bhere")
     content = content.replace("@EVERYONE", "@\u200bEVERYONE")
@@ -55,8 +61,6 @@ def sanitize_mentions(message: discord.Message) -> str:
     content = content.replace("@Everyone", "@\u200bEveryone")
     content = content.replace("@Here", "@\u200bHere")
 
-    # Step 3: Also escape any remaining @everyone/@here with mixed casing
-    # Using case-insensitive approach for robustness
     import re
     content = re.sub(r'@everyone', '@\u200beveryone', content, flags=re.IGNORECASE)
     content = re.sub(r'@here', '@\u200bhere', content, flags=re.IGNORECASE)
@@ -74,6 +78,75 @@ def truncate_content(content: str, max_length: int = StarboardConstants.MAX_CONT
 # ──────────────────────────────────────────────
 #  Dashboard UI Components
 # ──────────────────────────────────────────────
+
+class StarboardSettingsModal(discord.ui.Modal):
+    def __init__(self, view: "StarboardConfigView"):
+        super().__init__(title="Starboard Advanced Settings")
+        self.config_view = view
+        
+        self.allowed_channels_input = discord.ui.TextInput(
+            label="Allowed Channel IDs",
+            placeholder="Comma-separated IDs (Leave blank for all)",
+            style=discord.TextStyle.paragraph,
+            required=False,
+            default=",".join(map(str, view.allowed_channels)) if view.allowed_channels else ""
+        )
+        self.add_item(self.allowed_channels_input)
+        
+        self.threshold_input = discord.ui.TextInput(
+            label="Reaction Threshold",
+            placeholder="e.g. 4",
+            style=discord.TextStyle.short,
+            required=True,
+            default=str(view.reaction_threshold)
+        )
+        self.add_item(self.threshold_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Process threshold
+        try:
+            threshold = int(self.threshold_input.value.strip())
+            if threshold < 1:
+                threshold = 1
+            self.config_view.reaction_threshold = threshold
+        except ValueError:
+            pass # Keep old threshold if input is invalid
+
+        # Process locked channels
+        raw_channels = self.allowed_channels_input.value.strip()
+        new_channels = []
+        if raw_channels:
+            # Replaces newlines to catch accidental enter presses
+            for part in raw_channels.replace("\n", ",").split(","):
+                part = part.strip()
+                if part.isdigit():
+                    new_channels.append(int(part))
+        
+        self.config_view.allowed_channels = new_channels
+
+        await self.config_view.save_to_db()
+        self.config_view.update_components()
+        await interaction.response.edit_message(view=self.config_view)
+
+
+class DashboardSettingsButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Advanced Settings",
+            style=discord.ButtonStyle.secondary,
+            custom_id="open_settings",
+            emoji="⚙️"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if not interaction.user or not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(
+                "\u274c This setup panel is restricted to administrators.", ephemeral=True
+            )
+
+        modal = StarboardSettingsModal(self.view)
+        await interaction.response.send_modal(modal)
+
 
 class DashboardButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
@@ -133,6 +206,9 @@ class StarboardConfigView(discord.ui.LayoutView):
         self.is_enabled = sb_data.get("is_enabled", False)
         self.channel_id = sb_data.get("channel_id", None)
         self.trigger_emoji = sb_data.get("trigger_emoji", StarboardConstants.TRIGGER_ANY)
+        
+        self.reaction_threshold = sb_data.get("reaction_threshold", StarboardConstants.REACTION_THRESHOLD)
+        self.allowed_channels = sb_data.get("allowed_channels", [])
 
         self.update_components()
 
@@ -152,15 +228,25 @@ class StarboardConfigView(discord.ui.LayoutView):
         rule_str    = (
             "\u2b50 Stars Only"
             if self.trigger_emoji == StarboardConstants.DEFAULT_EMOJI
-            else "\ud83c\udf0e Any Emoji (4+ Count)"
+            else "\ud83c\udf0e Any Emoji"
         )
+
+        # Build allowed channels str safely to avoid breaking discord text lengths
+        if self.allowed_channels:
+            channels_str = ", ".join(f"<#{c}>" for c in self.allowed_channels)
+            if len(channels_str) > 500:
+                channels_str = channels_str[:495] + "..."
+        else:
+            channels_str = "All Channels"
 
         dashboard_text = (
             f"## \u2b50 S.I.L.K. Starboard System\n\n"
             f"### Live Configuration Status\n"
             f"* **System Power:** {status_str}\n"
             f"* **Target Output Channel:** {channel_str}\n"
-            f"* **Reaction Trigger Filter:** {rule_str}\n\n"
+            f"* **Reaction Trigger Filter:** {rule_str}\n"
+            f"* **Reaction Threshold:** {self.reaction_threshold} Reactions\n"
+            f"* **Allowed Channels:** {channels_str}\n\n"
             f"> Use the interface below to update your starboard settings."
         )
 
@@ -188,6 +274,9 @@ class StarboardConfigView(discord.ui.LayoutView):
             style=discord.ButtonStyle.primary,
             custom_id="toggle_emoji"
         ))
+        
+        row_buttons.add_item(DashboardSettingsButton())
+        
         self.add_item(row_buttons)
 
         # Dropdown selectors must also reside within an ActionRow
@@ -201,6 +290,8 @@ class StarboardConfigView(discord.ui.LayoutView):
             "starboard.is_enabled":    self.is_enabled,
             "starboard.channel_id":    self.channel_id,
             "starboard.trigger_emoji": self.trigger_emoji,
+            "starboard.reaction_threshold": self.reaction_threshold,
+            "starboard.allowed_channels": self.allowed_channels,
         }
         try:
             await self.cog.collection.update_one(
@@ -208,6 +299,8 @@ class StarboardConfigView(discord.ui.LayoutView):
                 {"$set": payload},
                 upsert=True
             )
+            # FIX: Forcefully invalidate the cog cache immediately to sync configurations
+            self.cog._invalidate_cache(self.guild_id)
         except Exception as e:
             logger.error(f"Failed to save starboard config for guild {self.guild_id}: {e}")
             raise
@@ -285,8 +378,10 @@ class Starboard(commands.Cog):
         # In-memory caches for efficiency
         # Maps guild_id -> (config_dict, expiry_timestamp)
         self._config_cache: Dict[int, tuple[dict, float]] = {}
-        # Set of message IDs already posted (avoids DB + API calls)
-        self._posted_cache: set[int] = set()
+        
+        # Set of message IDs already posted (avoids DB + API calls) bounded to prevent memory leaks
+        self._posted_cache = BoundedSet(5000)
+        
         # Set of message IDs currently being processed (prevents race conditions)
         self._in_flight: set[int] = set()
 
@@ -338,7 +433,9 @@ class Starboard(commands.Cog):
                     "is_enabled":     False,
                     "channel_id":     None,
                     "trigger_emoji":  StarboardConstants.TRIGGER_ANY,
-                    "posted_messages": []
+                    "posted_messages": [],
+                    "reaction_threshold": StarboardConstants.REACTION_THRESHOLD,
+                    "allowed_channels": []
                 }
             }
             try:
@@ -409,6 +506,11 @@ class Starboard(commands.Cog):
         if payload.channel_id == target_channel_id:
             return
 
+        # NEW CHECK: Process locked allowed channels filter
+        allowed_channels = sb_data.get("allowed_channels", [])
+        if allowed_channels and payload.channel_id not in allowed_channels:
+            return
+
         # Check emoji filter
         trigger_rule = sb_data.get("trigger_emoji", StarboardConstants.TRIGGER_ANY)
         if trigger_rule == StarboardConstants.DEFAULT_EMOJI and str(payload.emoji) != StarboardConstants.DEFAULT_EMOJI:
@@ -426,9 +528,11 @@ class Starboard(commands.Cog):
                 logger.debug(f"Failed to fetch message {payload.message_id}: {e}")
                 return
 
-            # Verify the reaction count crosses the threshold
+            reaction_threshold = sb_data.get("reaction_threshold", StarboardConstants.REACTION_THRESHOLD)
+
+            # Verify the reaction count crosses the configuration threshold
             hit_threshold = any(
-                reaction.count >= StarboardConstants.REACTION_THRESHOLD
+                reaction.count >= reaction_threshold
                 for reaction in message.reactions
                 if trigger_rule == StarboardConstants.TRIGGER_ANY or str(reaction.emoji) == StarboardConstants.DEFAULT_EMOJI
             )
