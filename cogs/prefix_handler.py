@@ -4,15 +4,17 @@ import re
 import asyncio
 
 # --- UI COMPONENTS V2 DASHBOARD FACTORY ---
-def build_dashboard_view(handler, guild_id: int) -> discord.ui.View:
+def build_dashboard_view(handler, guild_id: int) -> discord.ui.LayoutView:
     """
     Constructs the Settings Dashboard.
-    Using standard discord.ui.View ensures interactive elements (Dropdowns, Buttons)
-    are properly wrapped into ActionRows by the library, preventing API 400 errors, 
-    while still supporting the new Components V2 layout items.
+    Components V2 items (Container, TextDisplay) only work inside a
+    discord.ui.LayoutView -- a plain discord.ui.View rejects them outright.
+    LayoutView also doesn't auto-wrap loose buttons/selects into ActionRows
+    the way View does, so each interactive item needs its own explicit
+    discord.ui.ActionRow.
     """
-    view = discord.ui.View(timeout=300)
-    
+    view = discord.ui.LayoutView(timeout=300)
+
     # 1. Base Container & Text Block
     container = discord.ui.Container(accent_color=discord.Color(0x3498DB))
 
@@ -22,63 +24,66 @@ def build_dashboard_view(handler, guild_id: int) -> discord.ui.View:
     # Build responsive status text
     if current_locks:
         ch_mentions = ", ".join(f"<#{ch_id}>" for ch_id in current_locks)
-        status_text = f"🔒 **Currently Locked To:**\n{ch_mentions}"
+        status_text = f"🔒 **Currently Locked To:**
+{ch_mentions}"
     else:
-        status_text = "🔓 **Currently Unlocked:**\nPrefix commands are allowed in ALL channels."
+        status_text = "🔓 **Currently Unlocked:**
+Prefix commands are allowed in ALL channels."
 
-    # Add the text to the container, and the container to the view
     container.add_item(discord.ui.TextDisplay(
-        "### ⚙️ S.I.L.K. Prefix Configuration\n"
-        "Select up to 25 channels below where the `?` prefix should be active.\n\n"
+        "### ⚙️ S.I.L.K. Prefix Configuration
+"
+        "Select up to 25 channels below where the `?` prefix should be active.
+
+"
         f"{status_text}"
     ))
     view.add_item(container)
 
     # 2. Native Dropdown Component (Interactive)
+    select_kwargs = {}
+    if current_locks:
+        # Pre-select currently-locked channels so reopening the dashboard
+        # doesn't wipe them out the moment you only pick a channel to add.
+        select_kwargs["default_values"] = [discord.Object(id=ch_id) for ch_id in current_locks]
+
     select = discord.ui.ChannelSelect(
         channel_types=[discord.ChannelType.text],
         placeholder="Select allowed command channels...",
         min_values=1,
-        max_values=25
+        max_values=25,
+        **select_kwargs,
     )
 
     async def select_callback(interaction: discord.Interaction):
-        # Security: Prevent unauthorized users from clicking an old or active menu
         if not interaction.user.guild_permissions.manage_guild:
             return await interaction.response.send_message("❌ Unauthorized: You need Manage Server permissions.", ephemeral=True)
-        
-        # Convert selected channels into an O(1) set for blazing-fast lookups
         selected_ids = {channel.id for channel in select.values}
         await handler.update_guild_locks(guild_id, selected_ids)
-        
-        # Dynamically re-render the View with the newly updated locks
         new_view = build_dashboard_view(handler, guild_id)
         await interaction.response.edit_message(view=new_view)
 
     select.callback = select_callback
-    view.add_item(select)
+    view.add_item(discord.ui.ActionRow(select))
 
     # 3. Reset / Unlock Button (Interactive)
     reset_btn = discord.ui.Button(
-        label="Allow in All Channels", 
+        label="Allow in All Channels",
         style=discord.ButtonStyle.danger
     )
 
     async def reset_callback(interaction: discord.Interaction):
-        # Security validation for button clicks
         if not interaction.user.guild_permissions.manage_guild:
             return await interaction.response.send_message("❌ Unauthorized: You need Manage Server permissions.", ephemeral=True)
-            
         await handler.clear_guild_locks(guild_id)
-        
-        # Dynamically re-render the View reflecting the unlock
         new_view = build_dashboard_view(handler, guild_id)
         await interaction.response.edit_message(view=new_view)
 
     reset_btn.callback = reset_callback
-    view.add_item(reset_btn)
+    view.add_item(discord.ui.ActionRow(reset_btn))
 
     return view
+
 
 
 # --- CORE COG ROUTING & CACHE ---
@@ -173,3 +178,28 @@ class PrefixHandler(commands.Cog):
                 getting_items = trade_match[1].strip()
                 
                 if giving_items and getting_items:
+                    # Fire async task concurrently
+                    asyncio.create_task(
+                        trade_cog.execute_trade_compare(
+                            destination=message.channel,
+                            user=message.author,
+                            giving=giving_items,
+                            getting=getting_items
+                        )
+                    )
+        else:
+            # Route to Value Lookup Module
+            value_cog = self.bot.get_cog("AoTRValue")
+            if value_cog:
+                # Fire async task concurrently
+                asyncio.create_task(
+                    value_cog.execute_value_lookup(
+                        destination=message.channel,
+                        user=message.author,
+                        guild=message.guild,
+                        item=raw_content
+                    )
+                )
+
+async def setup(bot):
+    await bot.add_cog(PrefixHandler(bot))
